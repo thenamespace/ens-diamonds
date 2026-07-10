@@ -203,6 +203,41 @@ contract CofferEscrow {
         if (!ok) revert TransferFailed();
     }
 
+    function finalize(uint256 poolId) external nonReentrant returns (address safe) {
+        Pool storage p = pools[poolId];
+        if (status(poolId) != PoolStatus.Funded) revert WrongStatus();
+        if (deposits[poolId][msg.sender] == 0) revert NotContributor();
+
+        address[] memory owners = contributors[poolId];
+        if (owners.length < p.threshold) revert BelowThreshold();
+
+        bytes memory initializer = abi.encodeWithSelector(
+            ISafe.setup.selector,
+            owners,
+            uint256(p.threshold),
+            address(0), // to
+            bytes(""), // data
+            safeFallbackHandler,
+            address(0), // paymentToken
+            uint256(0), // payment
+            payable(address(0)) // paymentReceiver
+        );
+
+        // interaction 1: deploy the Safe via the trusted factory (guarded by nonReentrant)
+        safe = ISafeProxyFactory(safeProxyFactory).createProxyWithNonce(safeSingleton, initializer, poolId);
+        if (safe == address(0)) revert SafeDeployFailed();
+
+        // effect: mark finalized before sending funds (status becomes Finalized)
+        p.safe = safe;
+
+        uint96 amount = p.targetAmount;
+        emit PoolFinalized(poolId, safe, owners, p.threshold, amount);
+
+        // interaction 2: fund the Safe
+        (bool ok,) = safe.call{value: amount}("");
+        if (!ok) revert TransferFailed();
+    }
+
     function _removeContributor(uint256 poolId, address member) internal {
         address[] storage arr = contributors[poolId];
         uint256 len = arr.length;

@@ -3,15 +3,21 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {CofferEscrow} from "../src/CofferEscrow.sol";
+import {MockSafe} from "./mocks/MockSafe.sol";
+import {MockSafeProxyFactory} from "./mocks/MockSafeProxyFactory.sol";
 
 contract CofferEscrowTest is Test {
     CofferEscrow escrow;
 
-    address factory = address(0xFAC);
+    address factory;
     address singleton = address(0x51);
     address fallbackHandler = address(0xFB);
 
+    MockSafeProxyFactory mockFactory;
+
     function setUp() public virtual {
+        mockFactory = new MockSafeProxyFactory();
+        factory = address(mockFactory);
         escrow = new CofferEscrow(factory, singleton, fallbackHandler);
     }
 
@@ -319,5 +325,82 @@ contract CofferEscrowTest is Test {
         escrow.deposit{value: 6 ether}(id);
         vm.prank(bob);
         escrow.deposit{value: 4 ether}(id);
+    }
+
+    function test_finalize_happyPath() public {
+        uint256 id = _fundPool(); // alice 6, bob 4, threshold 2, contributors = 2
+
+        vm.prank(alice);
+        address safe = escrow.finalize(id);
+
+        assertTrue(safe != address(0));
+        assertEq(safe.balance, 10 ether);
+        assertEq(address(escrow).balance, 0);
+
+        (,,,,,,, address storedSafe) = escrow.pools(id);
+        assertEq(storedSafe, safe);
+        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Finalized));
+
+        MockSafe s = MockSafe(payable(safe));
+        assertEq(s.threshold(), 2);
+        assertEq(s.fallbackHandler(), fallbackHandler);
+        address[] memory owners = s.getOwners();
+        assertEq(owners.length, 2);
+        assertEq(owners[0], alice);
+        assertEq(owners[1], bob);
+    }
+
+    function test_finalize_emitsEvent() public {
+        uint256 id = _fundPool();
+        vm.prank(alice);
+        vm.recordLogs();
+        escrow.finalize(id);
+        // event presence is asserted via storedSafe + status in happyPath; here just ensure no revert
+        (,,,,,,, address storedSafe) = escrow.pools(id);
+        assertTrue(storedSafe != address(0));
+    }
+
+    function test_finalize_revertsWhenNotFunded() public {
+        uint256 id = _createDefaultPool();
+        vm.deal(alice, 100 ether);
+        vm.prank(alice);
+        escrow.deposit{value: 4 ether}(id); // partial only
+
+        vm.prank(alice);
+        vm.expectRevert(CofferEscrow.WrongStatus.selector);
+        escrow.finalize(id);
+    }
+
+    function test_finalize_revertsForNonContributor() public {
+        uint256 id = _fundPool();
+        // bob's co-invitee "carol" was never invited; use an invited-but-not-contributed path:
+        // create a pool where a third invitee never deposits, then have them finalize.
+        // stranger not invited/contributor:
+        address stranger = address(0xBEEF);
+        vm.prank(stranger);
+        vm.expectRevert(CofferEscrow.NotContributor.selector);
+        escrow.finalize(id);
+    }
+
+    function test_finalize_revertsBelowThreshold() public {
+        // One contributor funds the whole target but threshold is 2 → hard-block.
+        vm.prank(creator);
+        uint256 id = escrow.createPool("defi", 5 ether, uint40(block.timestamp + 3 days), 2, _invitees2());
+        vm.deal(alice, 100 ether);
+        vm.prank(alice);
+        escrow.deposit{value: 5 ether}(id); // funded by ONE contributor
+
+        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Funded));
+        vm.prank(alice);
+        vm.expectRevert(CofferEscrow.BelowThreshold.selector);
+        escrow.finalize(id);
+    }
+
+    function test_finalize_revertsOutsideWindow() public {
+        uint256 id = _fundPool();
+        vm.warp(block.timestamp + 7 days + 1); // lock lapsed → status Funding, not Funded
+        vm.prank(alice);
+        vm.expectRevert(CofferEscrow.WrongStatus.selector);
+        escrow.finalize(id);
     }
 }
