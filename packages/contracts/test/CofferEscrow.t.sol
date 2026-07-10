@@ -403,4 +403,23 @@ contract CofferEscrowTest is Test {
         vm.expectRevert(CofferEscrow.WrongStatus.selector);
         escrow.finalize(id);
     }
+
+    function test_ownershipBps_proportionalToTarget() public {
+        uint256 id = _createDefaultPool(); // target 10 ETH
+        vm.deal(alice, 100 ether);
+        vm.deal(bob, 100 ether);
+        vm.prank(alice);
+        escrow.deposit{value: 2.5 ether}(id); // 25%
+        vm.prank(bob);
+        escrow.deposit{value: 5 ether}(id); // 50%
+
+        assertEq(escrow.ownershipBps(id, alice), 2500);
+        assertEq(escrow.ownershipBps(id, bob), 5000);
+        assertEq(escrow.ownershipBps(id, creator), 0);
+    }
+
+    function test_ownershipBps_sumsTo10000WhenFunded() public {
+        uint256 id = _fundPool(); // alice 6 (60%), bob 4 (40%)
+        assertEq(escrow.ownershipBps(id, alice) + escrow.ownershipBps(id, bob), 10000);
+    }
 }
