@@ -6,4 +6,6 @@ interface ISafeProxyFactory {
     function createProxyWithNonce(address singleton, bytes memory initializer, uint256 saltNonce)
         external
         returns (address proxy);
+
+    function proxyCreationCode() external view returns (bytes memory);
 }
