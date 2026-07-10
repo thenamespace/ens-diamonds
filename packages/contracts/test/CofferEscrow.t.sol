@@ -6,6 +6,7 @@ import {CofferEscrow} from "../src/CofferEscrow.sol";
 import {MockSafe} from "./mocks/MockSafe.sol";
 import {MockSafeProxyFactory} from "./mocks/MockSafeProxyFactory.sol";
 import {ISafe} from "../src/interfaces/ISafe.sol";
+import {ReentrantAttacker} from "./mocks/ReentrantAttacker.sol";
 
 contract CofferEscrowTest is Test {
     CofferEscrow escrow;
@@ -469,5 +470,36 @@ contract CofferEscrowTest is Test {
 
     function test_ownershipBps_returnsZeroForNonexistentPool() public view {
         assertEq(escrow.ownershipBps(999, alice), 0);
+    }
+
+    function test_withdraw_isReentrancySafe() public {
+        // Pool holds BOTH the attacker's and an honest member's funds, so a successful
+        // reentrant withdraw would let the attacker drain the honest member. The pool
+        // stays in Funding (total < target) so withdraw is allowed.
+        ReentrantAttacker attacker = new ReentrantAttacker(escrow);
+        address[] memory inv = new address[](2);
+        inv[0] = address(attacker);
+        inv[1] = alice;
+        vm.prank(creator);
+        uint256 id = escrow.createPool("defi", 10 ether, uint40(block.timestamp + 3 days), 1, inv);
+
+        vm.deal(address(this), 100 ether);
+        attacker.depositTo{value: 3 ether}(id);
+        vm.deal(alice, 100 ether);
+        vm.prank(alice);
+        escrow.deposit{value: 3 ether}(id);
+        assertEq(address(escrow).balance, 6 ether);
+
+        // Attacker withdraws; its receive() attempts to re-enter withdraw(). The
+        // nonReentrant guard blocks the nested call (and CEI already zeroed the deposit),
+        // so the attacker recovers exactly its own 3 ETH — no double-spend — and the
+        // honest member's 3 ETH is untouched.
+        attacker.triggerWithdraw();
+
+        assertTrue(attacker.reentered(), "reentry was not attempted");
+        assertEq(escrow.deposits(id, address(attacker)), 0);
+        assertEq(address(attacker).balance, 3 ether, "attacker extracted more than its deposit");
+        assertEq(address(escrow).balance, 3 ether, "honest member's funds were drained");
+        assertEq(escrow.deposits(id, alice), 3 ether, "honest member's ledger changed");
     }
 }

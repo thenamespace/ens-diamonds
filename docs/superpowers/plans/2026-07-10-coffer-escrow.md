@@ -1252,31 +1252,43 @@ import {ReentrantAttacker} from "./mocks/ReentrantAttacker.sol";
 ```
 ```solidity
     function test_withdraw_isReentrancySafe() public {
-        // Pool with the attacker as an invitee.
+        // Pool holds BOTH the attacker's and an honest member's funds, so a successful
+        // reentrant withdraw would let the attacker drain the honest member. The pool
+        // stays in Funding (total < target) so withdraw is allowed.
         ReentrantAttacker attacker = new ReentrantAttacker(escrow);
-        address[] memory inv = new address[](1);
+        address[] memory inv = new address[](2);
         inv[0] = address(attacker);
+        inv[1] = alice;
         vm.prank(creator);
         uint256 id = escrow.createPool("defi", 10 ether, uint40(block.timestamp + 3 days), 1, inv);
 
         vm.deal(address(this), 100 ether);
         attacker.depositTo{value: 3 ether}(id);
+        vm.deal(alice, 100 ether);
+        vm.prank(alice);
+        escrow.deposit{value: 3 ether}(id);
+        assertEq(address(escrow).balance, 6 ether);
 
-        // The reentrant withdraw inside receive() reverts (guard), which makes the
-        // outer ETH transfer fail, so the whole withdraw reverts with TransferFailed.
-        vm.expectRevert(CofferEscrow.TransferFailed.selector);
+        // Attacker withdraws; its receive() attempts to re-enter withdraw(). The
+        // nonReentrant guard blocks the nested call (and CEI already zeroed the deposit),
+        // so the attacker recovers exactly its own 3 ETH — no double-spend — and the
+        // honest member's 3 ETH is untouched.
         attacker.triggerWithdraw();
 
-        // State unchanged: funds still escrowed, deposit intact.
-        assertEq(escrow.deposits(id, address(attacker)), 3 ether);
-        assertEq(address(escrow).balance, 3 ether);
+        assertTrue(attacker.reentered(), "reentry was not attempted");
+        assertEq(escrow.deposits(id, address(attacker)), 0);
+        assertEq(address(attacker).balance, 3 ether, "attacker extracted more than its deposit");
+        assertEq(address(escrow).balance, 3 ether, "honest member's funds were drained");
+        assertEq(escrow.deposits(id, alice), 3 ether, "honest member's ledger changed");
     }
 ```
 
-- [ ] **Step 3: Run test to verify it fails (or passes) meaningfully**
+> **Plan correction:** an earlier draft of this test expected `withdraw` to revert with `TransferFailed`. That was wrong about EVM semantics — `ReentrantAttacker.receive()` wraps its reentrant call in `try/catch {}`, which swallows the guard's revert, so the outer `.call` succeeds and `withdraw` completes. The corrected test above proves the real property: reentry is *attempted* (`reentered == true`) but the guard + CEI prevent any double-spend or cross-member drain.
+
+- [ ] **Step 3: Run test to verify it passes**
 
 Run: `forge test --match-test test_withdraw_isReentrancySafe -vv`
-Expected: PASS — the guard already exists (Task 6). This test locks the behavior in. If it FAILS, the guard is broken; fix `nonReentrant`/CEI before proceeding.
+Expected: PASS — the guard already exists (Task 6); this test locks the behavior in. If it FAILS, the guard/CEI is broken; fix before proceeding.
 
 - [ ] **Step 4: Commit**
 
