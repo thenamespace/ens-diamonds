@@ -238,6 +238,10 @@ contract CofferEscrow {
         if (!ok) revert TransferFailed();
     }
 
+    function ownershipBps(uint256 poolId, address member) external view returns (uint256) {
+        return uint256(deposits[poolId][member]) * 10_000 / pools[poolId].targetAmount;
+    }
+
     function _removeContributor(uint256 poolId, address member) internal {
         address[] storage arr = contributors[poolId];
         uint256 len = arr.length;
