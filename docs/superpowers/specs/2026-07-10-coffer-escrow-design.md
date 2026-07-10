@@ -23,6 +23,21 @@ These were decided during brainstorming and are final for the Phase-1 freeze:
 | Final-gap fill (finding B) | Strict MIN vs exact-gap | **Allow exact-gap deposit:** `msg.value >= MIN_CONTRIBUTION` OR `msg.value == remaining-to-target` OR caller is topping up an existing deposit. |
 | Safe fallback handler (addition) | Include or omit | **Include** the canonical `CompatibilityFallbackHandler` in Safe setup (matches the official Safe UI; required for EIP-1271 signature validation). Added as a third constructor immutable. |
 
+### 2.1 Post-security-review hardening (added after implementation review)
+
+A security review of the completed contract produced two MEDIUM findings and minor items. The following changes were made and re-tested before freeze:
+
+| Change | Finding | Choice |
+|---|---|---|
+| Safe-address squat resistance | ① `finalize` griefing | **Adopt-existing Safe.** `finalize` computes the deterministic Safe address (`saltNonce = poolId`) and, if a contract already exists there, adopts and funds it instead of reverting. Safe because the CREATE2 salt binds `keccak256(initializer)`, so any code at that address must have the intended owner set. Neutralizes front-run/pre-deploy squatting while preserving deterministic addressing. Requires `proxyCreationCode()` on the factory interface and a `_computeSafeAddress` helper. Validated against the real factory in the fork test (`finalize` reverts `SafeDeployFailed` if the prediction ever mismatches). |
+| Owner-count bound | ② `finalize` gas-DoS | **`MAX_OWNERS = 50`.** `createPool` reverts `TooManyOwners` if `invitees.length + 1 > MAX_OWNERS`, keeping the contributor set — and thus the Safe deployment and all loops — bounded. Consistent with the product's 2–20-member scope. |
+| `ownershipBps` guard | ④ div-by-zero | Returns `0` when `targetAmount == 0` (nonexistent pool) instead of panicking. |
+
+**Auditor notes (accepted / by-design, no code change):**
+- **Unreachable threshold (finding ③):** `threshold` may be set as high as `invitees.length + 1`; if the creator never deposits, `finalize` can be permanently `BelowThreshold`. Funds remain withdrawable after the lock lapses. This is the intended hard-block behavior (§2 threshold-shortfall decision) and is surfaced by the UI warnings in product spec §7.3.
+- **`finalize` CEI ordering (finding ⑥):** `p.safe` is set after the external factory call. Assessed safe — the whole function is `nonReentrant`, `deposit` is status-gated (`Funded` blocks it) and moves no ETH out, and a failed fund transfer reverts atomically (no finalized-but-unfunded state).
+- **Force-fed ETH (finding ⑦):** ETH sent via `selfdestruct` is unrecoverable (no sweep, no admin). Accepted under the immutable/no-admin design.
+
 ## 3. Contract shape
 
 - Solidity `^0.8.24`, built/tested with Foundry.
@@ -64,7 +79,10 @@ uint256 public poolCount;
 
 uint256 public constant EXECUTION_WINDOW = 7 days;
 uint96  public constant MIN_CONTRIBUTION = 0.01 ether;
+uint256 public constant MAX_OWNERS = 50;   // §2.1 hardening: bounds contributor set / Safe owners
 ```
+
+Errors (custom): `InvalidTarget`, `InvalidDeadline`, `LabelTooShort`, `InvalidThreshold`, `TooManyOwners`, `DuplicateInvitee`, `NotInvited`, `WrongStatus`, `ZeroValue`, `BelowMinimum`, `Overshoot`, `NoDeposit`, `WithdrawLocked`, `NotContributor`, `BelowThreshold`, `SafeDeployFailed`, `TransferFailed`, `Reentrancy`.
 
 ## 4. State machine
 
@@ -105,15 +123,15 @@ Consequences:
 - Emits `Withdrawn(poolId, member, amount, totalDeposited)`.
 
 ### 5.4 `finalize(uint256 poolId) → address safe`
-- Requires: `status == Funded`; `contributors[poolId].length >= threshold` (hard-block).
-- Deploys a Safe via `SafeProxyFactory.createProxyWithNonce(safeSingleton, initializer, saltNonce = poolId)`, where `initializer = Safe.setup(owners = contributors[poolId], threshold = pool.threshold, to = 0, data = 0x, fallbackHandler = safeFallbackHandler, paymentToken = 0, payment = 0, paymentReceiver = 0)` — no modules.
-- Transfers exactly `targetAmount` to the Safe in the same tx (revert on failure).
-- Sets `pool.safe = safe` (status becomes Finalized). Guarded.
+- Requires: `status == Funded`; caller is a contributor (`deposits[poolId][caller] > 0`, else `NotContributor`); `contributors[poolId].length >= threshold` (hard-block).
+- Builds `initializer = Safe.setup(owners = contributors[poolId], threshold = pool.threshold, to = 0, data = 0x, fallbackHandler = safeFallbackHandler, paymentToken = 0, payment = 0, paymentReceiver = 0)` — no modules — and the deterministic address via `_computeSafeAddress(initializer, poolId)`.
+- **Adopt-existing (§2.1 hardening):** if no contract exists at the predicted address, deploy via `SafeProxyFactory.createProxyWithNonce(safeSingleton, initializer, poolId)` and assert the returned address equals the prediction (`SafeDeployFailed` otherwise). If a contract already exists there, adopt it (it is provably the intended Safe — the salt binds the initializer).
+- Sets `pool.safe = safe` (status becomes Finalized), then transfers exactly `targetAmount` to the Safe (revert on failure). Guarded.
 - Emits `PoolFinalized(poolId, safe, contributors, threshold, amount)`.
 
 ### 5.5 Views
 - `status(uint256 poolId) → PoolStatus` — per §4.
-- `ownershipBps(uint256 poolId, address member) → uint256` = `deposits[poolId][member] * 10_000 / targetAmount`. Sums to 10_000 once fully funded.
+- `ownershipBps(uint256 poolId, address member) → uint256` = `deposits[poolId][member] * 10_000 / targetAmount`; returns `0` when `targetAmount == 0` (nonexistent pool). Sums to 10_000 once fully funded.
 - `getContributors(uint256 poolId) → (address[], uint96[])`.
 
 ## 6. Events
