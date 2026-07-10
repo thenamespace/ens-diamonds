@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {CofferEscrow} from "../src/CofferEscrow.sol";
 import {MockSafe} from "./mocks/MockSafe.sol";
 import {MockSafeProxyFactory} from "./mocks/MockSafeProxyFactory.sol";
+import {ISafe} from "../src/interfaces/ISafe.sol";
 
 contract CofferEscrowTest is Test {
     CofferEscrow escrow;
@@ -421,5 +422,52 @@ contract CofferEscrowTest is Test {
     function test_ownershipBps_sumsTo10000WhenFunded() public {
         uint256 id = _fundPool(); // alice 6 (60%), bob 4 (40%)
         assertEq(escrow.ownershipBps(id, alice) + escrow.ownershipBps(id, bob), 10000);
+    }
+
+    function test_finalize_adoptsPreExistingSquattedSafe() public {
+        uint256 id = _fundPool(); // contributors [alice, bob], threshold 2
+
+        // Reconstruct the exact initializer finalize will use, and squat the address.
+        address[] memory owners = new address[](2);
+        owners[0] = alice;
+        owners[1] = bob;
+        bytes memory initializer = abi.encodeWithSelector(
+            ISafe.setup.selector,
+            owners,
+            uint256(2),
+            address(0),
+            bytes(""),
+            fallbackHandler,
+            address(0),
+            uint256(0),
+            payable(address(0))
+        );
+        address squatted = mockFactory.createProxyWithNonce(singleton, initializer, id);
+
+        // finalize must ADOPT the pre-existing Safe and fund it, not revert.
+        vm.prank(alice);
+        address safe = escrow.finalize(id);
+        assertEq(safe, squatted, "did not adopt the squatted safe");
+        assertEq(safe.balance, 10 ether);
+        assertEq(address(escrow).balance, 0);
+        (,,,,,,, address storedSafe) = escrow.pools(id);
+        assertEq(storedSafe, safe);
+        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Finalized));
+    }
+
+    function test_createPool_revertsAboveMaxOwners() public {
+        // MAX_OWNERS invitees + creator = MAX_OWNERS + 1 > MAX_OWNERS → revert
+        uint256 n = escrow.MAX_OWNERS();
+        address[] memory many = new address[](n);
+        for (uint256 i = 0; i < n; i++) {
+            many[i] = address(uint160(0x2000 + i));
+        }
+        vm.prank(creator);
+        vm.expectRevert(CofferEscrow.TooManyOwners.selector);
+        escrow.createPool("defi", 1 ether, uint40(block.timestamp + 1 days), 1, many);
+    }
+
+    function test_ownershipBps_returnsZeroForNonexistentPool() public view {
+        assertEq(escrow.ownershipBps(999, alice), 0);
     }
 }

@@ -31,6 +31,7 @@ contract CofferEscrow {
     // --------------------------- Constants ----------------------------------
     uint256 public constant EXECUTION_WINDOW = 7 days;
     uint96 public constant MIN_CONTRIBUTION = 0.01 ether;
+    uint256 public constant MAX_OWNERS = 50;
 
     // --------------------------- Immutables ---------------------------------
     address public immutable safeProxyFactory;
@@ -68,6 +69,7 @@ contract CofferEscrow {
     error InvalidDeadline();
     error LabelTooShort();
     error InvalidThreshold();
+    error TooManyOwners();
     error DuplicateInvitee();
     error NotInvited();
     error WrongStatus();
@@ -112,7 +114,6 @@ contract CofferEscrow {
     }
 
     /// @notice Contributor addresses and their current deposit amounts.
-    /// Implemented in the skeleton so test files referencing it always compile.
     function getContributors(uint256 poolId) external view returns (address[] memory addrs, uint96[] memory amounts) {
         addrs = contributors[poolId];
         amounts = new uint96[](addrs.length);
@@ -132,6 +133,7 @@ contract CofferEscrow {
         if (fundingDeadline <= block.timestamp) revert InvalidDeadline();
         if (bytes(label).length < 3) revert LabelTooShort();
         if (threshold < 1 || threshold > invitees.length + 1) revert InvalidThreshold();
+        if (invitees.length + 1 > MAX_OWNERS) revert TooManyOwners();
 
         poolId = poolCount++;
         Pool storage p = pools[poolId];
@@ -223,8 +225,19 @@ contract CofferEscrow {
             payable(address(0)) // paymentReceiver
         );
 
-        // interaction 1: deploy the Safe via the trusted factory (guarded by nonReentrant)
-        safe = ISafeProxyFactory(safeProxyFactory).createProxyWithNonce(safeSingleton, initializer, poolId);
+        // Deterministic Safe address (saltNonce = poolId). Because the salt binds
+        // keccak256(initializer), any contract already at this address must have been
+        // deployed via the factory with this exact owners/threshold/handler setup. So
+        // if a squatter front-ran us and deployed it, we adopt it instead of reverting.
+        // This neutralizes the address-squatting griefing vector while preserving
+        // deterministic addressing. Verified against the real factory in the fork test.
+        address predicted = _computeSafeAddress(initializer, poolId);
+        if (predicted.code.length == 0) {
+            safe = ISafeProxyFactory(safeProxyFactory).createProxyWithNonce(safeSingleton, initializer, poolId);
+            if (safe != predicted) revert SafeDeployFailed();
+        } else {
+            safe = predicted;
+        }
         if (safe == address(0)) revert SafeDeployFailed();
 
         // effect: mark finalized before sending funds (status becomes Finalized)
@@ -233,13 +246,26 @@ contract CofferEscrow {
         uint96 amount = p.targetAmount;
         emit PoolFinalized(poolId, safe, owners, p.threshold, amount);
 
-        // interaction 2: fund the Safe
+        // interaction: fund the Safe
         (bool ok,) = safe.call{value: amount}("");
         if (!ok) revert TransferFailed();
     }
 
+    /// @dev Replicates SafeProxyFactory.createProxyWithNonce's CREATE2 address derivation.
+    function _computeSafeAddress(bytes memory initializer, uint256 saltNonce) internal view returns (address) {
+        bytes32 salt = keccak256(abi.encodePacked(keccak256(initializer), saltNonce));
+        bytes32 initCodeHash = keccak256(
+            abi.encodePacked(
+                ISafeProxyFactory(safeProxyFactory).proxyCreationCode(), uint256(uint160(safeSingleton))
+            )
+        );
+        return address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), safeProxyFactory, salt, initCodeHash)))));
+    }
+
     function ownershipBps(uint256 poolId, address member) external view returns (uint256) {
-        return uint256(deposits[poolId][member]) * 10_000 / pools[poolId].targetAmount;
+        uint96 target = pools[poolId].targetAmount;
+        if (target == 0) return 0;
+        return uint256(deposits[poolId][member]) * 10_000 / target;
     }
 
     function _removeContributor(uint256 poolId, address member) internal {
