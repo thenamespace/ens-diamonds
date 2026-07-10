@@ -68,8 +68,7 @@ contract CofferEscrowForkTest is Test {
         bytes32 secret = keccak256("coffer-secret");
         bytes[] memory data = new bytes[](0);
 
-        bytes32 commitment =
-            controller.makeCommitment(label, safe, duration, secret, ENS_RESOLVER, data, false, 0);
+        bytes32 commitment = controller.makeCommitment(label, safe, duration, secret, ENS_RESOLVER, data, false, 0);
         vm.prank(alice);
         controller.commit(commitment);
 

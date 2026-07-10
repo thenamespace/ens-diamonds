@@ -255,11 +255,10 @@ contract CofferEscrow {
     function _computeSafeAddress(bytes memory initializer, uint256 saltNonce) internal view returns (address) {
         bytes32 salt = keccak256(abi.encodePacked(keccak256(initializer), saltNonce));
         bytes32 initCodeHash = keccak256(
-            abi.encodePacked(
-                ISafeProxyFactory(safeProxyFactory).proxyCreationCode(), uint256(uint160(safeSingleton))
-            )
+            abi.encodePacked(ISafeProxyFactory(safeProxyFactory).proxyCreationCode(), uint256(uint160(safeSingleton)))
         );
-        return address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), safeProxyFactory, salt, initCodeHash)))));
+        return
+            address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), safeProxyFactory, salt, initCodeHash)))));
     }
 
     function ownershipBps(uint256 poolId, address member) external view returns (uint256) {

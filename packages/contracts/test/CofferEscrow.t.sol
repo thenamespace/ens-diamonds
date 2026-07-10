@@ -219,7 +219,7 @@ contract CofferEscrowTest is Test {
         emit CofferEscrow.PoolFunded(id);
         escrow.deposit{value: 4 ether}(id); // reaches target exactly
 
-        (,,,, , uint40 fundedAt,,) = escrow.pools(id);
+        (,,,,, uint40 fundedAt,,) = escrow.pools(id);
         assertEq(fundedAt, uint40(block.timestamp));
         assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Funded));
     }
@@ -300,7 +300,7 @@ contract CofferEscrowTest is Test {
         escrow.withdraw(id);
         assertEq(escrow.deposits(id, alice), 0);
         // fundedAt reset after dropping below target
-        (,,,, , uint40 fundedAt,,) = escrow.pools(id);
+        (,,,,, uint40 fundedAt,,) = escrow.pools(id);
         assertEq(fundedAt, 0);
     }
 
