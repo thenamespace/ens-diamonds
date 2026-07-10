@@ -3,50 +3,90 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import { getPool, eth, ETH_USD, usd, type Pool } from "@/lib/data";
+import { useAccount, useChainId, usePublicClient, useReadContracts, useWriteContract } from "wagmi";
+import { sepolia } from "wagmi/chains";
+import { cofferEscrow, statusName } from "@/lib/contract";
+import { isEscrowConfigured } from "@/lib/chain";
+import { fmtEth, pct, parseEther, shortAddr, fmtCountdown } from "@/lib/format";
 
-type Tab = "funding" | "members" | "multisig" | "activity";
-
-function StatusBanner({ p }: { p: Pool }) {
-  if (p.status === "funded") {
-    return (
-      <div className="banner b-funded">
-        <div className="b-text">
-          <h3>Target reached — execution window open</h3>
-          <p>Funds are locked for 7 days. Any contributor can finalize to deploy the Safe and register the name.</p>
-        </div>
-        <div className="b-cta">
-          <button className="btn btn-primary">Finalize &amp; deploy Safe</button>
-        </div>
-      </div>
-    );
-  }
-  if (p.status === "funding") {
-    return (
-      <div className="banner b-funding">
-        <div className="b-text">
-          <h3>Funding — {p.deadlineDays} days left</h3>
-          <p>Deposit to reach the target. You can withdraw in full any time before the execution lock.</p>
-        </div>
-      </div>
-    );
-  }
-  return null;
-}
+type PoolTuple = readonly [string, `0x${string}`, bigint, bigint, number, number, number, `0x${string}`];
 
 export default function PoolDashboard() {
   const params = useParams<{ id: string }>();
-  const p = getPool(params.id);
-  const [tab, setTab] = useState<Tab>("funding");
-  const [amount, setAmount] = useState("0.25");
+  const idStr = params.id;
+  const idOk = /^\d+$/.test(idStr);
+  const id = idOk ? BigInt(idStr) : 0n;
 
-  if (!p) {
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const wrongChain = isConnected && chainId !== sepolia.id;
+  const publicClient = usePublicClient();
+  const { writeContractAsync } = useWriteContract();
+
+  const [amount, setAmount] = useState("0.01");
+  const [pending, setPending] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const contracts = [
+    { ...cofferEscrow, functionName: "pools", args: [id] },
+    { ...cofferEscrow, functionName: "status", args: [id] },
+    { ...cofferEscrow, functionName: "getContributors", args: [id] },
+    ...(address
+      ? [
+          { ...cofferEscrow, functionName: "deposits", args: [id, address] },
+          { ...cofferEscrow, functionName: "ownershipBps", args: [id, address] },
+        ]
+      : []),
+  ];
+
+  const { data, refetch, isLoading } = useReadContracts({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    contracts: contracts as any,
+    query: { enabled: isEscrowConfigured && idOk, refetchInterval: 12000 },
+  });
+
+  const pool = data?.[0]?.result as PoolTuple | undefined;
+  const statusNum = data?.[1]?.result as number | undefined;
+  const contributors = data?.[2]?.result as readonly [readonly `0x${string}`[], readonly bigint[]] | undefined;
+  const yourDeposit = (data?.[3]?.result as bigint | undefined) ?? 0n;
+  const yourBps = (data?.[4]?.result as bigint | undefined) ?? 0n;
+
+  async function act(fn: "deposit" | "withdraw" | "finalize", value?: bigint) {
+    if (!publicClient) return;
+    setError(null);
+    setPending(fn);
+    try {
+      // fn spans payable (deposit) + non-payable (withdraw/finalize); cast to reconcile the union.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hash = await writeContractAsync({ ...cofferEscrow, functionName: fn, args: [id], value } as any);
+      await publicClient.waitForTransactionReceipt({ hash });
+      await refetch();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg.split("\n")[0].slice(0, 200));
+    } finally {
+      setPending(null);
+    }
+  }
+
+  if (!isEscrowConfigured) {
+    return (
+      <div className="wrap">
+        <div className="note note-warn">
+          <span>⚠</span>
+          <span>Escrow address not configured. Set NEXT_PUBLIC_ESCROW_ADDRESS and restart the dev server.</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!idOk || (data && (!pool || !pool[0]))) {
     return (
       <div className="wrap">
         <div className="empty">
           <span className="mark" aria-hidden />
-          <h3>Pool not found</h3>
-          <p>This pool doesn&rsquo;t exist or hasn&rsquo;t been indexed yet.</p>
+          <h3>Pool #{idStr} not found</h3>
+          <p>No pool with this id exists on the deployed escrow yet.</p>
           <Link className="btn btn-primary" href="/pools">
             All pools
           </Link>
@@ -55,168 +95,217 @@ export default function PoolDashboard() {
     );
   }
 
-  const pct = Math.min(100, Math.round((p.depositedEth / p.targetEth) * 100));
-  const you = p.members.find((m) => m.handle === "you");
+  if (isLoading || !pool || statusNum === undefined) {
+    return <div className="wrap">Loading pool #{idStr}…</div>;
+  }
+
+  const [label, creator, targetAmount, totalDeposited, fundingDeadline, fundedAt, threshold, safe] = pool;
+  const status = statusName(statusNum);
+  const funded = pct(totalDeposited, targetAmount);
+  const lockEnds = fundedAt > 0 ? fundedAt + 7 * 86400 : 0;
+  const contributorCount = contributors ? contributors[0].length : 0;
 
   return (
     <div className="wrap">
       <div className="crumb">
-        <Link href="/pools">Pools</Link> <span>/</span> <span>{p.label}.eth</span>
+        <Link href="/pools">Pools</Link> <span>/</span> <span>#{idStr}</span>
       </div>
 
       <div className="page-head">
         <div>
           <div className="row" style={{ gap: 12 }}>
-            <h1 style={{ margin: 0 }}>{p.label}.eth pool</h1>
-            <span className={`tag tag-${p.status}`}>{p.status}</span>
+            <h1 style={{ margin: 0 }}>{label}.eth pool</h1>
+            <span className={`tag tag-${status}`}>{status}</span>
           </div>
           <p>
-            {p.threshold}-of-{p.maxSigners} Safe · {p.members.length} members{p.safe ? ` · ${p.safe}` : " · deploys at finalization"}
+            {threshold}-of-{contributorCount || "N"} Safe · created by <span className="mono">{shortAddr(creator)}</span>
+            {safe !== "0x0000000000000000000000000000000000000000" ? (
+              <>
+                {" "}
+                ·{" "}
+                <a className="mono" style={{ color: "var(--accent-2)" }} href={`https://app.safe.global/home?safe=sep:${safe}`} target="_blank" rel="noreferrer">
+                  {shortAddr(safe)}
+                </a>
+              </>
+            ) : (
+              " · Safe deploys at finalization"
+            )}
           </p>
         </div>
-        <Link className="btn btn-ghost" href={`/name/${p.label}`}>
-          View {p.label}.eth →
+        <Link className="btn btn-ghost" href={`/name/${label}`}>
+          View {label}.eth →
         </Link>
       </div>
 
-      <StatusBanner p={p} />
+      {/* state banner */}
+      {status === "funded" && (
+        <div className="banner b-funded">
+          <div className="b-text">
+            <h3>Target reached — execution window open</h3>
+            <p>
+              Funds locked until {new Date(lockEnds * 1000).toLocaleString()}. Any contributor can finalize (needs ≥{" "}
+              {threshold} contributors).
+            </p>
+          </div>
+          <div className="b-cta">
+            <button className="btn btn-primary" disabled={pending !== null || contributorCount < threshold} onClick={() => act("finalize")}>
+              {pending === "finalize" ? "Finalizing…" : "Finalize & deploy Safe"}
+            </button>
+          </div>
+        </div>
+      )}
+      {status === "funding" && (
+        <div className="banner b-funding">
+          <div className="b-text">
+            <h3>Funding — {fmtCountdown(fundingDeadline)} left</h3>
+            <p>Deposit to reach the target. Withdraw in full any time before the execution lock.</p>
+          </div>
+        </div>
+      )}
 
-      <div className="tabs">
-        {(["funding", "members", "multisig", "activity"] as Tab[]).map((t) => (
-          <button key={t} className={tab === t ? "on" : ""} onClick={() => setTab(t)}>
-            {t[0].toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-      </div>
+      {error && (
+        <div className="note note-warn" style={{ marginBottom: 20 }}>
+          <span>⚠</span>
+          <span>{error}</span>
+        </div>
+      )}
+      {wrongChain && (
+        <div className="note note-warn" style={{ marginBottom: 20 }}>
+          <span>⚠</span>
+          <span>Switch your wallet to Sepolia to transact.</span>
+        </div>
+      )}
 
-      {tab === "funding" && (
-        <div className="cols">
+      <div className="cols">
+        <div className="stack">
           <div className="panel">
             <span className="panel-title">Funding progress</span>
-            <div className="kv" style={{ borderBottom: "none", paddingBottom: 8 }}>
-              <span className="v big">{eth(p.depositedEth, 2)}</span>
-              <span className="muted">of {eth(p.targetEth, 2)} target</span>
+            <div className="spread" style={{ alignItems: "baseline", marginBottom: 10 }}>
+              <span className="v big mono" style={{ fontSize: 22, fontWeight: 600 }}>
+                {fmtEth(totalDeposited, 4)}
+              </span>
+              <span className="muted">of {fmtEth(targetAmount, 4)}</span>
             </div>
             <div className="progress">
-              <div className="fill" style={{ width: `${pct}%` }} />
+              <div className="fill" style={{ width: `${funded}%` }} />
             </div>
             <div className="progress-label">
-              <span>{pct}% funded</span>
-              <span>{usd(p.depositedEth * ETH_USD)}</span>
+              <span>{funded.toFixed(1)}% funded</span>
+              <span>
+                {contributorCount} contributor{contributorCount === 1 ? "" : "s"}
+              </span>
             </div>
           </div>
 
           <div className="panel">
-            <span className="panel-title">Your position</span>
-            {you ? (
-              <>
-                <div className="kv">
-                  <span className="k">Deposited</span>
-                  <span className="v">{eth(you.contributionEth, 2)}</span>
-                </div>
-                <div className="kv">
-                  <span className="k">Ownership</span>
-                  <span className="v accent">{(you.ownershipBps / 100).toFixed(1)}%</span>
-                </div>
-              </>
+            <span className="panel-title">Contributors · ownership from on-chain deposits</span>
+            {contributors && contributors[0].length > 0 ? (
+              contributors[0].map((addr, i) => {
+                const amt = contributors[1][i];
+                const bps = targetAmount > 0n ? Number((amt * 10000n) / targetAmount) : 0;
+                return (
+                  <div key={addr} className="mrow">
+                    <div className="avatar">{addr.slice(2, 3).toUpperCase()}</div>
+                    <div>
+                      <div className="who">
+                        {shortAddr(addr)}
+                        {address && addr.toLowerCase() === address.toLowerCase() ? " · you" : ""}
+                        {addr.toLowerCase() === creator.toLowerCase() ? <span className="pill pill-ok" style={{ marginLeft: 8 }}>creator</span> : null}
+                      </div>
+                      <div className="sub mono">{addr}</div>
+                    </div>
+                    <div className="amt">
+                      <div className="a">{fmtEth(amt, 3)}</div>
+                      <div className="b">{(bps / 100).toFixed(1)}%</div>
+                    </div>
+                  </div>
+                );
+              })
             ) : (
-              <p className="muted" style={{ fontSize: 14 }}>
-                You haven&rsquo;t deposited to this pool yet.
+              <p className="muted" style={{ fontSize: 14, margin: 0 }}>
+                No contributors yet.
               </p>
             )}
+          </div>
+        </div>
+
+        <div className="stack">
+          <div className="panel">
+            <span className="panel-title">Your position</span>
+            <div className="kv">
+              <span className="k">Deposited</span>
+              <span className="v">{fmtEth(yourDeposit, 4)}</span>
+            </div>
+            <div className="kv">
+              <span className="k">Ownership</span>
+              <span className="v accent">{(Number(yourBps) / 100).toFixed(1)}%</span>
+            </div>
+
             <div className="input-group mt-16">
               <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
               <span className="unit">ETH</span>
             </div>
             <div className="row mt-8" style={{ gap: 8 }}>
-              <button className="btn btn-primary btn-block" disabled={p.status !== "funding"}>
-                Deposit
+              <button
+                className="btn btn-primary btn-block"
+                disabled={!isConnected || wrongChain || pending !== null || status !== "funding"}
+                onClick={() => act("deposit", parseEther(amount || "0"))}
+              >
+                {pending === "deposit" ? "Depositing…" : "Deposit"}
               </button>
-              <button className="btn btn-ghost btn-block" disabled={p.status === "funded"} title={p.status === "funded" ? "Locked during the execution window" : ""}>
-                Withdraw
+              <button
+                className="btn btn-ghost btn-block"
+                disabled={!isConnected || wrongChain || pending !== null || yourDeposit === 0n || status === "funded" || status === "finalized"}
+                onClick={() => act("withdraw")}
+              >
+                {pending === "withdraw" ? "Withdrawing…" : "Withdraw"}
               </button>
             </div>
-            {p.status === "funded" && (
+            {status === "funded" && (
               <div className="note note-warn mt-8">
                 <span>🔒</span>
-                <span>Withdrawals are locked during the 7-day execution window.</span>
+                <span>Withdrawals locked during the 7-day execution window.</span>
+              </div>
+            )}
+            {!isConnected && (
+              <div className="note note-info mt-8">
+                <span>ℹ</span>
+                <span>Connect your wallet to deposit or withdraw.</span>
+              </div>
+            )}
+          </div>
+
+          <div className="panel">
+            <span className="panel-title">Multisig</span>
+            {safe !== "0x0000000000000000000000000000000000000000" ? (
+              <>
+                <div className="kv">
+                  <span className="k">Safe</span>
+                  <span className="v accent">{shortAddr(safe)}</span>
+                </div>
+                <div className="kv">
+                  <span className="k">Threshold</span>
+                  <span className="v">
+                    {threshold} of {contributorCount}
+                  </span>
+                </div>
+                <div className="kv">
+                  <span className="k">Network</span>
+                  <span className="v">Sepolia</span>
+                </div>
+                <a className="btn btn-soft btn-block mt-16" href={`https://app.safe.global/home?safe=sep:${safe}`} target="_blank" rel="noreferrer">
+                  Open in Safe →
+                </a>
+              </>
+            ) : (
+              <div className="note note-info">
+                <span>ℹ</span>
+                <span>Not yet deployed — deploys at finalization with all contributors as owners.</span>
               </div>
             )}
           </div>
         </div>
-      )}
-
-      {tab === "members" && (
-        <div className="panel">
-          <span className="panel-title">Members · ownership from on-chain deposits</span>
-          {p.members.map((m) => (
-            <div key={m.address} className="mrow">
-              <div className="avatar">{m.handle === "you" ? "Y" : m.handle.slice(0, 1).toUpperCase()}</div>
-              <div>
-                <div className="who">
-                  {m.handle} <span className={`pill ${m.status === "accepted" ? "pill-ok" : "pill-wait"}`}>{m.status}</span>
-                </div>
-                <div className="sub">
-                  {m.address}
-                  {m.via ? ` · via ${m.via}` : ""}
-                </div>
-              </div>
-              <div className="amt">
-                <div className="a">{eth(m.contributionEth, 2)}</div>
-                <div className="b">{(m.ownershipBps / 100).toFixed(1)}%</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === "multisig" && (
-        <div className="panel">
-          <span className="panel-title">Multisig</span>
-          {p.safe ? (
-            <>
-              <div className="kv">
-                <span className="k">Safe address</span>
-                <span className="v accent">{p.safe}</span>
-              </div>
-              <div className="kv">
-                <span className="k">Threshold</span>
-                <span className="v">
-                  {p.threshold} of {p.members.length}
-                </span>
-              </div>
-              <div className="kv">
-                <span className="k">Balance</span>
-                <span className="v">{eth(p.depositedEth, 2)}</span>
-              </div>
-              <div className="kv">
-                <span className="k">Network</span>
-                <span className="v">Ethereum</span>
-              </div>
-            </>
-          ) : (
-            <div className="note note-info">
-              <span>ℹ</span>
-              <span>
-                Safe not yet deployed — it deploys at finalization with all contributors as owners and a{" "}
-                {p.threshold}-of-N threshold.
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {tab === "activity" && (
-        <div className="panel">
-          <span className="panel-title">Activity</span>
-          {p.activity.map((a, i) => (
-            <div key={i} className="feed-row">
-              <span className="when">{a.at}</span>
-              <span>{a.text}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }
