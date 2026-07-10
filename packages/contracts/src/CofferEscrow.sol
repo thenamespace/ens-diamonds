@@ -1,0 +1,123 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+import {ISafeProxyFactory} from "./interfaces/ISafeProxyFactory.sol";
+import {ISafe} from "./interfaces/ISafe.sol";
+
+/// @title CofferEscrow
+/// @notice Singleton escrow that pools ETH to buy premium ENS names. On
+///         finalization it deploys a Safe owned by all contributors and funds it.
+///         Immutable by design: no proxy, no admin, no pause, no upgrade path.
+contract CofferEscrow {
+    // ----------------------------- Types -----------------------------------
+    enum PoolStatus {
+        Funding,
+        Funded,
+        Finalized,
+        Expired
+    }
+
+    struct Pool {
+        string label; // plaintext .eth label, e.g. "defi" (no ".eth")
+        address creator;
+        uint96 targetAmount; // wei
+        uint96 totalDeposited; // wei
+        uint40 fundingDeadline; // unix ts
+        uint40 fundedAt; // set when totalDeposited first hits target; reset to 0 if it later drops below
+        uint8 threshold; // Safe threshold, set at creation
+        address safe; // zero until finalized
+    }
+
+    // --------------------------- Constants ----------------------------------
+    uint256 public constant EXECUTION_WINDOW = 7 days;
+    uint96 public constant MIN_CONTRIBUTION = 0.01 ether;
+
+    // --------------------------- Immutables ---------------------------------
+    address public immutable safeProxyFactory;
+    address public immutable safeSingleton;
+    address public immutable safeFallbackHandler;
+
+    // ---------------------------- Storage -----------------------------------
+    mapping(uint256 => Pool) public pools;
+    mapping(uint256 => mapping(address => uint96)) public deposits;
+    mapping(uint256 => mapping(address => bool)) public invited;
+    mapping(uint256 => address[]) internal contributors;
+    uint256 public poolCount;
+
+    uint256 private _locked = 1; // reentrancy guard state
+
+    // ----------------------------- Events -----------------------------------
+    event PoolCreated(
+        uint256 indexed poolId,
+        string label,
+        address indexed creator,
+        uint96 targetAmount,
+        uint40 fundingDeadline,
+        uint8 threshold,
+        address[] invitees
+    );
+    event Deposited(uint256 indexed poolId, address indexed member, uint96 amount, uint96 totalDeposited);
+    event Withdrawn(uint256 indexed poolId, address indexed member, uint96 amount, uint96 totalDeposited);
+    event PoolFunded(uint256 indexed poolId);
+    event PoolFinalized(
+        uint256 indexed poolId, address indexed safe, address[] contributors, uint8 threshold, uint96 amount
+    );
+
+    // ----------------------------- Errors -----------------------------------
+    error InvalidTarget();
+    error InvalidDeadline();
+    error LabelTooShort();
+    error InvalidThreshold();
+    error DuplicateInvitee();
+    error NotInvited();
+    error WrongStatus();
+    error ZeroValue();
+    error BelowMinimum();
+    error Overshoot();
+    error NoDeposit();
+    error WithdrawLocked();
+    error NotContributor();
+    error BelowThreshold();
+    error SafeDeployFailed();
+    error TransferFailed();
+    error Reentrancy();
+
+    modifier nonReentrant() {
+        if (_locked != 1) revert Reentrancy();
+        _locked = 2;
+        _;
+        _locked = 1;
+    }
+
+    constructor(address _factory, address _singleton, address _fallbackHandler) {
+        safeProxyFactory = _factory;
+        safeSingleton = _singleton;
+        safeFallbackHandler = _fallbackHandler;
+    }
+
+    // ----------------------------- Views ------------------------------------
+
+    /// @notice Derived pool status (never stored). See spec §4.
+    function status(uint256 poolId) public view returns (PoolStatus) {
+        Pool storage p = pools[poolId];
+        if (p.safe != address(0)) return PoolStatus.Finalized;
+        if (p.totalDeposited == p.targetAmount) {
+            if (block.timestamp <= uint256(p.fundedAt) + EXECUTION_WINDOW) {
+                return PoolStatus.Funded;
+            }
+            return PoolStatus.Funding; // execution lock lapsed → withdrawable again
+        }
+        if (block.timestamp > p.fundingDeadline) return PoolStatus.Expired;
+        return PoolStatus.Funding;
+    }
+
+    /// @notice Contributor addresses and their current deposit amounts.
+    /// Implemented in the skeleton so test files referencing it always compile.
+    function getContributors(uint256 poolId) external view returns (address[] memory addrs, uint96[] memory amounts) {
+        addrs = contributors[poolId];
+        amounts = new uint96[](addrs.length);
+        for (uint256 i = 0; i < addrs.length; i++) {
+            amounts[i] = deposits[poolId][addrs[i]];
+        }
+    }
+}
