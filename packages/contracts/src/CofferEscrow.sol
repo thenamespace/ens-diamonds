@@ -120,4 +120,35 @@ contract CofferEscrow {
             amounts[i] = deposits[poolId][addrs[i]];
         }
     }
+
+    function createPool(
+        string calldata label,
+        uint96 targetAmount,
+        uint40 fundingDeadline,
+        uint8 threshold,
+        address[] calldata invitees
+    ) external returns (uint256 poolId) {
+        if (targetAmount == 0) revert InvalidTarget();
+        if (fundingDeadline <= block.timestamp) revert InvalidDeadline();
+        if (bytes(label).length < 3) revert LabelTooShort();
+        if (threshold < 1 || threshold > invitees.length + 1) revert InvalidThreshold();
+
+        poolId = poolCount++;
+        Pool storage p = pools[poolId];
+        p.label = label;
+        p.creator = msg.sender;
+        p.targetAmount = targetAmount;
+        p.fundingDeadline = fundingDeadline;
+        p.threshold = threshold;
+
+        invited[poolId][msg.sender] = true; // creator auto-invited
+
+        for (uint256 i = 0; i < invitees.length; i++) {
+            address invitee = invitees[i];
+            if (invited[poolId][invitee]) revert DuplicateInvitee(); // also catches creator-in-invitees
+            invited[poolId][invitee] = true;
+        }
+
+        emit PoolCreated(poolId, label, msg.sender, targetAmount, fundingDeadline, threshold, invitees);
+    }
 }
