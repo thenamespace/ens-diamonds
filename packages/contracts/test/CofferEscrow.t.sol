@@ -114,4 +114,119 @@ contract CofferEscrowTest is Test {
         vm.expectRevert(CofferEscrow.DuplicateInvitee.selector);
         escrow.createPool("defi", 1 ether, uint40(block.timestamp + 1 days), 1, a);
     }
+
+    // Creates a pool: target 10 ETH, deadline +3d, threshold 2, invitees [alice, bob].
+    function _createDefaultPool() internal returns (uint256 id) {
+        vm.prank(creator);
+        id = escrow.createPool("defi", 10 ether, uint40(block.timestamp + 3 days), 2, _invitees2());
+    }
+
+    function test_deposit_happyPath() public {
+        uint256 id = _createDefaultPool();
+        vm.deal(alice, 100 ether);
+
+        vm.prank(alice);
+        vm.expectEmit(true, true, false, true, address(escrow));
+        emit CofferEscrow.Deposited(id, alice, 4 ether, 4 ether);
+        escrow.deposit{value: 4 ether}(id);
+
+        assertEq(escrow.deposits(id, alice), 4 ether);
+        (,,, uint96 total,,,,) = escrow.pools(id);
+        assertEq(total, 4 ether);
+        assertEq(address(escrow).balance, 4 ether);
+        (address[] memory addrs,) = escrow.getContributors(id);
+        assertEq(addrs.length, 1);
+        assertEq(addrs[0], alice);
+    }
+
+    function test_deposit_revertsIfNotInvited() public {
+        uint256 id = _createDefaultPool();
+        address stranger = address(0xDEAD);
+        vm.deal(stranger, 1 ether);
+        vm.prank(stranger);
+        vm.expectRevert(CofferEscrow.NotInvited.selector);
+        escrow.deposit{value: 1 ether}(id);
+    }
+
+    function test_deposit_revertsOnZeroValue() public {
+        uint256 id = _createDefaultPool();
+        vm.prank(alice);
+        vm.expectRevert(CofferEscrow.ZeroValue.selector);
+        escrow.deposit{value: 0}(id);
+    }
+
+    function test_deposit_revertsOnOvershoot() public {
+        uint256 id = _createDefaultPool();
+        vm.deal(alice, 100 ether);
+        vm.prank(alice);
+        vm.expectRevert(CofferEscrow.Overshoot.selector);
+        escrow.deposit{value: 11 ether}(id); // target is 10
+    }
+
+    function test_deposit_revertsBelowMinimumForNewDepositor() public {
+        uint256 id = _createDefaultPool();
+        vm.deal(alice, 1 ether);
+        vm.prank(alice);
+        vm.expectRevert(CofferEscrow.BelowMinimum.selector);
+        escrow.deposit{value: 0.005 ether}(id); // below 0.01 and not an exact gap
+    }
+
+    function test_deposit_allowsTopUpBelowMinimum() public {
+        uint256 id = _createDefaultPool();
+        vm.deal(alice, 100 ether);
+        vm.startPrank(alice);
+        escrow.deposit{value: 1 ether}(id); // establishes a deposit
+        escrow.deposit{value: 0.001 ether}(id); // top-up may be below minimum
+        vm.stopPrank();
+        assertEq(escrow.deposits(id, alice), 1.001 ether);
+    }
+
+    function test_deposit_allowsSubMinimumExactGap() public {
+        // Fill to a remaining gap smaller than MIN_CONTRIBUTION, then let a NEW
+        // depositor close it with an exact-gap deposit below the minimum.
+        vm.prank(creator);
+        uint256 id = escrow.createPool("defi", 1 ether, uint40(block.timestamp + 3 days), 1, _invitees2());
+        vm.deal(alice, 100 ether);
+        vm.deal(bob, 100 ether);
+
+        vm.prank(alice);
+        escrow.deposit{value: 0.995 ether}(id); // remaining = 0.005 ETH (< MIN)
+
+        vm.prank(bob);
+        escrow.deposit{value: 0.005 ether}(id); // exact-gap close, below MIN, must succeed
+        (,,, uint96 total,,,,) = escrow.pools(id);
+        assertEq(total, 1 ether);
+    }
+
+    function test_deposit_exactFillMarksFundedAndEmits() public {
+        uint256 id = _createDefaultPool();
+        vm.deal(alice, 100 ether);
+        vm.deal(bob, 100 ether);
+
+        vm.prank(alice);
+        escrow.deposit{value: 6 ether}(id);
+
+        vm.prank(bob);
+        vm.expectEmit(true, false, false, false, address(escrow));
+        emit CofferEscrow.PoolFunded(id);
+        escrow.deposit{value: 4 ether}(id); // reaches target exactly
+
+        (,,,, , uint40 fundedAt,,) = escrow.pools(id);
+        assertEq(fundedAt, uint40(block.timestamp));
+        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Funded));
+    }
+
+    function test_deposit_revertsWhenNotFunding() public {
+        uint256 id = _createDefaultPool();
+        vm.deal(alice, 100 ether);
+        vm.deal(bob, 100 ether);
+        vm.prank(alice);
+        escrow.deposit{value: 6 ether}(id);
+        vm.prank(bob);
+        escrow.deposit{value: 4 ether}(id); // now Funded
+
+        vm.prank(alice);
+        vm.expectRevert(CofferEscrow.WrongStatus.selector);
+        escrow.deposit{value: 1 ether}(id);
+    }
 }

@@ -151,4 +151,32 @@ contract CofferEscrow {
 
         emit PoolCreated(poolId, label, msg.sender, targetAmount, fundingDeadline, threshold, invitees);
     }
+
+    function deposit(uint256 poolId) external payable {
+        Pool storage p = pools[poolId];
+        if (!invited[poolId][msg.sender]) revert NotInvited();
+        if (status(poolId) != PoolStatus.Funding) revert WrongStatus();
+        if (msg.value == 0) revert ZeroValue();
+
+        uint96 remaining = p.targetAmount - p.totalDeposited;
+        if (msg.value > remaining) revert Overshoot();
+        uint96 amount = uint96(msg.value); // safe: msg.value <= remaining <= type(uint96).max
+
+        bool isTopUp = deposits[poolId][msg.sender] > 0;
+        bool isExactGap = amount == remaining;
+        if (!isTopUp && !isExactGap && amount < MIN_CONTRIBUTION) revert BelowMinimum();
+
+        if (!isTopUp) {
+            contributors[poolId].push(msg.sender);
+        }
+        deposits[poolId][msg.sender] += amount;
+        p.totalDeposited += amount;
+
+        if (p.totalDeposited == p.targetAmount) {
+            p.fundedAt = uint40(block.timestamp);
+            emit PoolFunded(poolId);
+        }
+
+        emit Deposited(poolId, msg.sender, amount, p.totalDeposited);
+    }
 }
