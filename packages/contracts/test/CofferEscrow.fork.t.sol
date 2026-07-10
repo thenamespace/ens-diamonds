@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {CofferEscrow} from "../src/CofferEscrow.sol";
 import {IETHRegistrarController, IPriceOracle, IBaseRegistrar} from "../src/interfaces/IENS.sol";
+import {ISafe} from "../src/interfaces/ISafe.sol";
+import {ISafeProxyFactory} from "../src/interfaces/ISafeProxyFactory.sol";
 
 // Addresses rule (spec §10): you MUST resolve the current canonical mainnet
 // addresses at implementation time and paste them into the constants below.
@@ -86,5 +88,53 @@ contract CofferEscrowForkTest is Test {
         // --- Confirm ownership ---
         uint256 labelId = uint256(keccak256(bytes(label)));
         assertEq(IBaseRegistrar(ENS_BASE_REGISTRAR).ownerOf(labelId), safe, "safe does not own the name");
+    }
+
+    function test_fork_finalizeAdoptsRealPreDeployedSafe() public {
+        if (SAFE_PROXY_FACTORY == address(0)) {
+            vm.skip(true);
+            return;
+        }
+
+        // Fund a pool (alice then bob → contributors [alice, bob]).
+        string memory label = "coffertestname5678";
+        uint256 target = 1 ether;
+        address[] memory inv = new address[](1);
+        inv[0] = bob;
+        vm.prank(alice);
+        uint256 id = escrow.createPool(label, uint96(target), uint40(block.timestamp + 3 days), 2, inv);
+        vm.deal(alice, 10 ether);
+        vm.deal(bob, 10 ether);
+        vm.prank(alice);
+        escrow.deposit{value: 0.5 ether}(id);
+        vm.prank(bob);
+        escrow.deposit{value: 0.5 ether}(id); // funded exactly
+
+        // Reconstruct the EXACT initializer finalize will build, and PRE-DEPLOY the Safe
+        // via the real factory (simulating a squatter/front-runner).
+        address[] memory owners = new address[](2);
+        owners[0] = alice;
+        owners[1] = bob;
+        bytes memory initializer = abi.encodeWithSelector(
+            ISafe.setup.selector,
+            owners,
+            uint256(2),
+            address(0),
+            bytes(""),
+            SAFE_FALLBACK_HANDLER,
+            address(0),
+            uint256(0),
+            payable(address(0))
+        );
+        address preDeployed =
+            ISafeProxyFactory(SAFE_PROXY_FACTORY).createProxyWithNonce(SAFE_SINGLETON, initializer, id);
+        assertGt(preDeployed.code.length, 0, "pre-deploy failed");
+
+        // finalize must ADOPT the pre-existing real Safe (not revert) and fund it.
+        vm.prank(alice);
+        address safe = escrow.finalize(id);
+        assertEq(safe, preDeployed, "did not adopt the pre-deployed real Safe");
+        assertEq(safe.balance, target);
+        assertEq(address(escrow).balance, 0);
     }
 }
