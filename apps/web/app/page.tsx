@@ -100,7 +100,7 @@ export default function Home() {
                 <div className="l">Price drop per day</div>
               </div>
               <div className="stat">
-                <div className="n">2–20</div>
+                <div className="n">2–10</div>
                 <div className="l">People per pool</div>
               </div>
             </div>

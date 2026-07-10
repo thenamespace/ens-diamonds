@@ -27,7 +27,7 @@ Premium ENS names (expired names in ENS's 21-day Dutch-auction premium phase) co
 ## 3. Goals & Non-Goals
 
 ### Goals
-1. A group of 2–20 people can go from "we want defi.eth" to "the Safe owns defi.eth" entirely through the app, with no CLI or Etherscan usage.
+1. A group of 2–10 people can go from "we want defi.eth" to "the Safe owns defi.eth" entirely through the app, with no CLI or Etherscan usage.
 2. Any contributor can exit with a full refund, without anyone else's permission, at any point before the execution lock (see §5.4).
 3. Ownership percentages shown in the app are always exactly reconstructable from chain events alone.
 4. Zero unaudited code holds user funds at launch: the only custom contract is `CofferEscrow`, and it ships audited. Safe and ENS contracts are used as-deployed.

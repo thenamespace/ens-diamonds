@@ -30,7 +30,7 @@ A security review of the completed contract produced two MEDIUM findings and min
 | Change | Finding | Choice |
 |---|---|---|
 | Safe-address squat resistance | ① `finalize` griefing | **Adopt-existing Safe.** `finalize` computes the deterministic Safe address (`saltNonce = poolId`) and, if a contract already exists there, adopts and funds it instead of reverting. Safe because the CREATE2 salt binds `keccak256(initializer)`, so any code at that address must have the intended owner set. Neutralizes front-run/pre-deploy squatting while preserving deterministic addressing. Requires `proxyCreationCode()` on the factory interface and a `_computeSafeAddress` helper. The deploy path self-checks the prediction (`SafeDeployFailed` on mismatch). **Mainnet launch gate:** `_computeSafeAddress` is proven correct only against the mock; the fork tests must be populated with canonical v1.4.1 addresses + a `MAINNET_RPC_URL` and must pass — including the adopt-path fork test — before mainnet. Until then the derivation is unverified against the real factory. |
-| Owner-count bound | ② `finalize` gas-DoS | **`MAX_OWNERS = 50`.** `createPool` reverts `TooManyOwners` if `invitees.length + 1 > MAX_OWNERS`, keeping the contributor set — and thus the Safe deployment and all loops — bounded. Consistent with the product's 2–20-member scope. |
+| Owner-count bound | ② `finalize` gas-DoS | **`MAX_OWNERS = 10`.** `createPool` reverts `TooManyOwners` if `invitees.length + 1 > MAX_OWNERS`, keeping the contributor set — and thus the Safe deployment and all loops — bounded. Matches the product's 2–10-people-per-pool cap. |
 | `ownershipBps` guard | ④ div-by-zero | Returns `0` when `targetAmount == 0` (nonexistent pool) instead of panicking. |
 
 **Auditor notes (accepted / by-design, no code change):**
@@ -79,7 +79,7 @@ uint256 public poolCount;
 
 uint256 public constant EXECUTION_WINDOW = 7 days;
 uint96  public constant MIN_CONTRIBUTION = 0.01 ether;
-uint256 public constant MAX_OWNERS = 50;   // §2.1 hardening: bounds contributor set / Safe owners
+uint256 public constant MAX_OWNERS = 10;   // §2.1 hardening: bounds contributor set / Safe owners (2–10 per pool)
 ```
 
 Errors (custom): `InvalidTarget`, `InvalidDeadline`, `LabelTooShort`, `InvalidThreshold`, `TooManyOwners`, `DuplicateInvitee`, `NotInvited`, `WrongStatus`, `ZeroValue`, `BelowMinimum`, `Overshoot`, `NoDeposit`, `WithdrawLocked`, `NotContributor`, `BelowThreshold`, `SafeDeployFailed`, `TransferFailed`, `Reentrancy`.
