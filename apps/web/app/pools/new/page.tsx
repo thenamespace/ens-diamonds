@@ -2,67 +2,110 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useMemo, useState } from "react";
-import { getName, usd, ETH_USD } from "@/lib/data";
+import { Suspense, useState } from "react";
+import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
+import { sepolia } from "wagmi/chains";
+import { isAddress, parseEventLogs } from "viem";
+import { cofferEscrow } from "@/lib/contract";
+import { cofferEscrowAbi } from "@/lib/abi/coffer-escrow";
+import { isEscrowConfigured } from "@/lib/chain";
+import { parseEther } from "@/lib/format";
 
-const MAX_SIGNERS_CAP = 10; // matches CofferEscrow.MAX_OWNERS
+const MAX_SIGNERS = 10;
 
-type Invitee = { id: number; handle: string; contribEth: string };
+type Invitee = { id: number; addr: string; contribEth: string };
 
 function NewPoolForm() {
   const router = useRouter();
   const sp = useSearchParams();
   const label = (sp.get("label") ?? "").toLowerCase().replace(/\.eth$/, "");
-  const name = getName(label);
 
-  const defaultTarget = name ? +((name.registrationUsd + name.premiumUsd) / ETH_USD).toFixed(2) : 2;
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const publicClient = usePublicClient();
+  const { writeContractAsync } = useWriteContract();
 
-  const [target, setTarget] = useState(String(defaultTarget));
-  const [yourContrib, setYourContrib] = useState(String(+(defaultTarget * 0.32).toFixed(2)));
-  const [threshold, setThreshold] = useState(3);
-  const [invitees, setInvitees] = useState<Invitee[]>([
-    { id: 1, handle: "vitalik.eth", contribEth: "" },
-    { id: 2, handle: "", contribEth: "" },
-  ]);
-  const [ack, setAck] = useState(false);
+  const [target, setTarget] = useState("0.03");
+  const [yourContrib, setYourContrib] = useState("0.02");
+  const [threshold, setThreshold] = useState(1);
+  const [days, setDays] = useState(7);
+  const [invitees, setInvitees] = useState<Invitee[]>([]);
+  const [labelInput, setLabelInput] = useState(label || "");
+
+  const [step, setStep] = useState<"idle" | "creating" | "depositing" | "done">("idle");
+  const [error, setError] = useState<string | null>(null);
 
   const targetNum = Math.max(0, parseFloat(target) || 0);
   const yourNum = Math.max(0, parseFloat(yourContrib) || 0);
-  const filledInvitees = invitees.filter((i) => i.handle.trim());
-  const signers = filledInvitees.length + 1; // + creator
+  const validInvitees = invitees.filter((i) => isAddress(i.addr.trim()));
+  const badInvitees = invitees.filter((i) => i.addr.trim() && !isAddress(i.addr.trim()));
+  const signers = validInvitees.length + 1;
   const yourPct = targetNum > 0 ? Math.min(100, (yourNum / targetNum) * 100) : 0;
 
-  const warnNofN = threshold === signers && signers > 1;
-  const warnThreshold = threshold > signers;
+  const wrongChain = isConnected && chainId !== sepolia.id;
+  const canSubmit =
+    isConnected &&
+    !wrongChain &&
+    isEscrowConfigured &&
+    labelInput.trim().length >= 3 &&
+    targetNum > 0 &&
+    yourNum > 0 &&
+    yourNum <= targetNum &&
+    threshold >= 1 &&
+    threshold <= signers &&
+    signers <= MAX_SIGNERS &&
+    badInvitees.length === 0 &&
+    step === "idle";
 
   function addInvitee() {
-    if (invitees.length + 1 >= MAX_SIGNERS_CAP) return;
-    setInvitees((v) => [...v, { id: Date.now(), handle: "", contribEth: "" }]);
-  }
-  function removeInvitee(id: number) {
-    setInvitees((v) => v.filter((i) => i.id !== id));
-  }
-  function setInvitee(id: number, patch: Partial<Invitee>) {
-    setInvitees((v) => v.map((i) => (i.id === id ? { ...i, ...patch } : i)));
+    if (invitees.length + 1 >= MAX_SIGNERS) return;
+    setInvitees((v) => [...v, { id: Date.now(), addr: "", contribEth: "" }]);
   }
 
-  const canSubmit = targetNum > 0 && yourNum > 0 && yourNum <= targetNum && threshold >= 1 && threshold <= signers && signers <= MAX_SIGNERS_CAP && ack;
-
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!canSubmit) return;
-    // Later: sends createPool() + the creator's deposit. For now, open a dashboard.
-    router.push("/pools/defi-eth");
+    if (!canSubmit || !publicClient) return;
+    setError(null);
+    try {
+      const deadline = Math.floor(Date.now() / 1000) + days * 86400; // uint40 → number
+      const targetWei = parseEther(target);
+      const inviteeAddrs = validInvitees.map((i) => i.addr.trim() as `0x${string}`);
+
+      setStep("creating");
+      const hash1 = await writeContractAsync({
+        ...cofferEscrow,
+        functionName: "createPool",
+        args: [labelInput.trim(), targetWei, deadline, threshold, inviteeAddrs],
+      });
+      const rc1 = await publicClient.waitForTransactionReceipt({ hash: hash1 });
+      const events = parseEventLogs({ abi: cofferEscrowAbi, logs: rc1.logs, eventName: "PoolCreated" });
+      const poolId = (events[0] as unknown as { args: { poolId: bigint } }).args.poolId;
+
+      setStep("depositing");
+      const hash2 = await writeContractAsync({
+        ...cofferEscrow,
+        functionName: "deposit",
+        args: [poolId],
+        value: parseEther(yourContrib),
+      });
+      await publicClient.waitForTransactionReceipt({ hash: hash2 });
+
+      setStep("done");
+      router.push(`/pools/${poolId.toString()}`);
+    } catch (err) {
+      setStep("idle");
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg.split("\n")[0].slice(0, 200));
+    }
   }
 
-  const invAllocated = filledInvitees.reduce((s, i) => s + (parseFloat(i.contribEth) || 0), 0);
-  const unallocated = Math.max(0, targetNum - yourNum - invAllocated);
+  const busy = step === "creating" || step === "depositing";
 
   return (
     <form className="wrap" onSubmit={submit}>
       <div className="crumb">
         <Link href="/">Discover</Link> <span>/</span>
-        {name ? (
+        {label ? (
           <>
             <Link href={`/name/${label}`}>{label}.eth</Link> <span>/</span>
           </>
@@ -72,34 +115,44 @@ function NewPoolForm() {
 
       <div className="page-head">
         <div>
-          <h1>Start a pool{name ? ` to buy ${name.label}.eth` : ""}</h1>
+          <h1>Start a pool{labelInput ? ` to buy ${labelInput}.eth` : ""}</h1>
           <p>
-            Set your stake, then invite people. Everyone deposits into one audited escrow, and on success it deploys a
-            multisig you all control — no one can move the funds alone.
+            Set your stake, then invite people by address. Everyone deposits into the audited escrow on Sepolia; on
+            success it deploys a multisig you all control.
           </p>
         </div>
       </div>
 
+      {!isEscrowConfigured && (
+        <div className="note note-warn" style={{ marginBottom: 20 }}>
+          <span>⚠</span>
+          <span>Escrow address not configured — set NEXT_PUBLIC_ESCROW_ADDRESS and restart the dev server.</span>
+        </div>
+      )}
+
       <div className="cols">
-        {/* left: the form */}
         <div className="stack">
           <div className="panel">
             <span className="panel-title">1 · Pool basics</span>
 
             <div className="field">
               <label>
-                Target amount <span className="hint">locked to price at execution — overpay is refunded</span>
+                Name <span className="hint">.eth label, min 3 chars</span>
+              </label>
+              <div className="input-group">
+                <input value={labelInput} onChange={(e) => setLabelInput(e.target.value.toLowerCase())} placeholder="defi" />
+                <span className="unit">.eth</span>
+              </div>
+            </div>
+
+            <div className="field">
+              <label>
+                Target amount <span className="hint">wei-precise; overpay refunded at registration</span>
               </label>
               <div className="input-group">
                 <input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} />
                 <span className="unit">ETH</span>
               </div>
-              {name && (
-                <div className="progress-label" style={{ marginTop: 6 }}>
-                  <span>current buy price ≈ {usd(name.registrationUsd + name.premiumUsd)}</span>
-                  <span>{usd(targetNum * ETH_USD)}</span>
-                </div>
-              )}
             </div>
 
             <div className="field">
@@ -115,149 +168,112 @@ function NewPoolForm() {
                 type="range"
                 min={0}
                 max={targetNum || 1}
-                step={0.01}
+                step={0.001}
                 value={Math.min(yourNum, targetNum || 1)}
                 onChange={(e) => setYourContrib(e.target.value)}
               />
             </div>
 
-            <div className="field" style={{ marginBottom: 0 }}>
+            <div className="field">
               <label>
-                Signatures required to buy <span className="hint">of up to {signers} signers</span>
+                Funding deadline <span className="hint">days from now</span>
               </label>
               <div className="row" style={{ gap: 14 }}>
-                <input
-                  className="range"
-                  type="range"
-                  min={1}
-                  max={Math.max(signers, 1)}
-                  step={1}
-                  value={threshold}
-                  onChange={(e) => setThreshold(+e.target.value)}
-                />
+                <input className="range" type="range" min={1} max={30} value={days} onChange={(e) => setDays(+e.target.value)} />
+                <span className="mono" style={{ minWidth: 60, textAlign: "right", fontWeight: 600 }}>
+                  {days}d
+                </span>
+              </div>
+            </div>
+
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>
+                Signatures to buy <span className="hint">of up to {signers} signers</span>
+              </label>
+              <div className="row" style={{ gap: 14 }}>
+                <input className="range" type="range" min={1} max={Math.max(signers, 1)} value={threshold} onChange={(e) => setThreshold(+e.target.value)} />
                 <span className="mono" style={{ fontWeight: 600, minWidth: 88, textAlign: "right" }}>
                   {threshold} of {signers}
                 </span>
               </div>
-              {warnNofN && (
+              {threshold === signers && signers > 1 && (
                 <div className="note note-warn mt-8">
                   <span>⚠</span>
-                  <span>N-of-N: if one signer goes unresponsive, the Safe is frozen forever. Consider a lower threshold.</span>
-                </div>
-              )}
-              {warnThreshold && (
-                <div className="note note-warn mt-8">
-                  <span>⚠</span>
-                  <span>Threshold exceeds signers — if fewer than {threshold} people contribute, the pool can never finalize.</span>
+                  <span>N-of-N: one unresponsive signer freezes the Safe forever.</span>
                 </div>
               )}
             </div>
           </div>
 
           <div className="panel">
-            <span className="panel-title">2 · Invite members</span>
+            <span className="panel-title">2 · Invite members (optional)</span>
             <p className="muted" style={{ fontSize: 13.5, marginTop: -6 }}>
-              Add someone by ENS name and we&rsquo;ll deliver the invite through their on-chain email or Telegram record
-              — or paste an address directly.
+              Paste wallet addresses to invite. Leave empty to fund it solo. (ENS-name invites come later.)
             </p>
             {invitees.map((i) => (
               <div key={i.id} className="row mt-8" style={{ gap: 8 }}>
                 <input
                   className="input"
-                  placeholder="vitalik.eth or 0x…"
-                  value={i.handle}
-                  onChange={(e) => setInvitee(i.id, { handle: e.target.value })}
+                  placeholder="0x… address"
+                  value={i.addr}
+                  onChange={(e) => setInvitees((v) => v.map((x) => (x.id === i.id ? { ...x, addr: e.target.value } : x)))}
+                  style={{ borderColor: i.addr.trim() && !isAddress(i.addr.trim()) ? "var(--danger)" : undefined }}
                 />
-                <div className="input-group" style={{ maxWidth: 130 }}>
-                  <input
-                    inputMode="decimal"
-                    placeholder="0.0"
-                    value={i.contribEth}
-                    onChange={(e) => setInvitee(i.id, { contribEth: e.target.value })}
-                  />
-                  <span className="unit">ETH</span>
-                </div>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => removeInvitee(i.id)} aria-label="Remove">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setInvitees((v) => v.filter((x) => x.id !== i.id))}>
                   ✕
                 </button>
               </div>
             ))}
-            <button
-              type="button"
-              className="btn btn-soft btn-sm mt-16"
-              onClick={addInvitee}
-              disabled={invitees.length + 1 >= MAX_SIGNERS_CAP}
-            >
-              + Add member {invitees.length + 1 >= MAX_SIGNERS_CAP ? "(max 10 per pool)" : ""}
+            <button type="button" className="btn btn-soft btn-sm mt-16" onClick={addInvitee} disabled={invitees.length + 1 >= MAX_SIGNERS}>
+              + Add member {invitees.length + 1 >= MAX_SIGNERS ? "(max 10)" : ""}
             </button>
           </div>
         </div>
 
-        {/* right: summary */}
         <div className="stack">
           <div className="panel">
-            <span className="panel-title">Ownership split</span>
+            <span className="panel-title">Deploy</span>
             <div className="kv">
               <span className="k">Target</span>
-              <span className="v">{targetNum.toFixed(2)} ETH</span>
+              <span className="v">{targetNum.toFixed(3)} ETH</span>
             </div>
-            <div className="mrow">
-              <div className="avatar">Y</div>
-              <div>
-                <div className="who">You</div>
-                <div className="sub">creator</div>
-              </div>
-              <div className="amt">
-                <div className="a">{yourNum.toFixed(2)} ETH</div>
-                <div className="b">{yourPct.toFixed(1)}%</div>
-              </div>
+            <div className="kv">
+              <span className="k">Your deposit</span>
+              <span className="v accent">
+                {yourNum.toFixed(3)} ETH · {yourPct.toFixed(1)}%
+              </span>
             </div>
-            {filledInvitees.map((i) => {
-              const c = parseFloat(i.contribEth) || 0;
-              return (
-                <div key={i.id} className="mrow">
-                  <div className="avatar">{i.handle.slice(0, 1).toUpperCase()}</div>
-                  <div>
-                    <div className="who">{i.handle}</div>
-                    <div className="sub">invited</div>
-                  </div>
-                  <div className="amt">
-                    <div className="a">{c ? c.toFixed(2) : "—"} ETH</div>
-                    <div className="b">{targetNum ? ((c / targetNum) * 100).toFixed(1) : "0"}%</div>
-                  </div>
-                </div>
-              );
-            })}
-            {unallocated > 0.001 && (
-              <div className="mrow" style={{ opacity: 0.7 }}>
-                <div className="avatar" style={{ background: "var(--surface-3)", color: "var(--faint)" }}>
-                  ?
-                </div>
-                <div>
-                  <div className="who">Unallocated</div>
-                  <div className="sub">open to contributors</div>
-                </div>
-                <div className="amt">
-                  <div className="a">{unallocated.toFixed(2)} ETH</div>
-                  <div className="b">{targetNum ? ((unallocated / targetNum) * 100).toFixed(1) : "0"}%</div>
-                </div>
+            <div className="kv">
+              <span className="k">Scheme</span>
+              <span className="v">
+                {threshold}-of-{signers}
+              </span>
+            </div>
+
+            {!isConnected ? (
+              <div className="note note-info mt-16">
+                <span>ℹ</span>
+                <span>Connect your wallet (top right) to create the pool.</span>
+              </div>
+            ) : wrongChain ? (
+              <div className="note note-warn mt-16">
+                <span>⚠</span>
+                <span>Switch your wallet to Sepolia to continue.</span>
+              </div>
+            ) : null}
+
+            {error && (
+              <div className="note note-warn mt-16">
+                <span>⚠</span>
+                <span>{error}</span>
               </div>
             )}
-          </div>
 
-          <div className="panel">
-            <label className="row" style={{ alignItems: "flex-start", gap: 10, cursor: "pointer", fontSize: 13.5 }}>
-              <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} style={{ marginTop: 3 }} />
-              <span>
-                I understand: funds lock for a 7-day execution window once the target is hit; every contributor becomes a
-                Safe signer with equal signing power; shares are proportional to deposits.
-              </span>
-            </label>
             <button className="btn btn-primary btn-block btn-lg mt-16" disabled={!canSubmit}>
-              Create pool &amp; deploy escrow
+              {step === "creating" ? "Confirm create in wallet…" : step === "depositing" ? "Confirm deposit in wallet…" : "Create pool & deposit"}
             </button>
             <div style={{ textAlign: "center", marginTop: 10, fontSize: 12.5, color: "var(--faint)" }}>
-              Deploys a {threshold}-of-{signers} Safe at finalization · you deposit right after
+              {busy ? "Two transactions: createPool, then your deposit." : `Deploys a ${threshold}-of-${signers} Safe at finalization.`}
             </div>
           </div>
         </div>

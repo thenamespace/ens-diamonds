@@ -1,12 +1,11 @@
 import Link from "next/link";
 import DecayChart from "@/components/decay-chart";
-import { getName, poolsForLabel, usd, usdToEth, eth } from "@/lib/data";
+import { getName, usd, usdToEth, eth } from "@/lib/data";
 
 export default async function NamePage({ params }: { params: Promise<{ label: string }> }) {
   const { label } = await params;
   const clean = decodeURIComponent(label).toLowerCase().replace(/\.eth$/, "");
   const n = getName(clean);
-  const pools = poolsForLabel(clean);
 
   if (!n) {
     return (
@@ -147,35 +146,18 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
           </div>
 
           <div className="panel">
-            <span className="panel-title">Active pools</span>
-            {pools.length === 0 ? (
-              <p className="muted" style={{ fontSize: 14, margin: 0 }}>
-                No pools yet — be the first to start one and invite people.
-              </p>
-            ) : (
-              <div>
-                {pools.map((p) => {
-                  const pct = Math.round((p.depositedEth / p.targetEth) * 100);
-                  return (
-                    <Link key={p.id} href={`/pools/${p.id}`} className="mrow" style={{ textDecoration: "none" }}>
-                      <div className="avatar">{p.members.length}</div>
-                      <div>
-                        <div className="who">
-                          {p.label}.eth pool <span className={`tag tag-${p.status}`}>{p.status}</span>
-                        </div>
-                        <div className="sub">
-                          {pct}% funded · {p.threshold}-of-{p.maxSigners} · {p.members.length} members
-                        </div>
-                      </div>
-                      <div className="amt">
-                        <div className="a">{eth(p.depositedEth, 1)}</div>
-                        <div className="b">of {eth(p.targetEth, 1)}</div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
+            <span className="panel-title">Pools</span>
+            <p className="muted" style={{ fontSize: 14, marginTop: -4 }}>
+              Start a pool for {n.label}.eth and invite people, or browse every open pool on the escrow.
+            </p>
+            <div className="row mt-8" style={{ gap: 8 }}>
+              <Link className="btn btn-primary btn-sm" href={`/pools/new?label=${n.label}`}>
+                Start a pool
+              </Link>
+              <Link className="btn btn-ghost btn-sm" href="/pools">
+                All pools →
+              </Link>
+            </div>
           </div>
         </div>
       </div>
