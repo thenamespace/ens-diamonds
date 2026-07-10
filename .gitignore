@@ -10,10 +10,11 @@ dist/
 *.tsbuildinfo
 
 # Foundry (packages/contracts)
+# NOTE: lib/ is intentionally NOT ignored — Foundry deps (forge-std, etc.)
+# live there as tracked git submodules.
 out/
 cache/
 broadcast/**/dry-run/
-lib/
 
 # Env / secrets
 .env
