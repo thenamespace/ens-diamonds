@@ -1,0 +1,25 @@
+# OS
+.DS_Store
+
+# Node / pnpm (later phases)
+node_modules/
+.pnp.*
+.turbo/
+dist/
+.next/
+*.tsbuildinfo
+
+# Foundry (packages/contracts)
+out/
+cache/
+broadcast/**/dry-run/
+lib/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
