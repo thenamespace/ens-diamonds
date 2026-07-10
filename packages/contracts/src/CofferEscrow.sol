@@ -31,7 +31,7 @@ contract CofferEscrow {
     // --------------------------- Constants ----------------------------------
     uint256 public constant EXECUTION_WINDOW = 7 days;
     uint96 public constant MIN_CONTRIBUTION = 0.01 ether;
-    uint256 public constant MAX_OWNERS = 50;
+    uint256 public constant MAX_OWNERS = 10;
 
     // --------------------------- Immutables ---------------------------------
     address public immutable safeProxyFactory;
