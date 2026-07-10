@@ -179,4 +179,39 @@ contract CofferEscrow {
 
         emit Deposited(poolId, msg.sender, amount, p.totalDeposited);
     }
+
+    function withdraw(uint256 poolId) external nonReentrant {
+        Pool storage p = pools[poolId];
+        PoolStatus s = status(poolId);
+        if (s != PoolStatus.Funding && s != PoolStatus.Expired) revert WithdrawLocked();
+
+        uint96 amount = deposits[poolId][msg.sender];
+        if (amount == 0) revert NoDeposit();
+
+        // effects
+        deposits[poolId][msg.sender] = 0;
+        p.totalDeposited -= amount;
+        _removeContributor(poolId, msg.sender);
+        if (p.totalDeposited < p.targetAmount && p.fundedAt != 0) {
+            p.fundedAt = 0;
+        }
+
+        emit Withdrawn(poolId, msg.sender, amount, p.totalDeposited);
+
+        // interaction
+        (bool ok,) = msg.sender.call{value: amount}("");
+        if (!ok) revert TransferFailed();
+    }
+
+    function _removeContributor(uint256 poolId, address member) internal {
+        address[] storage arr = contributors[poolId];
+        uint256 len = arr.length;
+        for (uint256 i = 0; i < len; i++) {
+            if (arr[i] == member) {
+                arr[i] = arr[len - 1];
+                arr.pop();
+                return;
+            }
+        }
+    }
 }
