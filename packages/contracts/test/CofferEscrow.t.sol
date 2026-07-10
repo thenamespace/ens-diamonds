@@ -229,4 +229,95 @@ contract CofferEscrowTest is Test {
         vm.expectRevert(CofferEscrow.WrongStatus.selector);
         escrow.deposit{value: 1 ether}(id);
     }
+
+    function test_withdraw_happyPathDuringFunding() public {
+        uint256 id = _createDefaultPool();
+        vm.deal(alice, 100 ether);
+        vm.prank(alice);
+        escrow.deposit{value: 4 ether}(id);
+
+        uint256 balBefore = alice.balance;
+        vm.prank(alice);
+        vm.expectEmit(true, true, false, true, address(escrow));
+        emit CofferEscrow.Withdrawn(id, alice, 4 ether, 0);
+        escrow.withdraw(id);
+
+        assertEq(alice.balance, balBefore + 4 ether);
+        assertEq(escrow.deposits(id, alice), 0);
+        (,,, uint96 total,,,,) = escrow.pools(id);
+        assertEq(total, 0);
+        (address[] memory addrs,) = escrow.getContributors(id);
+        assertEq(addrs.length, 0);
+    }
+
+    function test_withdraw_swapAndPopKeepsOthers() public {
+        uint256 id = _createDefaultPool();
+        vm.deal(alice, 100 ether);
+        vm.deal(bob, 100 ether);
+        vm.prank(alice);
+        escrow.deposit{value: 3 ether}(id);
+        vm.prank(bob);
+        escrow.deposit{value: 3 ether}(id);
+
+        vm.prank(alice);
+        escrow.withdraw(id);
+
+        (address[] memory addrs, uint96[] memory amts) = escrow.getContributors(id);
+        assertEq(addrs.length, 1);
+        assertEq(addrs[0], bob);
+        assertEq(amts[0], 3 ether);
+    }
+
+    function test_withdraw_revertsWithNoDeposit() public {
+        uint256 id = _createDefaultPool();
+        vm.prank(alice);
+        vm.expectRevert(CofferEscrow.NoDeposit.selector);
+        escrow.withdraw(id);
+    }
+
+    function test_withdraw_lockedWhileFunded() public {
+        uint256 id = _fundPool(); // fully funded, within lock
+        vm.prank(alice);
+        vm.expectRevert(CofferEscrow.WithdrawLocked.selector);
+        escrow.withdraw(id);
+    }
+
+    function test_withdraw_allowedAfterLockLapses() public {
+        uint256 id = _fundPool();
+        // move past the execution window
+        vm.warp(block.timestamp + 7 days + 1);
+        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Funding));
+
+        vm.prank(alice);
+        escrow.withdraw(id);
+        assertEq(escrow.deposits(id, alice), 0);
+        // fundedAt reset after dropping below target
+        (,,,, , uint40 fundedAt,,) = escrow.pools(id);
+        assertEq(fundedAt, 0);
+    }
+
+    function test_withdraw_allowedWhenExpired() public {
+        uint256 id = _createDefaultPool();
+        vm.deal(alice, 100 ether);
+        vm.prank(alice);
+        escrow.deposit{value: 4 ether}(id); // partial, never funded
+
+        vm.warp(block.timestamp + 3 days + 1); // past deadline → Expired
+        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Expired));
+
+        vm.prank(alice);
+        escrow.withdraw(id);
+        assertEq(escrow.deposits(id, alice), 0);
+    }
+
+    // Funds the default pool exactly to target (alice 6, bob 4). Within lock.
+    function _fundPool() internal returns (uint256 id) {
+        id = _createDefaultPool();
+        vm.deal(alice, 100 ether);
+        vm.deal(bob, 100 ether);
+        vm.prank(alice);
+        escrow.deposit{value: 6 ether}(id);
+        vm.prank(bob);
+        escrow.deposit{value: 4 ether}(id);
+    }
 }
