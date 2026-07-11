@@ -25,6 +25,14 @@ describe("deriveStatus", () => {
   it("available for a never-registered name (expiry 0)", () => {
     expect(deriveStatus(0, now)).toBe("available");
   });
+  it("uses a custom gracePeriod when provided (shorter grace)", () => {
+    // With a 10-day grace, a name expired 15 days ago is already in premium.
+    expect(deriveStatus(now - 15 * DAY, now, 10 * DAY)).toBe("premium");
+  });
+  it("defaults gracePeriod to 90 days when omitted", () => {
+    // Same 15-days-expired name is still in grace under the 90-day default.
+    expect(deriveStatus(now - 15 * DAY, now)).toBe("grace");
+  });
 });
 
 describe("weiToUsd", () => {

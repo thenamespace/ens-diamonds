@@ -1,15 +1,7 @@
 import { normalize } from "viem/ens";
-import { labelhash, formatEther } from "viem";
-import {
-  mainnetClient,
-  ETH_REGISTRAR_CONTROLLER,
-  BASE_REGISTRAR,
-  CHAINLINK_ETH_USD,
-  controllerAbi,
-  registrarAbi,
-  chainlinkAbi,
-  ONE_YEAR,
-} from "./ens-mainnet";
+import { formatEther } from "viem";
+import { getPrice, getExpiry } from "@ensdomains/ensjs/public";
+import { ensClient, getEthUsd, ONE_YEAR } from "./ens-client";
 
 export type EnsStatus = "active" | "grace" | "premium" | "available" | "tooShort" | "invalid";
 
@@ -30,12 +22,17 @@ export const DAY = 86400;
 export const GRACE = 90 * DAY;
 export const PREMIUM = 21 * DAY;
 
-// Pure status derivation from expiry vs now (unix seconds). expiry === 0 (never
+// Pure status derivation from expiry vs now (unix seconds). `gracePeriod` is the
+// real registrar grace (from ensjs), defaulting to 90d. expiry === 0 (never
 // registered) falls through to "available".
-export function deriveStatus(expiry: number, now: number): "active" | "grace" | "premium" | "available" {
+export function deriveStatus(
+  expiry: number,
+  now: number,
+  gracePeriod: number = GRACE,
+): "active" | "grace" | "premium" | "available" {
   if (expiry > now) return "active";
-  if (now < expiry + GRACE) return "grace";
-  if (now < expiry + GRACE + PREMIUM) return "premium";
+  if (now < expiry + gracePeriod) return "grace";
+  if (now < expiry + gracePeriod + PREMIUM) return "premium";
   return "available";
 }
 
@@ -59,9 +56,10 @@ function stub(label: string, normalized: string, status: EnsStatus): EnsNameData
   };
 }
 
-// Read real mainnet ENS status + price for a label. Throws on RPC/multicall
-// failure (the caller renders an error state). Returns a stub (no reads) for
-// invalid or too-short labels.
+// Read real mainnet ENS status + price for a label via ensjs. Throws on RPC
+// failure of the core reads (caller renders an error state). Returns a stub (no
+// reads) for invalid or too-short labels. ETH/USD degrades to null on oracle
+// failure rather than failing the page.
 export async function getEnsNameData(rawLabel: string): Promise<EnsNameData> {
   const stripped = rawLabel.replace(/\.eth$/i, "");
   let normalized: string;
@@ -72,34 +70,18 @@ export async function getEnsNameData(rawLabel: string): Promise<EnsNameData> {
   }
   if (normalized.length < 3) return stub(rawLabel, normalized, "tooShort");
 
-  const tokenId = BigInt(labelhash(normalized));
-  const [price, expiryRaw] = await mainnetClient.multicall({
-    allowFailure: false,
-    contracts: [
-      { address: ETH_REGISTRAR_CONTROLLER, abi: controllerAbi, functionName: "rentPrice", args: [normalized, ONE_YEAR] },
-      { address: BASE_REGISTRAR, abi: registrarAbi, functionName: "nameExpires", args: [tokenId] },
-    ],
-  });
+  const name = `${normalized}.eth`;
+  const [price, expiryData] = await Promise.all([
+    getPrice(ensClient, { nameOrNames: name, duration: ONE_YEAR }),
+    getExpiry(ensClient, { name }),
+  ]);
+  const ethUsd = await getEthUsd();
 
-  // ETH/USD is display-only — degrade to ETH-only (ethUsd null) if the oracle
-  // read fails, rather than failing the whole page (spec §6).
-  let ethUsd: number | null = null;
-  try {
-    const [decimals, round] = await mainnetClient.multicall({
-      allowFailure: false,
-      contracts: [
-        { address: CHAINLINK_ETH_USD, abi: chainlinkAbi, functionName: "decimals" },
-        { address: CHAINLINK_ETH_USD, abi: chainlinkAbi, functionName: "latestRoundData" },
-      ],
-    });
-    ethUsd = Number(round[1]) / 10 ** Number(decimals);
-  } catch {
-    ethUsd = null;
-  }
-
-  const expiry = Number(expiryRaw);
+  // getExpiry returns null for a never-registered name.
+  const expiry = expiryData ? Number(expiryData.expiry.value) : 0;
+  const gracePeriod = expiryData ? expiryData.gracePeriod : GRACE;
   const now = Math.floor(Date.now() / 1000);
-  const status = deriveStatus(expiry, now);
+  const status = deriveStatus(expiry, now, gracePeriod);
   const baseWei = price.base;
   const premiumWei = price.premium;
 
