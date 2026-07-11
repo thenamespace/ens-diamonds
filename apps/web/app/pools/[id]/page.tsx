@@ -7,7 +7,9 @@ import { useAccount, useChainId, usePublicClient, useReadContracts, useWriteCont
 import { sepolia } from "wagmi/chains";
 import { cofferEscrow, statusName } from "@/lib/contract";
 import { isEscrowConfigured } from "@/lib/chain";
-import { fmtEth, pct, parseEther, shortAddr, fmtCountdown } from "@/lib/format";
+import { fmtEth, pct, parseEther, fmtCountdown } from "@/lib/format";
+import AddressLabel from "@/components/address-label";
+import EnsAvatar from "@/components/ens-avatar";
 
 type PoolTuple = readonly [string, `0x${string}`, bigint, bigint, number, number, number, `0x${string}`];
 
@@ -118,13 +120,13 @@ export default function PoolDashboard() {
             <span className={`tag tag-${status}`}>{status}</span>
           </div>
           <p>
-            {threshold}-of-{contributorCount || "N"} Safe · created by <span className="mono">{shortAddr(creator)}</span>
+            {threshold}-of-{contributorCount || "N"} Safe · created by <AddressLabel address={creator} />
             {safe !== "0x0000000000000000000000000000000000000000" ? (
               <>
                 {" "}
                 ·{" "}
-                <a className="mono" style={{ color: "var(--accent-2)" }} href={`https://app.safe.global/home?safe=sep:${safe}`} target="_blank" rel="noreferrer">
-                  {shortAddr(safe)}
+                <a style={{ color: "var(--accent-2)" }} href={`https://app.safe.global/home?safe=sep:${safe}`} target="_blank" rel="noreferrer">
+                  <AddressLabel address={safe} />
                 </a>
               </>
             ) : (
@@ -205,10 +207,10 @@ export default function PoolDashboard() {
                 const bps = targetAmount > 0n ? Number((amt * 10000n) / targetAmount) : 0;
                 return (
                   <div key={addr} className="mrow">
-                    <div className="avatar">{addr.slice(2, 3).toUpperCase()}</div>
+                    <EnsAvatar address={addr} size={34} className="avatar" fallback={<div className="avatar">{addr.slice(2, 3).toUpperCase()}</div>} />
                     <div>
                       <div className="who">
-                        {shortAddr(addr)}
+                        <AddressLabel address={addr} mono={false} />
                         {address && addr.toLowerCase() === address.toLowerCase() ? " · you" : ""}
                         {addr.toLowerCase() === creator.toLowerCase() ? <span className="pill pill-ok" style={{ marginLeft: 8 }}>creator</span> : null}
                       </div>
@@ -281,7 +283,7 @@ export default function PoolDashboard() {
               <>
                 <div className="kv">
                   <span className="k">Safe</span>
-                  <span className="v accent">{shortAddr(safe)}</span>
+                  <AddressLabel address={safe} className="v accent" mono={false} />
                 </div>
                 <div className="kv">
                   <span className="k">Threshold</span>

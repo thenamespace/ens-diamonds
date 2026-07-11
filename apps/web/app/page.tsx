@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { NAMES, usd, type PremiumName } from "@/lib/data";
+import SearchBar from "@/components/search-bar";
 
 type Sort = "trending" | "ending" | "cheapest" | "shortest";
 
@@ -27,38 +28,75 @@ function sortNames(names: PremiumName[], sort: Sort): PremiumName[] {
   }
 }
 
+// A small, on-brand set of cool gradients; each name gets a stable one so the
+// grid reads as a colourful-but-cohesive set rather than a wall of white.
+const CARD_GRADIENTS: [string, string][] = [
+  ["#2f6bff", "#1f54e6"],
+  ["#6366f1", "#8b5cf6"],
+  ["#0ea5e9", "#06b6d4"],
+  ["#3b82f6", "#2f6bff"],
+  ["#7c3aed", "#4f46e5"],
+  ["#0891b2", "#22c1c3"],
+];
+
+function gradientFor(label: string): [string, string] {
+  let h = 0;
+  for (let i = 0; i < label.length; i++) h = (h * 31 + label.charCodeAt(i)) >>> 0;
+  return CARD_GRADIENTS[h % CARD_GRADIENTS.length];
+}
+
 function NameCard({ n }: { n: PremiumName }) {
+  const [c1, c2] = gradientFor(n.label);
   return (
-    <Link className="ncard reveal" href={`/name/${n.label}`}>
+    <Link
+      className="ncard reveal"
+      href={`/name/${n.label}`}
+      style={{ ["--c1"]: c1, ["--c2"]: c2 } as React.CSSProperties}
+    >
       <div className="ncard-top">
-        <span className={`tag ${n.cheap ? "tag-cheap" : "tag-premium"}`}>{n.cheap ? "Cheap" : "Premium"}</span>
-        <span className="mono" style={{ fontSize: 12, color: "var(--faint)" }}>
+        <span className="ncard-mono" aria-hidden>
+          {n.label.slice(0, 1).toUpperCase()}
+        </span>
+        <span className="ncard-timer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
           {n.daysLeft}d {n.hoursLeft}h left
         </span>
       </div>
+
       <div className="ncard-name">
         {n.label}
         <span className="eth">.eth</span>
       </div>
-      <div className="ncard-sub">
-        {n.letters} letters · expired {n.expiredDaysAgo}d ago
-      </div>
+
       <div className="ncard-price">
-        <div>
-          <div style={{ fontSize: 12, color: "var(--faint)", marginBottom: 2 }}>Current premium</div>
-          <div className="p">{usd(n.premiumUsd)}</div>
-        </div>
-        <span className="drop">↓ 50% / day</span>
+        <span className="ncard-price-label">Current price</span>
+        <span className="p">{usd(n.premiumUsd)}</span>
       </div>
+
       <div className="ncard-foot">
         {n.poolsForming > 0 ? (
           <span className="pools-chip">
-            <span className="d" /> {n.poolsForming} pool{n.poolsForming > 1 ? "s" : ""} forming
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {n.poolsForming} pool{n.poolsForming > 1 ? "s" : ""} forming
           </span>
         ) : (
-          <span style={{ color: "var(--faint)" }}>No pools yet</span>
+          <span className="no-pools">No pools yet</span>
         )}
-        <span className="mono">{n.watching.toLocaleString()} watching</span>
+        <span className="watchers">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          {n.watching.toLocaleString()}
+        </span>
       </div>
     </Link>
   );
@@ -89,7 +127,9 @@ export default function Discover() {
             </button>
           ))}
         </div>
-        <span className="count">{names.length} in premium now</span>
+        <div className="toolbar-search">
+          <SearchBar />
+        </div>
       </div>
 
       <div className="grid">
