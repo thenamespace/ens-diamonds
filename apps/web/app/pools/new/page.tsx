@@ -10,6 +10,7 @@ import { cofferEscrow } from "@/lib/contract";
 import { cofferEscrowAbi } from "@/lib/abi/coffer-escrow";
 import { isEscrowConfigured } from "@/lib/chain";
 import { parseEther } from "@/lib/format";
+import { useAuth } from "@/hooks/use-auth";
 
 const MAX_SIGNERS = 10;
 
@@ -31,6 +32,8 @@ function NewPoolForm() {
   const [days, setDays] = useState(7);
   const [invitees, setInvitees] = useState<Invitee[]>([]);
   const [labelInput, setLabelInput] = useState(label || "");
+  const [isPublic, setIsPublic] = useState(true);
+  const { isSignedIn, signIn } = useAuth();
 
   const [step, setStep] = useState<"idle" | "creating" | "depositing" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -89,6 +92,21 @@ function NewPoolForm() {
         value: parseEther(yourContrib),
       });
       await publicClient.waitForTransactionReceipt({ hash: hash2 });
+
+      // Public is the default (absence of a record). Only a private pool needs a
+      // creator-signed visibility write; failure is non-fatal.
+      if (!isPublic) {
+        try {
+          if (!isSignedIn) await signIn();
+          await fetch("/api/pools/visibility", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ poolId: Number(poolId), public: false }),
+          });
+        } catch {
+          /* non-fatal: pool stays public until retried */
+        }
+      }
 
       setStep("done");
       router.push(`/pools/${poolId.toString()}`);
@@ -202,6 +220,28 @@ function NewPoolForm() {
                   <span>N-of-N: one unresponsive signer freezes the Safe forever.</span>
                 </div>
               )}
+            </div>
+
+            <div className="field" style={{ marginTop: 18, marginBottom: 0 }}>
+              <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <span>
+                  List this pool publicly <span className="hint">shows in the Pools directory</span>
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={isPublic}
+                  className={`toggle${isPublic ? " on" : ""}`}
+                  onClick={() => setIsPublic((v) => !v)}
+                >
+                  <span className="toggle-knob" />
+                </button>
+              </label>
+              <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
+                {isPublic
+                  ? "Anyone can find this pool in the directory. Only addresses you invite can deposit."
+                  : "Private — only you and the people you invite can see it. You’ll sign a quick message to confirm you’re the creator."}
+              </p>
             </div>
           </div>
 
