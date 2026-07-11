@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { premiumProgress } from "./ens-premium";
+import { premiumProgress, mergeWindows } from "./ens-premium";
 
 const DAY = 86400;
 const GRACE = 90 * DAY;
@@ -20,5 +20,27 @@ describe("premiumProgress", () => {
   });
   it("clamps to 0 before release (still in grace)", () => {
     expect(premiumProgress(now - GRACE + 5 * DAY, now).dayIntoPremium).toBe(0);
+  });
+});
+
+describe("mergeWindows", () => {
+  const mk = (label: string, expiryDate: number) => ({ label, expiryDate });
+
+  it("dedupes by label and caps to limit", () => {
+    const desc = [mk("aaa", 300), mk("bbb", 200)];
+    const asc = [mk("ccc", 100), mk("bbb", 200)]; // bbb overlaps
+    const out = mergeWindows(desc, asc, 10);
+    const labels = out.map((v) => v.label).sort();
+    expect(labels).toEqual(["aaa", "bbb", "ccc"]);
+  });
+
+  it("keeps both extremes when capped (highest and lowest expiry survive)", () => {
+    const desc = [mk("new1", 999), mk("new2", 998)];
+    const asc = [mk("old1", 1), mk("old2", 2)];
+    const out = mergeWindows(desc, asc, 2);
+    expect(out).toHaveLength(2);
+    const exps = out.map((v) => v.expiryDate);
+    expect(Math.max(...exps)).toBe(999);
+    expect(Math.min(...exps)).toBe(1);
   });
 });
