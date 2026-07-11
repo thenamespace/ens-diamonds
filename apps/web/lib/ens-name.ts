@@ -73,22 +73,35 @@ export async function getEnsNameData(rawLabel: string): Promise<EnsNameData> {
   if (normalized.length < 3) return stub(rawLabel, normalized, "tooShort");
 
   const tokenId = BigInt(labelhash(normalized));
-  const [price, expiryRaw, decimals, round] = await mainnetClient.multicall({
+  const [price, expiryRaw] = await mainnetClient.multicall({
     allowFailure: false,
     contracts: [
       { address: ETH_REGISTRAR_CONTROLLER, abi: controllerAbi, functionName: "rentPrice", args: [normalized, ONE_YEAR] },
       { address: BASE_REGISTRAR, abi: registrarAbi, functionName: "nameExpires", args: [tokenId] },
-      { address: CHAINLINK_ETH_USD, abi: chainlinkAbi, functionName: "decimals" },
-      { address: CHAINLINK_ETH_USD, abi: chainlinkAbi, functionName: "latestRoundData" },
     ],
   });
+
+  // ETH/USD is display-only — degrade to ETH-only (ethUsd null) if the oracle
+  // read fails, rather than failing the whole page (spec §6).
+  let ethUsd: number | null = null;
+  try {
+    const [decimals, round] = await mainnetClient.multicall({
+      allowFailure: false,
+      contracts: [
+        { address: CHAINLINK_ETH_USD, abi: chainlinkAbi, functionName: "decimals" },
+        { address: CHAINLINK_ETH_USD, abi: chainlinkAbi, functionName: "latestRoundData" },
+      ],
+    });
+    ethUsd = Number(round[1]) / 10 ** Number(decimals);
+  } catch {
+    ethUsd = null;
+  }
 
   const expiry = Number(expiryRaw);
   const now = Math.floor(Date.now() / 1000);
   const status = deriveStatus(expiry, now);
   const baseWei = price.base;
   const premiumWei = price.premium;
-  const ethUsd = Number(round[1]) / 10 ** Number(decimals);
 
   return {
     label: rawLabel,
