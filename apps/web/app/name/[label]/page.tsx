@@ -1,4 +1,5 @@
 import Link from "next/link";
+import WatchButton from "@/components/watch-button";
 import DecayChart from "@/components/decay-chart";
 import { usd } from "@/lib/data";
 import { fmtEth, fmtCountdown } from "@/lib/format";
@@ -31,8 +32,11 @@ const STATUS_TAG: Record<EnsNameData["status"], { text: string; cls: string }> =
 function Shell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="wrap">
-      <div className="crumb">
-        <Link href="/">Discover</Link> <span>/</span> <span>{label}.eth</span>
+      <div className="crumb" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span>
+          <Link href="/">Discover</Link> <span>/</span> <span>{label}.eth</span>
+        </span>
+        <WatchButton label={label} />
       </div>
       {children}
     </div>
