@@ -6,6 +6,7 @@ import type { PremiumEntry } from "@/lib/ens-premium";
 import { fmtUsd, fmtCountdown } from "@/lib/format";
 import SearchBar from "@/components/search-bar";
 import { sortEntries, SORTS, type Sort } from "@/lib/discover-sort";
+import WatchButton from "@/components/watch-button";
 
 // Stable, on-brand gradient per name so the grid reads as cohesive.
 const CARD_GRADIENTS: [string, string][] = [
@@ -36,12 +37,15 @@ function NameCard({ n }: { n: PremiumEntry }) {
         <span className="ncard-mono" aria-hidden>
           {n.label.slice(0, 1).toUpperCase()}
         </span>
-        <span className="ncard-timer">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-            <circle cx="12" cy="12" r="9" />
-            <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          {fmtCountdown(n.premiumEndsAt)} left
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <WatchButton label={n.label} />
+          <span className="ncard-timer">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <circle cx="12" cy="12" r="9" />
+              <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {fmtCountdown(n.premiumEndsAt)} left
+          </span>
         </span>
       </div>
 
