@@ -1,9 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { deriveStatus, weiToUsd } from "./ens-name";
+import { deriveStatus, weiToUsd, DAY, GRACE, PREMIUM } from "./ens-name";
 
-const DAY = 86400;
-const GRACE = 90 * DAY;
-const PREMIUM = 21 * DAY;
 const now = 1_000_000_000;
 
 describe("deriveStatus", () => {
