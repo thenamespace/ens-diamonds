@@ -3,7 +3,6 @@
 import { useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAccount, useSignMessage } from "wagmi";
-import { SiweMessage } from "@signinwithethereum/siwe";
 
 async function fetchMe(): Promise<string | null> {
   const res = await fetch("/api/auth/me");
@@ -21,6 +20,10 @@ export function useAuth() {
   const signIn = useCallback(async () => {
     if (!isConnected || !address) throw new Error("Connect a wallet first");
     const nonce = await fetch("/api/auth/nonce").then((r) => r.text());
+    // Code-split: SIWE is only needed at the moment of signing, so keep it out
+    // of every page's first-load bundle.
+    const { SiweMessage } = await import("@signinwithethereum/siwe");
+    const now = Date.now();
     const message = new SiweMessage({
       domain: window.location.host,
       address,
@@ -29,7 +32,8 @@ export function useAuth() {
       version: "1",
       chainId: chainId ?? 1,
       nonce,
-      issuedAt: new Date().toISOString(),
+      issuedAt: new Date(now).toISOString(),
+      expirationTime: new Date(now + 10 * 60 * 1000).toISOString(),
     });
     const prepared = message.prepareMessage();
     const signature = await signMessageAsync({ message: prepared });

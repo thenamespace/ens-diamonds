@@ -11,9 +11,11 @@ export type WatchingCardData = {
 };
 
 export default function WatchingCard({ data }: { data: WatchingCardData }) {
-  const { isWatching } = useWatching();
-  // Optimistically drop the card the moment it's unwatched on this page.
-  if (!isWatching(data.label)) return null;
+  const { isWatching, isLoaded } = useWatching();
+  // Drop the card the moment it's unwatched — but ONLY once the client list has
+  // actually loaded. Before that (e.g. wallet not yet reconnected) keep showing
+  // the server-rendered card instead of blanking the whole page.
+  if (isLoaded && !isWatching(data.label)) return null;
 
   return (
     <Link href={`/name/${data.label}`} className="ncard reveal">

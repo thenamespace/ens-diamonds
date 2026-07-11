@@ -19,17 +19,22 @@ export async function POST(req: Request) {
   }
 
   const host = req.headers.get("host") ?? "";
+  const challenge = session.nonce;
+  // Consume the nonce now: a single challenge gets exactly one verify attempt,
+  // success or fail. A retry must fetch a fresh nonce.
+  session.nonce = undefined;
+  await session.save();
+
   try {
     const siwe = new SiweMessage(message);
     const result = await siwe.verify(
-      { signature, domain: host, nonce: session.nonce },
+      { signature, domain: host, nonce: challenge },
       { suppressExceptions: true },
     );
     if (!result.success) {
       return Response.json({ error: "Verification failed" }, { status: 422 });
     }
     session.address = siwe.address.toLowerCase();
-    session.nonce = undefined; // single-use
     await session.save();
     return Response.json({ address: session.address });
   } catch {
