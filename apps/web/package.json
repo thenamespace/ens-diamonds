@@ -12,7 +12,10 @@
   "dependencies": {
     "@ensdomains/ensjs": "^4.3.1",
     "@rainbow-me/rainbowkit": "^2.2.11",
+    "@signinwithethereum/siwe": "^4.2.0",
     "@tanstack/react-query": "^5.101.2",
+    "@upstash/redis": "^1.38.0",
+    "iron-session": "^8.0.4",
     "next": "15.5.20",
     "react": "19.2.7",
     "react-dom": "19.2.7",
