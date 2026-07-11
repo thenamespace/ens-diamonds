@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { getEnsNameData } from "./ens-name";
+import { getPremiumNames } from "./ens-premium";
 
 // Only runs when a mainnet RPC is configured, to keep default `test` runs
 // offline and deterministic (mirrors the contracts' guarded fork tests).
@@ -21,5 +22,25 @@ maybe("getEnsNameData against mainnet", () => {
       expect(d.ethUsd as number).toBeGreaterThan(0);
     },
     20000,
+  );
+});
+
+// getPremiumNames needs the Graph key; the RPC falls back to a public endpoint.
+const maybeSubgraph = process.env.GRAPH_API_KEY ? describe : describe.skip;
+
+maybeSubgraph("getPremiumNames against mainnet", () => {
+  it(
+    "returns real premium names with sane fields",
+    async () => {
+      const names = await getPremiumNames(5);
+      expect(Array.isArray(names)).toBe(true);
+      for (const n of names) {
+        expect(n.label.length).toBeGreaterThanOrEqual(3);
+        expect(n.priceEth).toBeGreaterThanOrEqual(0);
+        expect(n.dayIntoPremium).toBeGreaterThanOrEqual(0);
+        expect(n.dayIntoPremium).toBeLessThanOrEqual(21);
+      }
+    },
+    30000,
   );
 });
