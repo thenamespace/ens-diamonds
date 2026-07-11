@@ -13,7 +13,7 @@
 **Verified (source/npm/live spike, 2026-07-11):**
 - `getPrice(client, { nameOrNames, duration })` → `{ base, premium }` (single or array), from `@ensdomains/ensjs/public`.
 - `getExpiry(client, { name })` → `null` if never registered, else `{ expiry: { value: bigint }, gracePeriod: number, status }`, from `@ensdomains/ensjs/public`.
-- Client: `createPublicClient({ chain: addEnsContracts(mainnet, { subgraphApiKey }), transport: http(rpc) })`; `addEnsContracts` from `@ensdomains/ensjs/contracts`. Names must be `.eth`-suffixed.
+- Client: `createPublicClient({ chain: addEnsContracts(mainnet, { subgraphApiKey }), transport: http(rpc) })`; `addEnsContracts` from the package root `@ensdomains/ensjs` (NOT the `/contracts` subpath). Names must be `.eth`-suffixed.
 - Mainnet ENS subgraph gateway: `https://gateway-arbitrum.network.thegraph.com/api/<GRAPH_API_KEY>/subgraphs/id/5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH`; `registrations(where:{expiryDate_gte,expiryDate_lte})` returns names in premium (spike-confirmed).
 - `GRAPH_API_KEY` + `MAINNET_RPC_URL` already in `apps/web/.env.local` (gitignored). **Never commit the key.**
 
@@ -78,7 +78,7 @@ Create `apps/web/lib/ens-client.ts`:
 ```ts
 import { createPublicClient, http } from "viem";
 import { mainnet } from "viem/chains";
-import { addEnsContracts } from "@ensdomains/ensjs/contracts";
+import { addEnsContracts } from "@ensdomains/ensjs";
 
 // Read-only mainnet ENS access via ensjs. NOT wired to the wallet — writes/pooling
 // stay on Sepolia via wagmi. Server-side only (RPC endpoint + Graph key are server
