@@ -1,77 +1,184 @@
 import Link from "next/link";
 import DecayChart from "@/components/decay-chart";
-import AddressLabel from "@/components/address-label";
-import { getName, usd, usdToEth, eth } from "@/lib/data";
+import { usd } from "@/lib/data";
+import { fmtEth, fmtCountdown } from "@/lib/format";
+import { getEnsNameData, weiToUsd, type EnsNameData } from "@/lib/ens-name";
 
-export default async function NamePage({ params }: { params: Promise<{ label: string }> }) {
-  const { label } = await params;
-  const clean = decodeURIComponent(label).toLowerCase().replace(/\.eth$/, "");
-  const n = getName(clean);
+// Cache the rendered page ~60s per name (satisfies the spec's caching
+// requirement): bounds mainnet RPC usage, and premium decay tolerates 60s
+// staleness. HTML-level caching avoids the bigint-serialization problem that
+// unstable_cache would hit on the wei fields.
+export const revalidate = 60;
 
-  if (!n) {
-    return (
-      <div className="wrap">
-        <div className="crumb">
-          <Link href="/">Discover</Link> <span>/</span> <span>{clean}.eth</span>
-        </div>
-        <div className="empty">
-          <span className="mark" aria-hidden />
-          <h3>{clean}.eth isn&rsquo;t in premium right now</h3>
-          <p>
-            Coffer covers expired .eth names in their 21-day temporary-premium auction. This name may be actively
-            registered, in its grace period, or not curated yet.
-          </p>
-          <Link className="btn btn-primary" href="/">
-            Browse names in premium
-          </Link>
-        </div>
-      </div>
-    );
-  }
+const DAY = 86400;
+const GRACE = 90 * DAY;
 
-  const total = n.registrationUsd + n.premiumUsd;
+function fmtUsdWei(wei: bigint, ethUsd: number | null): string {
+  const v = weiToUsd(wei, ethUsd);
+  return v === null ? "—" : usd(v);
+}
 
+function fmtDate(unix: number): string {
+  return new Date(unix * 1000).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+}
+
+const STATUS_TAG: Record<EnsNameData["status"], { text: string; cls: string }> = {
+  active: { text: "Registered", cls: "tag-finalized" },
+  grace: { text: "In grace period", cls: "tag-funding" },
+  premium: { text: "In temporary premium", cls: "tag-premium" },
+  available: { text: "Available", cls: "tag-cheap" },
+  tooShort: { text: "Too short", cls: "tag-funding" },
+  invalid: { text: "Invalid", cls: "tag-funding" },
+};
+
+function Shell({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="wrap">
       <div className="crumb">
-        <Link href="/">Discover</Link> <span>/</span> <span>{n.label}.eth</span>
+        <Link href="/">Discover</Link> <span>/</span> <span>{label}.eth</span>
       </div>
+      {children}
+    </div>
+  );
+}
 
+function EmptyState({ label, title, body }: { label: string; title: string; body: string }) {
+  return (
+    <Shell label={label}>
+      <div className="empty">
+        <span className="mark" aria-hidden />
+        <h3>{title}</h3>
+        <p>{body}</p>
+        <Link className="btn btn-primary" href="/">
+          Browse names in premium
+        </Link>
+      </div>
+    </Shell>
+  );
+}
+
+export default async function NamePage({ params }: { params: Promise<{ label: string }> }) {
+  const { label } = await params;
+  const raw = decodeURIComponent(label);
+
+  let d: EnsNameData;
+  try {
+    d = await getEnsNameData(raw);
+  } catch {
+    return (
+      <EmptyState
+        label={raw.replace(/\.eth$/i, "")}
+        title="Couldn’t load live price"
+        body="We couldn’t reach mainnet ENS to read this name right now. Please try again in a moment."
+      />
+    );
+  }
+
+  const display = d.normalized || raw.replace(/\.eth$/i, "");
+
+  if (d.status === "invalid") {
+    return (
+      <EmptyState
+        label={display}
+        title="Not a valid ENS name"
+        body="That isn’t a registerable .eth label. Check the spelling and try again."
+      />
+    );
+  }
+  if (d.status === "tooShort") {
+    return (
+      <EmptyState
+        label={display}
+        title={`${display}.eth is too short to register`}
+        body="ENS .eth names must be at least 3 characters. Try a longer name."
+      />
+    );
+  }
+
+  const tag = STATUS_TAG[d.status];
+
+  // Non-buyable states (active / grace): show status, no buy box.
+  if (!d.buyable) {
+    const until = d.status === "active" ? d.expiry : d.expiry + GRACE;
+    const body =
+      d.status === "active"
+        ? `This name is registered until ${fmtDate(until)}. It isn’t available to buy — it would need to expire and pass its 90-day grace period first.`
+        : `This name expired and is in its 90-day grace period until ${fmtDate(until)}. The current owner can still renew it, so it can’t be pooled yet. If it isn’t renewed, it enters the 21-day premium auction after that.`;
+    return (
+      <Shell label={display}>
+        <div className="page-head">
+          <div>
+            <div className="row" style={{ gap: 14 }}>
+              <h1 style={{ fontSize: 46, margin: 0 }}>
+                {display}
+                <span style={{ color: "var(--faint)", fontWeight: 400 }}>.eth</span>
+              </h1>
+              <span className={`tag ${tag.cls}`}>{tag.text}</span>
+            </div>
+            <p>
+              {d.letters} letters · {d.status === "active" ? "registered" : "in grace period"}
+            </p>
+          </div>
+          <div className="row">
+            <Link className="btn btn-ghost" href="/">
+              ← Discover
+            </Link>
+          </div>
+        </div>
+        <div className="panel">
+          <span className="panel-title">Status</span>
+          <p className="muted" style={{ fontSize: 15 }}>
+            {body}
+          </p>
+        </div>
+      </Shell>
+    );
+  }
+
+  // Buyable states (premium / available).
+  const nowSec = Math.floor(Date.now() / 1000);
+  const premiumEndsAt = d.expiry + GRACE + 21 * DAY;
+  const dayIntoPremium = d.status === "premium" ? Math.min(21, Math.max(0, Math.floor((nowSec - (d.expiry + GRACE)) / DAY))) : 0;
+
+  return (
+    <Shell label={display}>
       <div className="page-head">
         <div>
           <div className="row" style={{ gap: 14 }}>
             <h1 style={{ fontSize: 46, margin: 0 }}>
-              {n.label}
+              {display}
               <span style={{ color: "var(--faint)", fontWeight: 400 }}>.eth</span>
             </h1>
-            <span className="tag tag-premium">In temporary premium</span>
+            <span className={`tag ${tag.cls}`}>{tag.text}</span>
           </div>
           <p>
-            {n.letters} letters · first registered {n.firstRegistered} · expired {n.expiredDaysAgo}d ago · prev owner{" "}
-            <AddressLabel address={n.prevOwner} />
+            {d.letters} letters · {d.status === "premium" ? "in the 21-day premium auction" : "available at base price"}
           </p>
         </div>
         <div className="row">
           <Link className="btn btn-ghost" href="/">
             ← Discover
           </Link>
-          <Link className="btn btn-primary" href={`/pools/new?label=${n.label}`}>
+          <Link className="btn btn-primary" href={`/pools/new?label=${display}`}>
             Start a pool to buy
           </Link>
         </div>
       </div>
 
       <div className="cols">
-        {/* left: chart + explainer */}
         <div className="stack">
           <div className="panel">
             <div className="spread" style={{ marginBottom: 14 }}>
               <span className="panel-title" style={{ margin: 0 }}>
                 Premium price decay
               </span>
-              <span className="tag tag-premium">NOW · DAY {n.expiredDaysAgo - 90 > 0 ? n.expiredDaysAgo - 90 : 13}</span>
+              {d.status === "premium" ? (
+                <span className="tag tag-premium">NOW · DAY {dayIntoPremium}</span>
+              ) : (
+                <span className="tag tag-cheap">No premium</span>
+              )}
             </div>
-            <DecayChart nowDay={13} />
+            <DecayChart nowDay={dayIntoPremium} showMarker={d.status === "premium"} />
             <div className="axis">
               <span>Day 0</span>
               <span>Day 7</span>
@@ -82,7 +189,7 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
               <span>ℹ</span>
               <span>
                 The premium starts near $100M and halves every day until it reaches $0 at day 21, added on top of the
-                standard fee. The headline price is always a live on-chain <span className="mono">rentPrice</span> read.
+                standard fee. The headline price is a live on-chain <span className="mono">rentPrice</span> read.
               </span>
             </div>
           </div>
@@ -92,20 +199,16 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
             <div>
               <div className="kv">
                 <span className="k">Length</span>
-                <span className="v">{n.letters} characters</span>
+                <span className="v">{d.letters} characters</span>
               </div>
               <div className="kv">
-                <span className="k">First registered</span>
-                <span className="v">{n.firstRegistered}</span>
+                <span className="k">Status</span>
+                <span className="v">{tag.text}</span>
               </div>
-              <div className="kv">
-                <span className="k">Previous owner</span>
-                <AddressLabel address={n.prevOwner} className="v" />
-              </div>
-              {n.twitter && (
+              {d.expiry > 0 && (
                 <div className="kv">
-                  <span className="k">Twitter record</span>
-                  <span className="v accent">{n.twitter}</span>
+                  <span className="k">Released after</span>
+                  <span className="v">{fmtDate(d.expiry + GRACE)}</span>
                 </div>
               )}
               <div className="kv">
@@ -116,43 +219,37 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
           </div>
         </div>
 
-        {/* right: buy box + pools */}
         <div className="stack">
           <div className="panel">
             <span className="panel-title">Register for 1 year</span>
             <div className="kv">
               <span className="k">Registration (1 yr)</span>
-              <span className="v">{usd(n.registrationUsd)}</span>
+              <span className="v">{fmtUsdWei(d.baseWei, d.ethUsd)}</span>
             </div>
             <div className="kv">
               <span className="k">Temporary premium</span>
-              <span className="v">{usd(n.premiumUsd)}</span>
+              <span className="v">{fmtUsdWei(d.premiumWei, d.ethUsd)}</span>
             </div>
             <div className="kv">
               <span className="k">Total to buy now</span>
-              <span className="v big accent">{usd(total)}</span>
+              <span className="v big accent">{fmtUsdWei(d.totalWei, d.ethUsd)}</span>
             </div>
             <div className="progress-label" style={{ marginTop: 6 }}>
-              <span>≈ {eth(usdToEth(total), 2)}</span>
-              <span>
-                premium gone in {n.daysLeft}d {n.hoursLeft}h
-              </span>
+              <span>≈ {fmtEth(d.totalWei, 3)}</span>
+              {d.status === "premium" && <span>premium gone in {fmtCountdown(premiumEndsAt)}</span>}
             </div>
-            <Link className="btn btn-primary btn-block btn-lg mt-16" href={`/pools/new?label=${n.label}`}>
+            <Link className="btn btn-primary btn-block btn-lg mt-16" href={`/pools/new?label=${display}`}>
               Start a pool to buy together
             </Link>
-            <div style={{ textAlign: "center", marginTop: 10, fontSize: 13, color: "var(--faint)" }}>
-              {n.watching.toLocaleString()} watching · {n.poolsForming} pool{n.poolsForming === 1 ? "" : "s"} forming
-            </div>
           </div>
 
           <div className="panel">
             <span className="panel-title">Pools</span>
             <p className="muted" style={{ fontSize: 14, marginTop: -4 }}>
-              Start a pool for {n.label}.eth and invite people, or browse every open pool on the escrow.
+              Start a pool for {display}.eth and invite people, or browse every open pool on the escrow.
             </p>
             <div className="row mt-8" style={{ gap: 8 }}>
-              <Link className="btn btn-primary btn-sm" href={`/pools/new?label=${n.label}`}>
+              <Link className="btn btn-primary btn-sm" href={`/pools/new?label=${display}`}>
                 Start a pool
               </Link>
               <Link className="btn btn-ghost btn-sm" href="/pools">
@@ -162,6 +259,6 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
           </div>
         </div>
       </div>
-    </div>
+    </Shell>
   );
 }
