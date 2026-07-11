@@ -12,7 +12,7 @@ export const ensClient = createPublicClient({
   chain: GRAPH_API_KEY
     ? addEnsContracts(mainnet, { subgraphApiKey: GRAPH_API_KEY })
     : addEnsContracts(mainnet),
-  transport: http(MAINNET_RPC),
+  transport: http(MAINNET_RPC, { batch: true }),
 });
 
 export const ONE_YEAR = 31_536_000n;

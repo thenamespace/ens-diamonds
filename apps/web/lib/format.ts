@@ -28,3 +28,7 @@ export function fmtCountdown(deadlineSec: number): string {
   const mins = Math.floor((d % 3600) / 60);
   return `${hrs}h ${mins}m`;
 }
+
+export function fmtUsd(n: number): string {
+  return "$" + Math.round(n).toLocaleString("en-US");
+}
