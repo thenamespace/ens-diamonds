@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useReadContract, useReadContracts } from "wagmi";
 import { cofferEscrow, statusName } from "@/lib/contract";
 import { isEscrowConfigured } from "@/lib/chain";
-import { fmtEth, pct, shortAddr } from "@/lib/format";
+import { fmtEth, pct } from "@/lib/format";
+import AddressLabel from "@/components/address-label";
 
 type PoolTuple = readonly [string, `0x${string}`, bigint, bigint, number, number, number, `0x${string}`];
 
@@ -75,7 +76,7 @@ export default function PoolsPage() {
                   {label}
                   <span className="eth">.eth</span>
                 </div>
-                <div className="ncard-sub mono">by {shortAddr(creator)}</div>
+                <div className="ncard-sub">by <AddressLabel address={creator} /></div>
                 <div className="progress mt-16">
                   <div className="fill" style={{ width: `${funded}%` }} />
                 </div>

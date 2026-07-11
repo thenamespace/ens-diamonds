@@ -1,6 +1,5 @@
 import Link from "next/link";
 import ConnectButton from "./connect-button";
-import SearchBar from "./search-bar";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -19,7 +18,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="topbar-right">
-            <SearchBar />
             <ConnectButton />
           </div>
         </div>

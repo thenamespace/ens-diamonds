@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AddressLabel from "@/components/address-label";
 import { POOLS, eth, usd, ETH_USD } from "@/lib/data";
 
 export default function PortfolioPage() {
@@ -42,7 +43,7 @@ export default function PortfolioPage() {
                         <span style={{ color: "var(--faint)", fontWeight: 400 }}>.eth</span>
                       </div>
                       <div className="sub" style={{ fontSize: 13 }}>
-                        Safe {p.safe ?? "deploying"} · expires in ~11 months
+                        Safe {p.safe ? <AddressLabel address={p.safe} mono={false} /> : "deploying"} · expires in ~11 months
                       </div>
                     </div>
                   </div>

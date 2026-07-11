@@ -1,5 +1,6 @@
 import Link from "next/link";
 import DecayChart from "@/components/decay-chart";
+import AddressLabel from "@/components/address-label";
 import { getName, usd, usdToEth, eth } from "@/lib/data";
 
 export default async function NamePage({ params }: { params: Promise<{ label: string }> }) {
@@ -47,7 +48,7 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
           </div>
           <p>
             {n.letters} letters · first registered {n.firstRegistered} · expired {n.expiredDaysAgo}d ago · prev owner{" "}
-            <span className="mono">{n.prevOwner}</span>
+            <AddressLabel address={n.prevOwner} />
           </p>
         </div>
         <div className="row">
@@ -99,7 +100,7 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
               </div>
               <div className="kv">
                 <span className="k">Previous owner</span>
-                <span className="v">{n.prevOwner}</span>
+                <AddressLabel address={n.prevOwner} className="v" />
               </div>
               {n.twitter && (
                 <div className="kv">
