@@ -5,29 +5,7 @@ import { useMemo, useState } from "react";
 import type { PremiumEntry } from "@/lib/ens-premium";
 import { fmtUsd, fmtCountdown } from "@/lib/format";
 import SearchBar from "@/components/search-bar";
-
-type Sort = "newest" | "ending" | "cheapest" | "shortest";
-
-const SORTS: { key: Sort; label: string }[] = [
-  { key: "newest", label: "Newest" },
-  { key: "ending", label: "Ending soon" },
-  { key: "cheapest", label: "Cheapest" },
-  { key: "shortest", label: "Shortest" },
-];
-
-function sortEntries(entries: PremiumEntry[], sort: Sort): PremiumEntry[] {
-  const a = [...entries];
-  switch (sort) {
-    case "newest":
-      return a.sort((x, y) => y.expiryDate - x.expiryDate);
-    case "ending":
-      return a.sort((x, y) => x.premiumEndsAt - y.premiumEndsAt);
-    case "cheapest":
-      return a.sort((x, y) => x.priceEth - y.priceEth);
-    case "shortest":
-      return a.sort((x, y) => x.letters - y.letters || x.priceEth - y.priceEth);
-  }
-}
+import { sortEntries, SORTS, type Sort } from "@/lib/discover-sort";
 
 // Stable, on-brand gradient per name so the grid reads as cohesive.
 const CARD_GRADIENTS: [string, string][] = [
