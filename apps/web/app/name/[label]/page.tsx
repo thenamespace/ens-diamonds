@@ -2,16 +2,13 @@ import Link from "next/link";
 import DecayChart from "@/components/decay-chart";
 import { usd } from "@/lib/data";
 import { fmtEth, fmtCountdown } from "@/lib/format";
-import { getEnsNameData, weiToUsd, type EnsNameData } from "@/lib/ens-name";
+import { getEnsNameData, weiToUsd, type EnsNameData, DAY, GRACE, PREMIUM } from "@/lib/ens-name";
 
 // Cache the rendered page ~60s per name (satisfies the spec's caching
 // requirement): bounds mainnet RPC usage, and premium decay tolerates 60s
 // staleness. HTML-level caching avoids the bigint-serialization problem that
 // unstable_cache would hit on the wei fields.
 export const revalidate = 60;
-
-const DAY = 86400;
-const GRACE = 90 * DAY;
 
 function fmtUsdWei(wei: bigint, ethUsd: number | null): string {
   const v = weiToUsd(wei, ethUsd);
@@ -137,7 +134,7 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
 
   // Buyable states (premium / available).
   const nowSec = Math.floor(Date.now() / 1000);
-  const premiumEndsAt = d.expiry + GRACE + 21 * DAY;
+  const premiumEndsAt = d.expiry + GRACE + PREMIUM;
   const dayIntoPremium = d.status === "premium" ? Math.min(21, Math.max(0, Math.floor((nowSec - (d.expiry + GRACE)) / DAY))) : 0;
 
   return (
