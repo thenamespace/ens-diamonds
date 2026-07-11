@@ -1069,3 +1069,34 @@ h4 {
     width: 150px;
   }
 }
+
+/* Watch star */
+.watch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid var(--hairline, rgba(15, 23, 42, 0.08));
+  background: rgba(255, 255, 255, 0.7);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+}
+.watch-btn:hover {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.4);
+}
+.watch-btn.on {
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.5);
+  background: rgba(245, 158, 11, 0.1);
+}
+.watch-btn:active {
+  transform: scale(0.92);
+}
+.watch-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
