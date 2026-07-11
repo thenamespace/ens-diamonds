@@ -160,9 +160,6 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
           <Link className="btn btn-ghost" href="/">
             ← Discover
           </Link>
-          <Link className="btn btn-primary" href={`/pools/new?label=${display}`}>
-            Start a pool to buy
-          </Link>
         </div>
       </div>
 
@@ -247,12 +244,9 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
           <div className="panel">
             <span className="panel-title">Pools</span>
             <p className="muted" style={{ fontSize: 14, marginTop: -4 }}>
-              Start a pool for {display}.eth and invite people, or browse every open pool on the escrow.
+              Already a pool forming for {display}.eth? Browse every open pool on the escrow.
             </p>
             <div className="row mt-8" style={{ gap: 8 }}>
-              <Link className="btn btn-primary btn-sm" href={`/pools/new?label=${display}`}>
-                Start a pool
-              </Link>
               <Link className="btn btn-ghost btn-sm" href="/pools">
                 All pools →
               </Link>
