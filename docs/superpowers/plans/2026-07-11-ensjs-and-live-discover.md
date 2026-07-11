@@ -11,7 +11,7 @@
 **Spec:** `docs/superpowers/specs/2026-07-11-ensjs-and-live-discover-design.md`
 
 **Verified (source/npm/live spike, 2026-07-11):**
-- `getPrice(client, { nameOrNames, duration })` → `{ base, premium }` (single or array), from `@ensdomains/ensjs/public`.
+- `getPrice(client, { nameOrNames, duration })` → `{ base, premium }`, from `@ensdomains/ensjs/public`. NOTE: passing an **array** returns a single **combined bulk** price (BulkRenewal contract), NOT per-name — so to price a list we call getPrice **per name** in `Promise.all` (transport has `batch: true` to coalesce the concurrent reads).
 - `getExpiry(client, { name })` → `null` if never registered, else `{ expiry: { value: bigint }, gracePeriod: number, status }`, from `@ensdomains/ensjs/public`.
 - Client: `createPublicClient({ chain: addEnsContracts(mainnet, { subgraphApiKey }), transport: http(rpc) })`; `addEnsContracts` from the package root `@ensdomains/ensjs` (NOT the `/contracts` subpath). Names must be `.eth`-suffixed.
 - Mainnet ENS subgraph gateway: `https://gateway-arbitrum.network.thegraph.com/api/<GRAPH_API_KEY>/subgraphs/id/5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH`; `registrations(where:{expiryDate_gte,expiryDate_lte})` returns names in premium (spike-confirmed).
@@ -90,7 +90,7 @@ export const ensClient = createPublicClient({
   chain: GRAPH_API_KEY
     ? addEnsContracts(mainnet, { subgraphApiKey: GRAPH_API_KEY })
     : addEnsContracts(mainnet),
-  transport: http(MAINNET_RPC),
+  transport: http(MAINNET_RPC, { batch: true }),
 });
 
 export const ONE_YEAR = 31_536_000n;
@@ -450,8 +450,10 @@ export async function getPremiumNames(limit = 24): Promise<PremiumEntry[]> {
   }
   if (valid.length === 0) return [];
 
+  // Price per name (an array to getPrice returns one COMBINED bulk price, not
+  // per-name); the transport's `batch: true` coalesces the concurrent reads.
   const [prices, ethUsd] = await Promise.all([
-    getPrice(ensClient, { nameOrNames: valid.map((v) => `${v.label}.eth`), duration: ONE_YEAR }),
+    Promise.all(valid.map((v) => getPrice(ensClient, { nameOrNames: `${v.label}.eth`, duration: ONE_YEAR }))),
     getEthUsd(),
   ]);
 
@@ -587,7 +589,9 @@ function NameCard({ n }: { n: PremiumEntry }) {
 }
 
 export default function DiscoverGrid({ names }: { names: PremiumEntry[] }) {
-  const [sort, setSort] = useState<Sort>("newest");
+  // Default to "ending" (deepest into the 21-day decay = lowest premium =
+  // actually poolable) — day-0 names carry ENS's ~$100M starting premium.
+  const [sort, setSort] = useState<Sort>("ending");
   const sorted = useMemo(() => sortEntries(names, sort), [names, sort]);
 
   return (
