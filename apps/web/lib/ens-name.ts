@@ -26,9 +26,9 @@ export type EnsNameData = {
   buyable: boolean;
 };
 
-const DAY = 86400;
-const GRACE = 90 * DAY;
-const PREMIUM = 21 * DAY;
+export const DAY = 86400;
+export const GRACE = 90 * DAY;
+export const PREMIUM = 21 * DAY;
 
 // Pure status derivation from expiry vs now (unix seconds). expiry === 0 (never
 // registered) falls through to "available".
