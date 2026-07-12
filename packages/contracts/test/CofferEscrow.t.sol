@@ -12,15 +12,38 @@ contract CofferEscrowTest is Test {
     CofferEscrow escrow;
 
     address factory;
-    address singleton = address(0x51);
-    address fallbackHandler = address(0xFB);
+    // Constructor now requires factory/singleton/fallbackHandler to have code
+    // (InvalidSafeConfig guard), so stand in with deployed mock contracts
+    // rather than bare addresses — their bytecode is never actually invoked
+    // as a Safe by MockSafeProxyFactory (it hardcodes MockSafe's creation
+    // code), they just need to satisfy the "is a contract" check.
+    address singleton;
+    address fallbackHandler;
 
     MockSafeProxyFactory mockFactory;
 
     function setUp() public virtual {
         mockFactory = new MockSafeProxyFactory();
         factory = address(mockFactory);
+        singleton = address(new MockSafe());
+        fallbackHandler = address(new MockSafeProxyFactory());
         escrow = new CofferEscrow(factory, singleton, fallbackHandler);
+    }
+
+    function test_constructor_revertsBadSafeConfig() public {
+        vm.expectRevert(CofferEscrow.InvalidSafeConfig.selector);
+        new CofferEscrow(address(0), singleton, fallbackHandler);
+
+        vm.expectRevert(CofferEscrow.InvalidSafeConfig.selector);
+        new CofferEscrow(factory, address(0), fallbackHandler);
+
+        vm.expectRevert(CofferEscrow.InvalidSafeConfig.selector);
+        new CofferEscrow(factory, singleton, address(0));
+
+        // Sanity: a config where every address has code deploys fine (this is
+        // exactly what setUp() above already does every test run).
+        CofferEscrow ok = new CofferEscrow(factory, singleton, fallbackHandler);
+        assertEq(ok.safeProxyFactory(), factory);
     }
 
     function test_constructor_setsImmutables() public view {
@@ -35,6 +58,7 @@ contract CofferEscrowTest is Test {
     address creator = address(0xC0FFEE);
     address alice = address(0xA11CE);
     address bob = address(0xB0B);
+    address carol = address(0xCA501);
 
     function _invitees2() internal view returns (address[] memory a) {
         a = new address[](2);
@@ -42,9 +66,16 @@ contract CofferEscrowTest is Test {
         a[1] = bob;
     }
 
+    function _invitees3() internal view returns (address[] memory a) {
+        a = new address[](3);
+        a[0] = alice;
+        a[1] = bob;
+        a[2] = carol;
+    }
+
     function test_createPool_happyPath() public {
         vm.prank(creator);
-        uint256 id = escrow.createPool("defi", 10 ether, uint40(block.timestamp + 3 days), 2, _invitees2());
+        uint256 id = escrow.createPool("defi", 10 ether, uint40(block.timestamp + 3 days), _invitees2());
 
         assertEq(id, 0);
         assertEq(escrow.poolCount(), 1);
@@ -65,7 +96,7 @@ contract CofferEscrowTest is Test {
         assertEq(total, 0);
         assertEq(deadline, uint40(block.timestamp + 3 days));
         assertEq(fundedAt, 0);
-        assertEq(threshold, 2);
+        assertEq(threshold, 0, "threshold is derived at finalize, not creation");
         assertEq(safe, address(0));
 
         assertTrue(escrow.invited(id, creator));
@@ -77,33 +108,20 @@ contract CofferEscrowTest is Test {
     function test_createPool_revertsOnZeroTarget() public {
         vm.prank(creator);
         vm.expectRevert(CofferEscrow.InvalidTarget.selector);
-        escrow.createPool("defi", 0, uint40(block.timestamp + 1 days), 1, _invitees2());
+        escrow.createPool("defi", 0, uint40(block.timestamp + 1 days), _invitees2());
     }
 
     function test_createPool_revertsOnPastDeadline() public {
         vm.warp(1_000_000);
         vm.prank(creator);
         vm.expectRevert(CofferEscrow.InvalidDeadline.selector);
-        escrow.createPool("defi", 1 ether, uint40(block.timestamp), 1, _invitees2());
+        escrow.createPool("defi", 1 ether, uint40(block.timestamp), _invitees2());
     }
 
     function test_createPool_revertsOnShortLabel() public {
         vm.prank(creator);
         vm.expectRevert(CofferEscrow.LabelTooShort.selector);
-        escrow.createPool("ab", 1 ether, uint40(block.timestamp + 1 days), 1, _invitees2());
-    }
-
-    function test_createPool_revertsOnThresholdTooHigh() public {
-        // 2 invitees + creator = 3 possible signers; threshold 4 is invalid
-        vm.prank(creator);
-        vm.expectRevert(CofferEscrow.InvalidThreshold.selector);
-        escrow.createPool("defi", 1 ether, uint40(block.timestamp + 1 days), 4, _invitees2());
-    }
-
-    function test_createPool_revertsOnZeroThreshold() public {
-        vm.prank(creator);
-        vm.expectRevert(CofferEscrow.InvalidThreshold.selector);
-        escrow.createPool("defi", 1 ether, uint40(block.timestamp + 1 days), 0, _invitees2());
+        escrow.createPool("ab", 1 ether, uint40(block.timestamp + 1 days), _invitees2());
     }
 
     function test_createPool_revertsOnDuplicateInvitee() public {
@@ -112,7 +130,7 @@ contract CofferEscrowTest is Test {
         dup[1] = alice;
         vm.prank(creator);
         vm.expectRevert(CofferEscrow.DuplicateInvitee.selector);
-        escrow.createPool("defi", 1 ether, uint40(block.timestamp + 1 days), 1, dup);
+        escrow.createPool("defi", 1 ether, uint40(block.timestamp + 1 days), dup);
     }
 
     function test_createPool_revertsWhenCreatorInInvitees() public {
@@ -120,13 +138,24 @@ contract CofferEscrowTest is Test {
         a[0] = creator;
         vm.prank(creator);
         vm.expectRevert(CofferEscrow.DuplicateInvitee.selector);
-        escrow.createPool("defi", 1 ether, uint40(block.timestamp + 1 days), 1, a);
+        escrow.createPool("defi", 1 ether, uint40(block.timestamp + 1 days), a);
     }
 
-    // Creates a pool: target 10 ETH, deadline +3d, threshold 2, invitees [alice, bob].
+    function test_createPool_emitsEventWithoutThreshold() public {
+        vm.prank(creator);
+        vm.expectEmit(true, true, false, true, address(escrow));
+        emit CofferEscrow.PoolCreated(
+            0, "defi", creator, 10 ether, uint40(block.timestamp + 3 days), _invitees2()
+        );
+        escrow.createPool("defi", 10 ether, uint40(block.timestamp + 3 days), _invitees2());
+    }
+
+    // Creates a pool: target 10 ETH, deadline +3d, invitees [alice, bob].
+    // Threshold is no longer set at creation — it's derived at finalize as a
+    // strict majority of the actual contributors.
     function _createDefaultPool() internal returns (uint256 id) {
         vm.prank(creator);
-        id = escrow.createPool("defi", 10 ether, uint40(block.timestamp + 3 days), 2, _invitees2());
+        id = escrow.createPool("defi", 10 ether, uint40(block.timestamp + 3 days), _invitees2());
     }
 
     function test_deposit_happyPath() public {
@@ -193,7 +222,7 @@ contract CofferEscrowTest is Test {
         // Fill to a remaining gap smaller than MIN_CONTRIBUTION, then let a NEW
         // depositor close it with an exact-gap deposit below the minimum.
         vm.prank(creator);
-        uint256 id = escrow.createPool("defi", 1 ether, uint40(block.timestamp + 3 days), 1, _invitees2());
+        uint256 id = escrow.createPool("defi", 1 ether, uint40(block.timestamp + 3 days), _invitees2());
         vm.deal(alice, 100 ether);
         vm.deal(bob, 100 ether);
 
@@ -281,6 +310,28 @@ contract CofferEscrowTest is Test {
         vm.prank(alice);
         vm.expectRevert(CofferEscrow.NoDeposit.selector);
         escrow.withdraw(id);
+    }
+
+    function test_deposit_revertsSameBlock() public {
+        // Same member depositing again in the SAME block they withdrew must
+        // revert — this blocks an atomic withdraw→re-deposit that would
+        // otherwise re-arm the funding lock within a single transaction/block.
+        uint256 id = _createDefaultPool();
+        vm.deal(alice, 100 ether);
+
+        vm.startPrank(alice);
+        escrow.deposit{value: 4 ether}(id);
+        escrow.withdraw(id);
+
+        vm.expectRevert(CofferEscrow.SameBlock.selector);
+        escrow.deposit{value: 4 ether}(id);
+        vm.stopPrank();
+
+        // Once the next block arrives, the same member can deposit again.
+        vm.roll(block.number + 1);
+        vm.prank(alice);
+        escrow.deposit{value: 4 ether}(id);
+        assertEq(escrow.deposits(id, alice), 4 ether);
     }
 
     function test_withdraw_lockedWhileFunded() public {
@@ -384,18 +435,61 @@ contract CofferEscrowTest is Test {
         escrow.finalize(id);
     }
 
-    function test_finalize_revertsBelowThreshold() public {
-        // One contributor funds the whole target but threshold is 2 → hard-block.
+    function test_finalize_solo_thresholdOne() public {
+        // One contributor funds the whole target alone. Threshold is now
+        // derived as a strict majority of ACTUAL contributors (1/2+1 = 1),
+        // so a solo funder can finalize and becomes sole signer.
         vm.prank(creator);
-        uint256 id = escrow.createPool("defi", 5 ether, uint40(block.timestamp + 3 days), 2, _invitees2());
+        uint256 id = escrow.createPool("defi", 5 ether, uint40(block.timestamp + 3 days), _invitees2());
         vm.deal(alice, 100 ether);
         vm.prank(alice);
         escrow.deposit{value: 5 ether}(id); // funded by ONE contributor
 
         assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Funded));
         vm.prank(alice);
-        vm.expectRevert(CofferEscrow.BelowThreshold.selector);
-        escrow.finalize(id);
+        address safe = escrow.finalize(id);
+
+        (,,,,,, uint8 threshold,) = escrow.pools(id);
+        assertEq(threshold, 1);
+        assertEq(MockSafe(payable(safe)).threshold(), 1);
+        address[] memory owners = MockSafe(payable(safe)).getOwners();
+        assertEq(owners.length, 1);
+        assertEq(owners[0], alice);
+    }
+
+    function test_finalize_majorityThreshold_twoContributors() public {
+        // alice + bob both contribute → majority of 2 is 2 (both must sign).
+        uint256 id = _fundPool(); // alice 6, bob 4, target 10
+        vm.prank(alice);
+        address safe = escrow.finalize(id);
+
+        (,,,,,, uint8 threshold,) = escrow.pools(id);
+        assertEq(threshold, 2);
+        assertEq(MockSafe(payable(safe)).threshold(), 2);
+    }
+
+    function test_finalize_majorityThreshold_threeContributors() public {
+        // 3 distinct contributors → majority = 3/2 + 1 = 2.
+        vm.prank(creator);
+        uint256 id = escrow.createPool("defi", 9 ether, uint40(block.timestamp + 3 days), _invitees3());
+        vm.deal(alice, 100 ether);
+        vm.deal(bob, 100 ether);
+        vm.deal(carol, 100 ether);
+        vm.prank(alice);
+        escrow.deposit{value: 3 ether}(id);
+        vm.prank(bob);
+        escrow.deposit{value: 3 ether}(id);
+        vm.prank(carol);
+        escrow.deposit{value: 3 ether}(id);
+
+        vm.prank(alice);
+        address safe = escrow.finalize(id);
+
+        (,,,,,, uint8 threshold,) = escrow.pools(id);
+        assertEq(threshold, 2);
+        assertEq(MockSafe(payable(safe)).threshold(), 2);
+        address[] memory owners = MockSafe(payable(safe)).getOwners();
+        assertEq(owners.length, 3);
     }
 
     function test_finalize_revertsOutsideWindow() public {
@@ -465,7 +559,7 @@ contract CofferEscrowTest is Test {
         }
         vm.prank(creator);
         vm.expectRevert(CofferEscrow.TooManyOwners.selector);
-        escrow.createPool("defi", 1 ether, uint40(block.timestamp + 1 days), 1, many);
+        escrow.createPool("defi", 1 ether, uint40(block.timestamp + 1 days), many);
     }
 
     function test_ownershipBps_returnsZeroForNonexistentPool() public view {
@@ -481,7 +575,7 @@ contract CofferEscrowTest is Test {
         inv[0] = address(attacker);
         inv[1] = alice;
         vm.prank(creator);
-        uint256 id = escrow.createPool("defi", 10 ether, uint40(block.timestamp + 3 days), 1, inv);
+        uint256 id = escrow.createPool("defi", 10 ether, uint40(block.timestamp + 3 days), inv);
 
         vm.deal(address(this), 100 ether);
         attacker.depositTo{value: 3 ether}(id);

@@ -5,6 +5,7 @@ import {Test} from "forge-std/Test.sol";
 import {CofferEscrow} from "../src/CofferEscrow.sol";
 import {EscrowHandler} from "./handlers/EscrowHandler.sol";
 import {MockSafeProxyFactory} from "./mocks/MockSafeProxyFactory.sol";
+import {MockSafe} from "./mocks/MockSafe.sol";
 
 contract CofferEscrowInvariantTest is Test {
     CofferEscrow escrow;
@@ -12,7 +13,12 @@ contract CofferEscrowInvariantTest is Test {
 
     function setUp() public {
         MockSafeProxyFactory factory = new MockSafeProxyFactory();
-        escrow = new CofferEscrow(address(factory), address(0x51), address(0xFB));
+        // Constructor requires factory/singleton/fallbackHandler to have code
+        // (InvalidSafeConfig guard) — use deployed mock contracts, not bare
+        // addresses, for the singleton/fallbackHandler stand-ins.
+        address singleton = address(new MockSafe());
+        address fallbackHandler = address(new MockSafeProxyFactory());
+        escrow = new CofferEscrow(address(factory), singleton, fallbackHandler);
         handler = new EscrowHandler(escrow);
         targetContract(address(handler));
     }

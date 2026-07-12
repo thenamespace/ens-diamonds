@@ -43,6 +43,9 @@ contract CofferEscrow {
     mapping(uint256 => mapping(address => uint96)) public deposits;
     mapping(uint256 => mapping(address => bool)) public invited;
     mapping(uint256 => address[]) internal contributors;
+    // Block in which a member last withdrew from a pool — blocks an atomic
+    // withdraw→re-deposit that would re-arm the funding lock (see deposit()).
+    mapping(uint256 => mapping(address => uint256)) internal withdrawBlock;
     uint256 public poolCount;
 
     uint256 private _locked = 1; // reentrancy guard state
@@ -54,7 +57,6 @@ contract CofferEscrow {
         address indexed creator,
         uint96 targetAmount,
         uint40 fundingDeadline,
-        uint8 threshold,
         address[] invitees
     );
     event Deposited(uint256 indexed poolId, address indexed member, uint96 amount, uint96 totalDeposited);
@@ -68,7 +70,6 @@ contract CofferEscrow {
     error InvalidTarget();
     error InvalidDeadline();
     error LabelTooShort();
-    error InvalidThreshold();
     error TooManyOwners();
     error DuplicateInvitee();
     error NotInvited();
@@ -79,10 +80,11 @@ contract CofferEscrow {
     error NoDeposit();
     error WithdrawLocked();
     error NotContributor();
-    error BelowThreshold();
     error SafeDeployFailed();
     error TransferFailed();
     error Reentrancy();
+    error SameBlock();
+    error InvalidSafeConfig();
 
     modifier nonReentrant() {
         if (_locked != 1) revert Reentrancy();
@@ -92,6 +94,11 @@ contract CofferEscrow {
     }
 
     constructor(address _factory, address _singleton, address _fallbackHandler) {
+        // Fail loudly at deploy if any Safe address is empty / not a contract,
+        // rather than silently bricking every finalize on a wrong address.
+        if (_factory.code.length == 0 || _singleton.code.length == 0 || _fallbackHandler.code.length == 0) {
+            revert InvalidSafeConfig();
+        }
         safeProxyFactory = _factory;
         safeSingleton = _singleton;
         safeFallbackHandler = _fallbackHandler;
@@ -126,13 +133,11 @@ contract CofferEscrow {
         string calldata label,
         uint96 targetAmount,
         uint40 fundingDeadline,
-        uint8 threshold,
         address[] calldata invitees
     ) external returns (uint256 poolId) {
         if (targetAmount == 0) revert InvalidTarget();
         if (fundingDeadline <= block.timestamp) revert InvalidDeadline();
         if (bytes(label).length < 3) revert LabelTooShort();
-        if (threshold < 1 || threshold > invitees.length + 1) revert InvalidThreshold();
         if (invitees.length + 1 > MAX_OWNERS) revert TooManyOwners();
 
         poolId = poolCount++;
@@ -141,7 +146,8 @@ contract CofferEscrow {
         p.creator = msg.sender;
         p.targetAmount = targetAmount;
         p.fundingDeadline = fundingDeadline;
-        p.threshold = threshold;
+        // p.threshold is derived from the actual contributor count at finalize
+        // (majority), so it is never set here and no misconfiguration is possible.
 
         invited[poolId][msg.sender] = true; // creator auto-invited
 
@@ -151,7 +157,7 @@ contract CofferEscrow {
             invited[poolId][invitee] = true;
         }
 
-        emit PoolCreated(poolId, label, msg.sender, targetAmount, fundingDeadline, threshold, invitees);
+        emit PoolCreated(poolId, label, msg.sender, targetAmount, fundingDeadline, invitees);
     }
 
     function deposit(uint256 poolId) external payable {
@@ -159,6 +165,8 @@ contract CofferEscrow {
         if (!invited[poolId][msg.sender]) revert NotInvited();
         if (status(poolId) != PoolStatus.Funding) revert WrongStatus();
         if (msg.value == 0) revert ZeroValue();
+        // Block re-arming the funding lock via an atomic withdraw→re-deposit.
+        if (withdrawBlock[poolId][msg.sender] == block.number) revert SameBlock();
 
         uint96 remaining = p.targetAmount - p.totalDeposited;
         if (msg.value > remaining) revert Overshoot();
@@ -193,6 +201,7 @@ contract CofferEscrow {
         // effects
         deposits[poolId][msg.sender] = 0;
         p.totalDeposited -= amount;
+        withdrawBlock[poolId][msg.sender] = block.number; // guards re-arm (see deposit)
         _removeContributor(poolId, msg.sender);
         if (p.totalDeposited < p.targetAmount && p.fundedAt != 0) {
             p.fundedAt = 0;
@@ -211,12 +220,16 @@ contract CofferEscrow {
         if (deposits[poolId][msg.sender] == 0) revert NotContributor();
 
         address[] memory owners = contributors[poolId];
-        if (owners.length < p.threshold) revert BelowThreshold();
+        // Signer requirement is a strict majority of the ACTUAL contributors
+        // (N/2 + 1). Always in [1, owners.length], so finalize can never be
+        // blocked by a mismatched threshold — and no single owner can act alone.
+        uint8 threshold = uint8(owners.length / 2 + 1);
+        p.threshold = threshold;
 
         bytes memory initializer = abi.encodeWithSelector(
             ISafe.setup.selector,
             owners,
-            uint256(p.threshold),
+            uint256(threshold),
             address(0), // to
             bytes(""), // data
             safeFallbackHandler,
@@ -244,7 +257,7 @@ contract CofferEscrow {
         p.safe = safe;
 
         uint96 amount = p.targetAmount;
-        emit PoolFinalized(poolId, safe, owners, p.threshold, amount);
+        emit PoolFinalized(poolId, safe, owners, threshold, amount);
 
         // interaction: fund the Safe
         (bool ok,) = safe.call{value: amount}("");
