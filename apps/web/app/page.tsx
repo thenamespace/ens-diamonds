@@ -1,15 +1,19 @@
-import { getPremiumNames } from "@/lib/ens-premium";
+import { getDiscoverPage, type DiscoverPage } from "@/lib/discover-feed";
 import DiscoverGrid from "@/components/discover-grid";
+
+// Default tab: "ending" (deepest into the 21-day decay = lowest premium = the
+// actually-poolable names); day-0 names carry ENS's huge starting premium.
+const INITIAL_SORT = "ending" as const;
 
 // Cache the live premium list ~60s (bounds subgraph/RPC usage).
 export const revalidate = 60;
 
 export default async function Discover() {
-  let names: Awaited<ReturnType<typeof getPremiumNames>> | null = null;
+  let initial: DiscoverPage | null = null;
   try {
-    names = await getPremiumNames();
+    initial = await getDiscoverPage(INITIAL_SORT, 0);
   } catch {
-    names = null;
+    initial = null;
   }
 
   return (
@@ -25,13 +29,13 @@ export default async function Discover() {
         </div>
       </div>
 
-      {names === null ? (
+      {initial === null ? (
         <div className="note note-warn">
           <span>⚠</span>
           <span>Couldn’t load live names from mainnet ENS right now. Please try again in a moment.</span>
         </div>
       ) : (
-        <DiscoverGrid names={names} />
+        <DiscoverGrid initial={initial} initialSort={INITIAL_SORT} />
       )}
     </div>
   );

@@ -27,8 +27,10 @@ export default function WatchButton({ label, className }: { label: string; class
         toggle(label);
       }}
     >
-      <svg width="16" height="16" viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.7" aria-hidden>
-        <path d="M12 17.3l-5.4 3 1-6-4.3-4.2 6-.9L12 3l2.7 5.2 6 .9-4.3 4.2 1 6z" strokeLinejoin="round" strokeLinecap="round" />
+      {/* Eye = "watch"; filled pupil when actively watching. */}
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden>
+        <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" strokeLinejoin="round" strokeLinecap="round" />
+        <circle cx="12" cy="12" r="3" fill={active ? "currentColor" : "none"} />
       </svg>
     </button>
   );

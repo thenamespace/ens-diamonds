@@ -238,7 +238,7 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
             </div>
             <div className="row mt-16" style={{ gap: 10 }}>
               <Link className="btn btn-primary btn-lg" style={{ flex: 1 }} href={`/name/${display}/buy`}>
-                Buy solo
+                Buy now (pay solo)
               </Link>
               <Link className="btn btn-soft btn-lg" style={{ flex: 1 }} href={`/pools/new?label=${display}`}>
                 Start a pool to buy
