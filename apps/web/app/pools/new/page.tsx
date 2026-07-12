@@ -13,6 +13,7 @@ import { parseEther } from "@/lib/format";
 import { useAuth } from "@/hooks/use-auth";
 
 const MAX_SIGNERS = 10;
+const MIN_CONTRIB = 0.01; // matches CofferEscrow MIN_CONTRIBUTION for partial deposits
 
 type Invitee = { id: number; addr: string; contribEth: string };
 
@@ -45,6 +46,12 @@ function NewPoolForm() {
   const signers = validInvitees.length + 1;
   const yourPct = targetNum > 0 ? Math.min(100, (yourNum / targetNum) * 100) : 0;
 
+  // The contract requires a partial deposit be >= 0.01 ETH unless it funds the
+  // exact remaining gap. The creator's initial deposit is partial whenever it
+  // doesn't cover the whole target, so enforce the same rule to avoid a revert.
+  const fundsFullTarget = targetNum > 0 && yourNum >= targetNum;
+  const contribTooLow = yourNum > 0 && !fundsFullTarget && yourNum < MIN_CONTRIB;
+
   const wrongChain = isConnected && chainId !== sepolia.id;
   const canSubmit =
     isConnected &&
@@ -54,6 +61,7 @@ function NewPoolForm() {
     targetNum > 0 &&
     yourNum > 0 &&
     yourNum <= targetNum &&
+    !contribTooLow &&
     threshold >= 1 &&
     threshold <= signers &&
     signers <= MAX_SIGNERS &&
@@ -190,6 +198,12 @@ function NewPoolForm() {
                 value={Math.min(yourNum, targetNum || 1)}
                 onChange={(e) => setYourContrib(e.target.value)}
               />
+              {contribTooLow && (
+                <div className="note note-warn mt-8">
+                  <span>⚠</span>
+                  <span>Minimum contribution is {MIN_CONTRIB} ETH unless you fund the full target yourself.</span>
+                </div>
+              )}
             </div>
 
             <div className="field">
