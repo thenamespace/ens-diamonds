@@ -51,7 +51,7 @@ contract CofferEscrowTest is Test {
         assertEq(escrow.safeSingleton(), singleton);
         assertEq(escrow.safeFallbackHandler(), fallbackHandler);
         assertEq(escrow.poolCount(), 0);
-        assertEq(escrow.EXECUTION_WINDOW(), 7 days);
+        assertEq(escrow.EXECUTION_WINDOW(), 1 days);
         assertEq(escrow.MIN_CONTRIBUTION(), 0.01 ether);
     }
 
@@ -349,7 +349,7 @@ contract CofferEscrowTest is Test {
     function test_withdraw_allowedAfterLockLapses() public {
         uint256 id = _fundPool();
         // move past the execution window
-        vm.warp(block.timestamp + 7 days + 1);
+        vm.warp(block.timestamp + 1 days + 1);
         assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Funding));
 
         vm.prank(alice);
@@ -499,7 +499,7 @@ contract CofferEscrowTest is Test {
 
     function test_finalize_revertsOutsideWindow() public {
         uint256 id = _fundPool();
-        vm.warp(block.timestamp + 7 days + 1); // lock lapsed → status Funding, not Funded
+        vm.warp(block.timestamp + 1 days + 1); // lock lapsed → status Funding, not Funded
         vm.prank(alice);
         vm.expectRevert(CofferEscrow.WrongStatus.selector);
         escrow.finalize(id);
