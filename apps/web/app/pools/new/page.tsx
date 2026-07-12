@@ -179,11 +179,19 @@ function NewPoolForm() {
                 <input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} />
                 <span className="unit">ETH</span>
               </div>
+              <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
+                {signers > 1
+                  ? `Each of the ${signers} signers deposits at least ${MIN_CONTRIB} ETH — aim for a target of ≥ ${(signers * MIN_CONTRIB).toFixed(2)} ETH.`
+                  : `Invite people below to split the cost; each contributor deposits at least ${MIN_CONTRIB} ETH.`}
+              </p>
             </div>
 
             <div className="field">
               <label>
-                Your contribution <span className="hint">{yourPct.toFixed(1)}% ownership</span>
+                Your contribution{" "}
+                <span className="hint">
+                  {yourPct.toFixed(1)}% ownership · min {MIN_CONTRIB} ETH
+                </span>
               </label>
               <div className="input-group">
                 <input inputMode="decimal" value={yourContrib} onChange={(e) => setYourContrib(e.target.value)} />
@@ -198,10 +206,17 @@ function NewPoolForm() {
                 value={Math.min(yourNum, targetNum || 1)}
                 onChange={(e) => setYourContrib(e.target.value)}
               />
+              <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
+                Everyone deposits at least {MIN_CONTRIB} ETH — the only exception is whoever tops the pool up to
+                its exact target.
+              </p>
               {contribTooLow && (
                 <div className="note note-warn mt-8">
                   <span>⚠</span>
-                  <span>Minimum contribution is {MIN_CONTRIB} ETH unless you fund the full target yourself.</span>
+                  <span>
+                    Your contribution is below the {MIN_CONTRIB} ETH minimum. Raise it to at least {MIN_CONTRIB} ETH,
+                    or fund the full {targetNum > 0 ? targetNum.toFixed(3) : ""} ETH target yourself.
+                  </span>
                 </div>
               )}
             </div>
