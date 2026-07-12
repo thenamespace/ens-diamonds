@@ -562,11 +562,6 @@ export const cofferEscrowAbi = [
   },
   {
     "type": "error",
-    "name": "Overshoot",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "Reentrancy",
     "inputs": []
   },

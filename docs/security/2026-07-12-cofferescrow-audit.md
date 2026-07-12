@@ -8,7 +8,9 @@
 ## RESOLUTION (2026-07-12)
 - **HIGH-1 FIXED** — `threshold` is no longer a `createPool` param; it's a strict **majority of actual contributors** (`N/2 + 1`), derived at finalize. A funded pool is therefore always finalizable (permanent-lock precondition gone), and a **same-block withdraw→re-deposit guard** (`SameBlock()`) closes the re-arm griefing. Also fixes **LOW-1** (no 1-of-N rug possible). New contract redeployed to Sepolia at **`0x4D47f73c2b04390cA2eF877c7DA00954399C27EB`**; verified live end-to-end (create→fund→finalize, real Safe `0x7204B2e2…` deployed, threshold correctly = majority).
 - **HIGH-2 FIXED** — constructor now reverts `InvalidSafeConfig()` if any Safe address has no code; the CREATE2 prediction was verified against Safe v1.4.1 source AND **proven live** (the new escrow's finalize deployed a real Safe at the predicted address). Foundry suite: 41 pass. *Follow-up:* the mainnet fork test's ENS interface is still the stale positional shape (registration was validated separately in the buy-solo/pool-register work) — modernize to struct-based during the mainnet migration.
-- **REMAINING (not yet done):** MEDIUM-1 (directory event-indexing/pagination), MEDIUM-2 (`Overshoot`→partial-fill), and the invariant-fuzzer `finalize`/force-feed coverage gaps.
+- **MEDIUM-1 FIXED** — `/pools` no longer iterates `poolCount`; it reads `PoolCreated` logs once (bounded from the escrow deploy block) and only fetches details for a paginated slice (30/page + "Load more"), so spam pools can't DoS the directory.
+- **MEDIUM-2 FIXED** — `deposit` now accepts a partial fill and refunds any excess instead of reverting `Overshoot` (added `nonReentrant` for the refund), removing the deposit front-run race. Contract redeployed to Sepolia **`0xa356c3B14e183670E3d88F6F0e91F95598A29943`** (supersedes the HIGH-only deploy).
+- **REMAINING before mainnet:** fork-test ENS struct modernization, invariant-fuzzer `finalize`/force-feed coverage, and a professional third-party audit.
 
 ## Verdict
 
