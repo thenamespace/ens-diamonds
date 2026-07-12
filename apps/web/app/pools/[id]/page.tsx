@@ -10,6 +10,7 @@ import { isEscrowConfigured } from "@/lib/chain";
 import { fmtEth, pct, parseEther, fmtCountdown } from "@/lib/format";
 import AddressLabel from "@/components/address-label";
 import EnsAvatar from "@/components/ens-avatar";
+import ShareButton from "@/components/share-button";
 
 type PoolTuple = readonly [string, `0x${string}`, bigint, bigint, number, number, number, `0x${string}`];
 
@@ -134,9 +135,12 @@ export default function PoolDashboard() {
             )}
           </p>
         </div>
-        <Link className="btn btn-ghost" href={`/name/${label}`}>
-          View {label}.eth →
-        </Link>
+        <div className="row" style={{ gap: 8 }}>
+          <ShareButton />
+          <Link className="btn btn-ghost" href={`/name/${label}`}>
+            View {label}.eth →
+          </Link>
+        </div>
       </div>
 
       {/* state banner */}
