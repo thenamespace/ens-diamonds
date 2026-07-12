@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { cofferEscrow, statusName } from "@/lib/contract";
 import { isEscrowConfigured } from "@/lib/chain";
 import { isPoolVisible } from "@/lib/pool-filter";
+import { txErrorMessage } from "@/lib/tx-error";
 import { fmtEth, pct, parseEther, fmtCountdown } from "@/lib/format";
 import AddressLabel from "@/components/address-label";
 import EnsAvatar from "@/components/ens-avatar";
@@ -81,8 +82,7 @@ export default function PoolDashboard() {
       await publicClient.waitForTransactionReceipt({ hash });
       await refetch();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg.split("\n")[0].slice(0, 200));
+      setError(txErrorMessage(err));
     } finally {
       setPending(null);
     }
@@ -193,9 +193,19 @@ export default function PoolDashboard() {
             </p>
           </div>
           <div className="b-cta">
-            <button className="btn btn-primary" disabled={pending !== null || contributorCount < threshold} onClick={() => act("finalize")}>
-              {pending === "finalize" ? "Finalizing…" : "Finalize & deploy Safe"}
-            </button>
+            {isConnected && yourDeposit === 0n ? (
+              <span className="muted" style={{ fontSize: 13, textAlign: "right", display: "block", maxWidth: 240 }}>
+                Only contributors can finalize — deposit into this pool to help finalize it.
+              </span>
+            ) : (
+              <button
+                className="btn btn-primary"
+                disabled={!isConnected || wrongChain || pending !== null || yourDeposit === 0n || contributorCount < threshold}
+                onClick={() => act("finalize")}
+              >
+                {pending === "finalize" ? "Finalizing…" : "Finalize & deploy Safe"}
+              </button>
+            )}
           </div>
         </div>
       )}

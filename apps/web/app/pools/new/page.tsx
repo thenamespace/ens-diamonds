@@ -11,6 +11,7 @@ import { cofferEscrowAbi } from "@/lib/abi/coffer-escrow";
 import { isEscrowConfigured } from "@/lib/chain";
 import { parseEther } from "@/lib/format";
 import { useAuth } from "@/hooks/use-auth";
+import { txErrorMessage } from "@/lib/tx-error";
 
 const MAX_SIGNERS = 10;
 const MIN_CONTRIB = 0.01; // matches CofferEscrow MIN_CONTRIBUTION for partial deposits
@@ -120,8 +121,7 @@ function NewPoolForm() {
       router.push(`/pools/${poolId.toString()}`);
     } catch (err) {
       setStep("idle");
-      const msg = err instanceof Error ? err.message : String(err);
-      setError(msg.split("\n")[0].slice(0, 200));
+      setError(txErrorMessage(err));
     }
   }
 
