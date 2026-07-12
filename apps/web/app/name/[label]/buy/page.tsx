@@ -15,14 +15,10 @@ import {
   buildRegistration,
 } from "@/lib/ens-registrar";
 import { fmtEth } from "@/lib/format";
+import { txErrorMessage as errMsg } from "@/lib/tx-error";
 
 type Step = "idle" | "committing" | "waiting" | "registering" | "done";
 type Saved = { secret: `0x${string}`; committedAt: number; owner: string };
-
-function errMsg(err: unknown): string {
-  const m = err instanceof Error ? err.message : String(err);
-  return m.split("\n")[0].slice(0, 200);
-}
 
 export default function BuySoloPage() {
   const { label: rawLabel } = useParams<{ label: string }>();
