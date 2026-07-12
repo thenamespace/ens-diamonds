@@ -9,7 +9,7 @@ export const ZERO = "0x0000000000000000000000000000000000000000" as const;
 
 // Deployed CofferEscrow on Sepolia (public address). Baked in as the default so
 // the live site works without env config; override via NEXT_PUBLIC_ESCROW_ADDRESS.
-const DEFAULT_ESCROW = "0xb35B692fDF2bC705829015d9a41a4D29FBF4A361";
+const DEFAULT_ESCROW = "0x4D47f73c2b04390cA2eF877c7DA00954399C27EB";
 
 export const ESCROW_ADDRESS = (process.env.NEXT_PUBLIC_ESCROW_ADDRESS || DEFAULT_ESCROW) as `0x${string}`;
 

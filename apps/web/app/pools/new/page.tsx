@@ -30,7 +30,6 @@ function NewPoolForm() {
 
   const [target, setTarget] = useState("0.03");
   const [yourContrib, setYourContrib] = useState("0.02");
-  const [threshold, setThreshold] = useState(1);
   const [days, setDays] = useState(7);
   const [invitees, setInvitees] = useState<Invitee[]>([]);
   const [labelInput, setLabelInput] = useState(label || "");
@@ -45,6 +44,7 @@ function NewPoolForm() {
   const validInvitees = invitees.filter((i) => isAddress(i.addr.trim()));
   const badInvitees = invitees.filter((i) => i.addr.trim() && !isAddress(i.addr.trim()));
   const signers = validInvitees.length + 1;
+  const majority = Math.floor(signers / 2) + 1;
   const yourPct = targetNum > 0 ? Math.min(100, (yourNum / targetNum) * 100) : 0;
 
   // The contract requires a partial deposit be >= 0.01 ETH unless it funds the
@@ -63,8 +63,6 @@ function NewPoolForm() {
     yourNum > 0 &&
     yourNum <= targetNum &&
     !contribTooLow &&
-    threshold >= 1 &&
-    threshold <= signers &&
     signers <= MAX_SIGNERS &&
     badInvitees.length === 0 &&
     step === "idle";
@@ -87,7 +85,7 @@ function NewPoolForm() {
       const hash1 = await writeContractAsync({
         ...cofferEscrow,
         functionName: "createPool",
-        args: [labelInput.trim(), targetWei, deadline, threshold, inviteeAddrs],
+        args: [labelInput.trim(), targetWei, deadline, inviteeAddrs],
       });
       const rc1 = await publicClient.waitForTransactionReceipt({ hash: hash1 });
       const events = parseEventLogs({ abi: cofferEscrowAbi, logs: rc1.logs, eventName: "PoolCreated" });
@@ -235,18 +233,16 @@ function NewPoolForm() {
 
             <div className="field" style={{ marginBottom: 0 }}>
               <label>
-                Signatures to buy <span className="hint">of up to {signers} signers</span>
+                Signatures to buy <span className="hint">automatic majority</span>
               </label>
-              <div className="row" style={{ gap: 14 }}>
-                <input className="range" type="range" min={1} max={Math.max(signers, 1)} value={threshold} onChange={(e) => setThreshold(+e.target.value)} />
-                <span className="mono" style={{ fontWeight: 600, minWidth: 88, textAlign: "right" }}>
-                  {threshold} of {signers}
-                </span>
-              </div>
-              {threshold === signers && signers > 1 && (
+              <p className="muted" style={{ fontSize: 13, marginTop: 4 }}>
+                Buying the name needs a <strong>majority</strong> of contributors to sign — {majority} of {signers}.
+                No single person can act alone.
+              </p>
+              {signers === 2 && (
                 <div className="note note-warn mt-8">
                   <span>⚠</span>
-                  <span>N-of-N: one unresponsive signer freezes the Safe forever.</span>
+                  <span>With 2 people it’s 2-of-2: if one loses their key, the wallet is frozen. Add a third for a safety margin.</span>
                 </div>
               )}
             </div>
@@ -315,7 +311,7 @@ function NewPoolForm() {
             <div className="kv">
               <span className="k">Scheme</span>
               <span className="v">
-                {threshold}-of-{signers}
+                {majority}-of-{signers}
               </span>
             </div>
 
@@ -342,7 +338,7 @@ function NewPoolForm() {
               {step === "creating" ? "Confirm create in wallet…" : step === "depositing" ? "Confirm deposit in wallet…" : "Create pool & deposit"}
             </button>
             <div style={{ textAlign: "center", marginTop: 10, fontSize: 12.5, color: "var(--faint)" }}>
-              {busy ? "Two transactions: createPool, then your deposit." : `Deploys a ${threshold}-of-${signers} Safe at finalization.`}
+              {busy ? "Two transactions: createPool, then your deposit." : `Deploys a ${majority}-of-${signers} Safe at finalization.`}
             </div>
           </div>
         </div>
