@@ -8,16 +8,66 @@ export const sepoliaClient = createPublicClient({ chain: CHAIN, transport: http(
 
 // Lowercased creator of a pool, or null if out of range / unreadable.
 export async function getPoolCreator(poolId: number): Promise<string | null> {
+  const pool = await getPool(poolId);
+  return pool ? pool.creator : null;
+}
+
+export type OnchainPool = { creator: string; label: string; safe: string; threshold: number };
+
+// Read the on-chain pool struct (addresses lowercased). null if unreadable.
+export async function getPool(poolId: number): Promise<OnchainPool | null> {
   try {
-    const pool = (await sepoliaClient.readContract({
+    const p = (await sepoliaClient.readContract({
       ...cofferEscrow,
       functionName: "pools",
       args: [BigInt(poolId)],
     })) as readonly unknown[];
-    const creator = pool[1] as string; // struct index 1 = creator
+    // [label, creator, targetAmount, totalDeposited, fundingDeadline, fundedAt, threshold, safe]
+    const creator = (p[1] as string) ?? "";
     if (!creator || creator === "0x0000000000000000000000000000000000000000") return null;
-    return creator.toLowerCase();
+    return {
+      creator: creator.toLowerCase(),
+      label: p[0] as string,
+      safe: ((p[7] as string) ?? "").toLowerCase(),
+      threshold: Number(p[6]),
+    };
   } catch {
     return null;
+  }
+}
+
+// True if `addr` has a non-zero deposit in the pool (i.e. is a contributor).
+export async function isContributor(poolId: number, addr: string): Promise<boolean> {
+  try {
+    const dep = (await sepoliaClient.readContract({
+      ...cofferEscrow,
+      functionName: "deposits",
+      args: [BigInt(poolId), addr as `0x${string}`],
+    })) as bigint;
+    return dep > 0n;
+  } catch {
+    return false;
+  }
+}
+
+// True if `addr` is an owner of the Safe (used to validate register signatures).
+export async function isSafeOwner(safe: string, addr: string): Promise<boolean> {
+  try {
+    return (await sepoliaClient.readContract({
+      address: safe as `0x${string}`,
+      abi: [
+        {
+          type: "function",
+          name: "isOwner",
+          stateMutability: "view",
+          inputs: [{ name: "owner", type: "address" }],
+          outputs: [{ type: "bool" }],
+        },
+      ],
+      functionName: "isOwner",
+      args: [addr as `0x${string}`],
+    })) as boolean;
+  } catch {
+    return false;
   }
 }

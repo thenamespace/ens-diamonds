@@ -15,6 +15,7 @@ import { fmtEth, pct, parseEther, fmtCountdown } from "@/lib/format";
 import AddressLabel from "@/components/address-label";
 import EnsAvatar from "@/components/ens-avatar";
 import ShareButton from "@/components/share-button";
+import PoolRegister from "@/components/pool-register";
 
 type PoolTuple = readonly [string, `0x${string}`, bigint, bigint, number, number, number, `0x${string}`];
 
@@ -215,6 +216,12 @@ export default function PoolDashboard() {
             <h3>Funding — {fmtCountdown(fundingDeadline)} left</h3>
             <p>Deposit to reach the target. Withdraw in full any time before the execution lock.</p>
           </div>
+        </div>
+      )}
+
+      {status === "finalized" && (
+        <div style={{ marginBottom: 20 }}>
+          <PoolRegister poolId={Number(idStr)} label={label} safe={safe} />
         </div>
       )}
 
