@@ -236,12 +236,14 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
               <span>≈ {fmtEth(d.totalWei, 3)}</span>
               {d.status === "premium" && <span>premium gone in {fmtCountdown(premiumEndsAt)}</span>}
             </div>
-            <Link className="btn btn-primary btn-block btn-lg mt-16" href={`/name/${display}/buy`}>
-              Buy it solo with your wallet
-            </Link>
-            <Link className="btn btn-soft btn-block mt-8" href={`/pools/new?label=${display}`}>
-              Or start a pool to buy together
-            </Link>
+            <div className="row mt-16" style={{ gap: 10 }}>
+              <Link className="btn btn-primary btn-lg" style={{ flex: 1 }} href={`/name/${display}/buy`}>
+                Buy solo
+              </Link>
+              <Link className="btn btn-soft btn-lg" style={{ flex: 1 }} href={`/pools/new?label=${display}`}>
+                Start a pool to buy
+              </Link>
+            </div>
           </div>
 
           <div className="panel">

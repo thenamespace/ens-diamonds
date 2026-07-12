@@ -5,14 +5,26 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useAccount, useChainId, usePublicClient, useReadContracts, useWriteContract } from "wagmi";
 import { sepolia } from "wagmi/chains";
+import { useQuery } from "@tanstack/react-query";
 import { cofferEscrow, statusName } from "@/lib/contract";
 import { isEscrowConfigured } from "@/lib/chain";
+import { isPoolVisible } from "@/lib/pool-filter";
 import { fmtEth, pct, parseEther, fmtCountdown } from "@/lib/format";
 import AddressLabel from "@/components/address-label";
 import EnsAvatar from "@/components/ens-avatar";
 import ShareButton from "@/components/share-button";
 
 type PoolTuple = readonly [string, `0x${string}`, bigint, bigint, number, number, number, `0x${string}`];
+
+async function fetchPrivateIds(): Promise<number[]> {
+  try {
+    const res = await fetch("/api/pools/visibility");
+    if (!res.ok) return [];
+    return ((await res.json()) as { private: number[] }).private ?? [];
+  } catch {
+    return [];
+  }
+}
 
 export default function PoolDashboard() {
   const params = useParams<{ id: string }>();
@@ -38,9 +50,12 @@ export default function PoolDashboard() {
       ? [
           { ...cofferEscrow, functionName: "deposits", args: [id, address] },
           { ...cofferEscrow, functionName: "ownershipBps", args: [id, address] },
+          { ...cofferEscrow, functionName: "invited", args: [id, address] },
         ]
       : []),
   ];
+
+  const { data: privateData } = useQuery({ queryKey: ["pool-visibility"], queryFn: fetchPrivateIds });
 
   const { data, refetch, isLoading } = useReadContracts({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,6 +123,28 @@ export default function PoolDashboard() {
   const lockEnds = fundedAt > 0 ? fundedAt + 7 * 86400 : 0;
   const contributorCount = contributors ? contributors[0].length : 0;
 
+  // Private pools are viewable only by the creator or an on-chain-invited member.
+  // Ids are sequential/guessable, so gate the detail page — not just the list.
+  const invitedYou = (data?.[5]?.result as boolean | undefined) === true;
+  const isPrivate = (privateData ?? []).includes(Number(idStr));
+  if (!isPoolVisible({ isPrivate, viewer: address, creator, invited: invitedYou })) {
+    return (
+      <div className="wrap">
+        <div className="crumb">
+          <Link href="/pools">Pools</Link> <span>/</span> <span>#{idStr}</span>
+        </div>
+        <div className="empty">
+          <span className="mark" aria-hidden />
+          <h3>This pool is private</h3>
+          <p>Only its creator and invited members can view it. If you were invited, connect the wallet that was invited.</p>
+          <Link className="btn btn-primary" href="/pools">
+            Browse public pools
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="wrap">
       <div className="crumb">
@@ -136,7 +173,7 @@ export default function PoolDashboard() {
           </p>
         </div>
         <div className="row" style={{ gap: 8 }}>
-          <ShareButton />
+          <ShareButton name={label} />
           <Link className="btn btn-ghost" href={`/name/${label}`}>
             View {label}.eth →
           </Link>
