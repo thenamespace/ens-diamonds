@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { normalize } from "viem/ens";
 import { formatEther } from "viem";
 import { getPrice } from "@ensdomains/ensjs/public";
@@ -25,7 +26,7 @@ export function premiumProgress(expiryDate: number, now: number): { dayIntoPremi
   return { dayIntoPremium, premiumEndsAt };
 }
 
-type WindowRow = { label: string; expiryDate: number };
+export type WindowRow = { label: string; expiryDate: number };
 
 // Merge the newest-first and ending-soon-first halves into one deduped list that
 // keeps BOTH extremes when capped: interleave desc/asc so the cap can't drop a
@@ -56,65 +57,95 @@ function subgraphUrl(): string | null {
 
 type Registration = { labelName: string | null; expiryDate: string };
 
-// Names currently in the 21-day temporary premium (registrar expiry 90–111 days
-// ago), priced live via ensjs. Returns [] when no Graph key is set. Throws on
-// subgraph/pricing failure (the page renders an error state).
-export async function getPremiumNames(limit = 24): Promise<PremiumEntry[]> {
-  const url = subgraphUrl();
-  if (!url) return [];
+// The premium window bounds (registrar expiry 90–111 days ago) for `now`.
+function premiumWindow(now: number): { lo: number; hi: number } {
+  return { lo: now - (GRACE + PREMIUM), hi: now - GRACE };
+}
 
-  const now = Math.floor(Date.now() / 1000);
-  const lo = now - (GRACE + PREMIUM); // expiry 111 days ago
-  const hi = now - GRACE; // expiry 90 days ago
-  const windowQuery = (dir: "desc" | "asc", first: number) => `{
-    registrations(first: ${first}, orderBy: expiryDate, orderDirection: ${dir}, where: { expiryDate_gte: ${lo}, expiryDate_lte: ${hi}, labelName_not: null }) {
+// Keep only labels that are ≥3 chars and ENS-normalizable, deduped by label.
+function toValidRows(regs: Registration[], seen = new Set<string>()): WindowRow[] {
+  const rows: WindowRow[] = [];
+  for (const r of regs) {
+    const name = r.labelName;
+    if (!name || name.length < 3 || seen.has(name)) continue;
+    try {
+      normalize(name);
+    } catch {
+      continue;
+    }
+    seen.add(name);
+    rows.push({ label: name, expiryDate: Number(r.expiryDate) });
+  }
+  return rows;
+}
+
+async function querySubgraph(url: string, query: string): Promise<Registration[]> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ query }),
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) throw new Error(`ENS subgraph HTTP ${res.status}`);
+  const json = (await res.json()) as { data?: { registrations?: Registration[] }; errors?: unknown };
+  if (json.errors) throw new Error("ENS subgraph query error");
+  return json.data?.registrations ?? [];
+}
+
+const SKIP_CEILING = 5000; // The Graph rejects skip beyond this
+
+// One page of premium labels ordered directly by the subgraph (expiry desc =
+// "newest", asc = "ending soon"). The FAST path: a single request per batch, no
+// full-set scan. `skip` is a subgraph row offset; `done` means no more pages.
+export async function getPremiumLabelsPage(
+  dir: "asc" | "desc",
+  skip: number,
+  first: number,
+): Promise<{ rows: WindowRow[]; done: boolean }> {
+  const url = subgraphUrl();
+  if (!url) return { rows: [], done: true };
+  if (skip >= SKIP_CEILING) return { rows: [], done: true };
+
+  const { lo, hi } = premiumWindow(Math.floor(Date.now() / 1000));
+  const query = `{
+    registrations(first: ${first}, skip: ${skip}, orderBy: expiryDate, orderDirection: ${dir}, where: { expiryDate_gte: ${lo}, expiryDate_lte: ${hi}, labelName_not: null }) {
       labelName
       expiryDate
     }
   }`;
+  const regs = await querySubgraph(url, query);
+  // Advance the cursor by rows CONSUMED (not rows kept) so client-side filtering
+  // can't misalign pagination; a batch may render slightly fewer than `first`.
+  const done = regs.length < first || skip + first >= SKIP_CEILING;
+  return { rows: toValidRows(regs), done };
+}
 
-  const fetchWindow = async (dir: "desc" | "asc", first: number): Promise<Registration[]> => {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ query: windowQuery(dir, first) }),
-      next: { revalidate: 60 },
-    });
-    if (!res.ok) throw new Error(`ENS subgraph HTTP ${res.status}`);
-    const json = (await res.json()) as { data?: { registrations?: Registration[] }; errors?: unknown };
-    if (json.errors) throw new Error("ENS subgraph query error");
-    return json.data?.registrations ?? [];
-  };
-
+// Names currently in the 21-day temporary premium (registrar expiry 90–111 days
+// ago), priced live via ensjs. Returns [] when no Graph key is set. Throws on
+// subgraph/pricing failure (the page renders an error state).
+export async function getPremiumNames(limit = 24): Promise<PremiumEntry[]> {
   const perEnd = Math.ceil(limit / 2);
-  const [descRegs, ascRegs] = await Promise.all([fetchWindow("desc", perEnd), fetchWindow("asc", perEnd)]);
+  const [desc, asc] = await Promise.all([
+    getPremiumLabelsPage("desc", 0, perEnd),
+    getPremiumLabelsPage("asc", 0, perEnd),
+  ]);
+  const valid = mergeWindows(desc.rows, asc.rows, limit);
+  return priceLabels(valid);
+}
 
-  const toRows = (regs: Registration[]): WindowRow[] => {
-    const rows: WindowRow[] = [];
-    for (const r of regs) {
-      if (!r.labelName || r.labelName.length < 3) continue;
-      try {
-        normalize(r.labelName);
-      } catch {
-        continue;
-      }
-      rows.push({ label: r.labelName, expiryDate: Number(r.expiryDate) });
-    }
-    return rows;
-  };
-
-  const valid = mergeWindows(toRows(descRegs), toRows(ascRegs), limit);
-  if (valid.length === 0) return [];
-
+// Live-price a batch of label rows (base + premium, one getPrice RPC each) into
+// client-facing PremiumEntry objects. Pricing is the expensive part of the feed,
+// so callers pass only the rows they need on-screen right now.
+export async function priceLabels(rows: WindowRow[]): Promise<PremiumEntry[]> {
+  if (rows.length === 0) return [];
   const [prices, ethUsd] = await Promise.all([
-    Promise.all(valid.map((v) => getPrice(ensClient, { nameOrNames: `${v.label}.eth`, duration: ONE_YEAR }))),
+    Promise.all(rows.map((v) => getPrice(ensClient, { nameOrNames: `${v.label}.eth`, duration: ONE_YEAR }))),
     getEthUsd(),
   ]);
-
-  const now2 = Math.floor(Date.now() / 1000);
-  return valid.map((v, i) => {
+  const now = Math.floor(Date.now() / 1000);
+  return rows.map((v, i) => {
     const totalWei = prices[i].base + prices[i].premium;
-    const { dayIntoPremium, premiumEndsAt } = premiumProgress(v.expiryDate, now2);
+    const { dayIntoPremium, premiumEndsAt } = premiumProgress(v.expiryDate, now);
     return {
       label: v.label,
       letters: v.label.length,
@@ -126,3 +157,55 @@ export async function getPremiumNames(limit = 24): Promise<PremiumEntry[]> {
     };
   });
 }
+
+// The COMPLETE set of nameable labels currently in the 21-day premium window,
+// unpriced. Keyset-paginated by `id` so we can page past The Graph's skip
+// ceiling and collect every match. Only needed for the shortest/trending tabs
+// (which must order the whole set); newest/ending use getPremiumLabelsPage.
+async function fetchAllPremiumLabels(): Promise<WindowRow[]> {
+  const url = subgraphUrl();
+  if (!url) return [];
+
+  const { lo, hi } = premiumWindow(Math.floor(Date.now() / 1000));
+  const PAGE = 1000;
+  const MAX_PAGES = 30; // safety cap (≤30k names) so a huge window can't run away
+  const out: WindowRow[] = [];
+  const seen = new Set<string>();
+  let cursor = "";
+
+  for (let p = 0; p < MAX_PAGES; p++) {
+    const query = `{
+      registrations(first: ${PAGE}, orderBy: id, orderDirection: asc, where: { expiryDate_gte: ${lo}, expiryDate_lte: ${hi}, labelName_not: null, id_gt: "${cursor}" }) {
+        id
+        labelName
+        expiryDate
+      }
+    }`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query }),
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) throw new Error(`ENS subgraph HTTP ${res.status}`);
+    const json = (await res.json()) as {
+      data?: { registrations?: (Registration & { id: string })[] };
+      errors?: unknown;
+    };
+    if (json.errors) throw new Error("ENS subgraph query error");
+    const regs = json.data?.registrations ?? [];
+    out.push(...toValidRows(regs, seen));
+    if (regs.length < PAGE) break; // last page
+    cursor = regs[regs.length - 1].id;
+  }
+  return out;
+}
+
+// Cache the whole assembled set as one entry so the expensive full scan is paid
+// once per window and shared across every request and tab — not re-run on each
+// click. Membership only shifts as names cross the 90/111-day expiry boundaries
+// (slow), so a 5-minute TTL is safe and keeps the cold-scan hit rare. Prices are
+// still fetched fresh per batch, so staleness here doesn't affect displayed ETH.
+export const getAllPremiumLabels = unstable_cache(fetchAllPremiumLabels, ["premium-labels-all"], {
+  revalidate: 300,
+});
