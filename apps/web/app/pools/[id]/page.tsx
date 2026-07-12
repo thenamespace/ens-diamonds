@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useAccount, useChainId, usePublicClient, useReadContracts, useWriteContract } from "wagmi";
 import { sepolia } from "wagmi/chains";
+import { formatEther } from "viem";
 import { useQuery } from "@tanstack/react-query";
 import { cofferEscrow, statusName } from "@/lib/contract";
 import { isEscrowConfigured } from "@/lib/chain";
@@ -122,6 +123,7 @@ export default function PoolDashboard() {
   const funded = pct(totalDeposited, targetAmount);
   const lockEnds = fundedAt > 0 ? fundedAt + 7 * 86400 : 0;
   const contributorCount = contributors ? contributors[0].length : 0;
+  const remaining = targetAmount > totalDeposited ? targetAmount - totalDeposited : 0n;
 
   // Private pools are viewable only by the creator or an on-chain-invited member.
   // Ids are sequential/guessable, so gate the detail page — not just the list.
@@ -284,7 +286,17 @@ export default function PoolDashboard() {
               <span className="v accent">{(Number(yourBps) / 100).toFixed(1)}%</span>
             </div>
 
-            <div className="input-group mt-16">
+            {status === "funding" && remaining > 0n && (
+              <div className="row mt-16" style={{ justifyContent: "space-between", alignItems: "baseline" }}>
+                <span className="muted" style={{ fontSize: 12.5 }}>
+                  {fmtEth(remaining, 4)} ETH left to fill
+                </span>
+                <button type="button" className="linkish" onClick={() => setAmount(formatEther(remaining))}>
+                  Max · fill pool
+                </button>
+              </div>
+            )}
+            <div className={status === "funding" && remaining > 0n ? "input-group mt-8" : "input-group mt-16"}>
               <input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} />
               <span className="unit">ETH</span>
             </div>
