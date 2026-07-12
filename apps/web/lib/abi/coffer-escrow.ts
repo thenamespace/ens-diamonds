@@ -1,4 +1,4 @@
-// Auto-generated from packages/contracts (forge inspect CofferEscrow abi --json). Do not edit by hand.
+// Auto-generated from packages/contracts (forge build). Keep in sync with the deployed contract.
 export const cofferEscrowAbi = [
   {
     "type": "constructor",
@@ -78,11 +78,6 @@ export const cofferEscrowAbi = [
         "name": "fundingDeadline",
         "type": "uint40",
         "internalType": "uint40"
-      },
-      {
-        "name": "threshold",
-        "type": "uint8",
-        "internalType": "uint8"
       },
       {
         "name": "invitees",
@@ -431,12 +426,6 @@ export const cofferEscrowAbi = [
         "internalType": "uint40"
       },
       {
-        "name": "threshold",
-        "type": "uint8",
-        "indexed": false,
-        "internalType": "uint8"
-      },
-      {
         "name": "invitees",
         "type": "address[]",
         "indexed": false,
@@ -533,11 +522,6 @@ export const cofferEscrowAbi = [
   },
   {
     "type": "error",
-    "name": "BelowThreshold",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "DuplicateInvitee",
     "inputs": []
   },
@@ -548,12 +532,12 @@ export const cofferEscrowAbi = [
   },
   {
     "type": "error",
-    "name": "InvalidTarget",
+    "name": "InvalidSafeConfig",
     "inputs": []
   },
   {
     "type": "error",
-    "name": "InvalidThreshold",
+    "name": "InvalidTarget",
     "inputs": []
   },
   {
@@ -589,6 +573,11 @@ export const cofferEscrowAbi = [
   {
     "type": "error",
     "name": "SafeDeployFailed",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SameBlock",
     "inputs": []
   },
   {

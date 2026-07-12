@@ -96,7 +96,7 @@ export default function PoolsPage() {
           {visible.map((i) => {
             const pool = data![i * per]!.result as PoolTuple;
             const statusNum = data?.[i * per + 1]?.result as number | undefined;
-            const [label, creator, targetAmount, totalDeposited, , , threshold] = pool;
+            const [label, creator, targetAmount, totalDeposited] = pool;
             const status = statusNum !== undefined ? statusName(statusNum) : "funding";
             const funded = pct(totalDeposited, targetAmount);
             const isPrivate = privateIds.has(i);
@@ -105,7 +105,7 @@ export default function PoolsPage() {
                 <div className="ncard-top">
                   <span className={`tag tag-${status}`}>{status}</span>
                   <span className="mono" style={{ fontSize: 12, color: "var(--faint)" }}>
-                    {isPrivate ? "🔒 " : ""}#{i} · {threshold}-of-N
+                    {isPrivate ? "🔒 " : ""}#{i} · majority
                   </span>
                 </div>
                 <div className="ncard-name">

@@ -125,6 +125,7 @@ export default function PoolDashboard() {
   const lockEnds = fundedAt > 0 ? fundedAt + 7 * 86400 : 0;
   const contributorCount = contributors ? contributors[0].length : 0;
   const remaining = targetAmount > totalDeposited ? targetAmount - totalDeposited : 0n;
+  const effThreshold = status === "finalized" ? threshold : Math.floor(contributorCount / 2) + 1;
 
   // Private pools are viewable only by the creator or an on-chain-invited member.
   // Ids are sequential/guessable, so gate the detail page — not just the list.
@@ -161,7 +162,7 @@ export default function PoolDashboard() {
             <span className={`tag tag-${status}`}>{status}</span>
           </div>
           <p>
-            {threshold}-of-{contributorCount || "N"} Safe · created by <AddressLabel address={creator} />
+            {effThreshold}-of-{contributorCount || "N"} Safe · created by <AddressLabel address={creator} />
             {safe !== "0x0000000000000000000000000000000000000000" ? (
               <>
                 {" "}
@@ -189,8 +190,8 @@ export default function PoolDashboard() {
           <div className="b-text">
             <h3>Target reached — execution window open</h3>
             <p>
-              Funds locked until {new Date(lockEnds * 1000).toLocaleString()}. Any contributor can finalize (needs ≥{" "}
-              {threshold} contributors).
+              Funds locked until {new Date(lockEnds * 1000).toLocaleString()}. Any contributor can finalize — it
+              deploys a {effThreshold}-of-{contributorCount} Safe.
             </p>
           </div>
           <div className="b-cta">
@@ -201,7 +202,7 @@ export default function PoolDashboard() {
             ) : (
               <button
                 className="btn btn-primary"
-                disabled={!isConnected || wrongChain || pending !== null || yourDeposit === 0n || contributorCount < threshold}
+                disabled={!isConnected || wrongChain || pending !== null || yourDeposit === 0n}
                 onClick={() => act("finalize")}
               >
                 {pending === "finalize" ? "Finalizing…" : "Finalize & deploy Safe"}
@@ -358,7 +359,7 @@ export default function PoolDashboard() {
                 <div className="kv">
                   <span className="k">Threshold</span>
                   <span className="v">
-                    {threshold} of {contributorCount}
+                    {effThreshold} of {contributorCount}
                   </span>
                 </div>
                 <div className="kv">
