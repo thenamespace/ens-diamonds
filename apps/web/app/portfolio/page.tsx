@@ -82,6 +82,45 @@ export default function PortfolioPage() {
                     <button className="btn btn-ghost btn-sm">Sell name</button>
                   </div>
                 </div>
+
+                {(() => {
+                  // Everyone who actually funded the buy = the Safe's co-owners,
+                  // biggest share first.
+                  const coOwners = p.members
+                    .filter((m) => m.status === "accepted" && m.contributionEth > 0)
+                    .sort((a, b) => b.ownershipBps - a.ownershipBps);
+                  return (
+                    <div className="coowners">
+                      <div className="sub coowners-head">Co-owners · {coOwners.length}</div>
+                      <div className="coowner-list">
+                        {coOwners.map((m) => {
+                          const isYou = m.handle === "you";
+                          return (
+                            <div key={m.address} className="coowner">
+                              <span className="coowner-avatar" aria-hidden>
+                                {(isYou ? "Y" : m.handle).slice(0, 1).toUpperCase()}
+                              </span>
+                              <span className="coowner-id">
+                                <span className="coowner-name">
+                                  {isYou ? "You" : m.handle}
+                                  {isYou && <span className="coowner-you">you</span>}
+                                </span>
+                                <span className="coowner-addr mono">{m.address}</span>
+                              </span>
+                              <span className="coowner-contrib mono">{eth(m.contributionEth, 2)}</span>
+                              <span className="coowner-share">
+                                <span className="coowner-bar" aria-hidden>
+                                  <span style={{ width: `${Math.min(100, m.ownershipBps / 100)}%` }} />
+                                </span>
+                                <span className="mono coowner-pct">{(m.ownershipBps / 100).toFixed(1)}%</span>
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             );
           })}
