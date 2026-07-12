@@ -75,9 +75,11 @@ export default function PortfolioPage() {
                       {usd(p.depositedEth * ETH_USD)}
                     </div>
                   </div>
-                  <div style={{ marginLeft: "auto", alignSelf: "center" }} className="row">
+                  <div style={{ marginLeft: "auto", alignSelf: "center", flexWrap: "wrap", justifyContent: "flex-end" }} className="row">
                     <button className="btn btn-ghost btn-sm">Renew (pay solo)</button>
                     <button className="btn btn-soft btn-sm">Propose Safe renewal</button>
+                    <button className="btn btn-ghost btn-sm">Transfer name</button>
+                    <button className="btn btn-ghost btn-sm">Sell name</button>
                   </div>
                 </div>
               </div>
