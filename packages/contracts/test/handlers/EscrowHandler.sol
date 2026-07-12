@@ -37,7 +37,7 @@ contract EscrowHandler is Test {
             }
         }
         vm.prank(creator);
-        try escrow.createPool("pool", target, dl, 1, inv) returns (uint256 id) {
+        try escrow.createPool("pool", target, dl, inv) returns (uint256 id) {
             poolIds.push(id);
         } catch {}
     }

@@ -49,7 +49,7 @@ contract CofferEscrowForkTest is Test {
         address[] memory inv = new address[](1);
         inv[0] = bob;
         vm.prank(alice);
-        uint256 id = escrow.createPool(label, uint96(target), uint40(block.timestamp + 3 days), 2, inv);
+        uint256 id = escrow.createPool(label, uint96(target), uint40(block.timestamp + 3 days), inv);
 
         vm.deal(alice, 10 ether);
         vm.deal(bob, 10 ether);
@@ -102,7 +102,7 @@ contract CofferEscrowForkTest is Test {
         address[] memory inv = new address[](1);
         inv[0] = bob;
         vm.prank(alice);
-        uint256 id = escrow.createPool(label, uint96(target), uint40(block.timestamp + 3 days), 2, inv);
+        uint256 id = escrow.createPool(label, uint96(target), uint40(block.timestamp + 3 days), inv);
         vm.deal(alice, 10 ether);
         vm.deal(bob, 10 ether);
         vm.prank(alice);
