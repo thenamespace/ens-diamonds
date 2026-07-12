@@ -192,12 +192,17 @@ contract CofferEscrowTest is Test {
         escrow.deposit{value: 0}(id);
     }
 
-    function test_deposit_revertsOnOvershoot() public {
-        uint256 id = _createDefaultPool();
+    function test_deposit_overshootIsCappedAndRefunded() public {
+        uint256 id = _createDefaultPool(); // target 10 ETH
         vm.deal(alice, 100 ether);
         vm.prank(alice);
-        vm.expectRevert(CofferEscrow.Overshoot.selector);
-        escrow.deposit{value: 11 ether}(id); // target is 10
+        escrow.deposit{value: 11 ether}(id); // 1 ETH over — should cap + refund
+
+        (,, uint96 target, uint96 total,,,,) = escrow.pools(id);
+        assertEq(total, target, "capped to target");
+        assertEq(escrow.deposits(id, alice), 10 ether, "credited only the gap");
+        assertEq(alice.balance, 90 ether, "1 ETH excess refunded");
+        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Funded), "funded");
     }
 
     function test_deposit_revertsBelowMinimumForNewDepositor() public {

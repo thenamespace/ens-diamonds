@@ -76,7 +76,6 @@ contract CofferEscrow {
     error WrongStatus();
     error ZeroValue();
     error BelowMinimum();
-    error Overshoot();
     error NoDeposit();
     error WithdrawLocked();
     error NotContributor();
@@ -160,7 +159,7 @@ contract CofferEscrow {
         emit PoolCreated(poolId, label, msg.sender, targetAmount, fundingDeadline, invitees);
     }
 
-    function deposit(uint256 poolId) external payable {
+    function deposit(uint256 poolId) external payable nonReentrant {
         Pool storage p = pools[poolId];
         if (!invited[poolId][msg.sender]) revert NotInvited();
         if (status(poolId) != PoolStatus.Funding) revert WrongStatus();
@@ -168,9 +167,13 @@ contract CofferEscrow {
         // Block re-arming the funding lock via an atomic withdraw→re-deposit.
         if (withdrawBlock[poolId][msg.sender] == block.number) revert SameBlock();
 
+        // Accept at most the remaining gap and refund any excess, instead of
+        // reverting — removes the front-run race where a co-invitee blocks a
+        // gap-filling deposit. (msg.value <= remaining ⇒ cast is safe; else amount
+        // = remaining which is already uint96.)
         uint96 remaining = p.targetAmount - p.totalDeposited;
-        if (msg.value > remaining) revert Overshoot();
-        uint96 amount = uint96(msg.value); // safe: msg.value <= remaining <= type(uint96).max
+        uint96 amount = msg.value > remaining ? remaining : uint96(msg.value);
+        uint256 refund = msg.value - amount;
 
         bool isTopUp = deposits[poolId][msg.sender] > 0;
         bool isExactGap = amount == remaining;
@@ -188,6 +191,12 @@ contract CofferEscrow {
         }
 
         emit Deposited(poolId, msg.sender, amount, p.totalDeposited);
+
+        // interaction last (CEI); nonReentrant guards the refund call.
+        if (refund > 0) {
+            (bool ok,) = msg.sender.call{value: refund}("");
+            if (!ok) revert TransferFailed();
+        }
     }
 
     function withdraw(uint256 poolId) external nonReentrant {
