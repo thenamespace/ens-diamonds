@@ -41,17 +41,15 @@ export default function AboutPage() {
       </section>
 
       <section className="about-section built-by">
-        <h2>Built by Namespace</h2>
         <p className="about-lead">
-          Coffer is made by the <strong>Namespace</strong> team — an ENS-DAO-backed service provider building the
-          naming and identity layer for Web3. Our mission is to name the next billion crypto users: gasless offchain
-          subnames, onchain L1/L2 minting, and the developer tools that put ENS everywhere.
+          Coffer is made by the{" "}
+          <a href="https://namespace.ninja" target="_blank" rel="noreferrer">
+            Namespace
+          </a>{" "}
+          team — an ENS-DAO-backed service provider building the naming and identity layer for Web3. Our mission is to
+          name the next billion crypto users: gasless offchain subnames, onchain L1/L2 minting, and the developer tools
+          that put ENS everywhere.
         </p>
-        <div className="about-cta">
-          <a className="btn btn-primary" href="https://namespace.ninja" target="_blank" rel="noreferrer">
-            namespace.ninja ↗
-          </a>
-        </div>
       </section>
     </div>
   );
