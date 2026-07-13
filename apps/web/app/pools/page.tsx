@@ -104,14 +104,14 @@ export default function PoolsPage() {
     <div className="wrap">
       <div className="page-head">
         <div>
-          <h1>Pools</h1>
+          <h1>Vaults</h1>
           <p>
-            Public pools plus any private pools you belong to. Ownership is always reconstructable from on-chain
+            Public vaults plus any private vaults you belong to. Ownership is always reconstructable from on-chain
             deposits.
           </p>
         </div>
         <Link className="btn btn-primary" href="/pools/new">
-          Start a pool
+          Start a vault
         </Link>
       </div>
 
@@ -123,19 +123,19 @@ export default function PoolsPage() {
       ) : loading ? (
         <div className="empty">
           <span className="mark" aria-hidden />
-          <h3>Loading pools…</h3>
+          <h3>Loading vaults…</h3>
         </div>
       ) : visible.length === 0 ? (
         <div className="empty">
           <span className="mark" aria-hidden />
-          <h3>{events.length === 0 ? "No pools yet" : "No pools to show"}</h3>
+          <h3>{events.length === 0 ? "No vaults yet" : "No vaults to show"}</h3>
           <p>
             {events.length === 0
-              ? "Be the first — start a pool for a name and invite people."
-              : "Public pools you can join appear here. Connect your wallet to also see private pools you belong to."}
+              ? "Be the first — start a vault for a name and invite people."
+              : "Public vaults you can join appear here. Connect your wallet to also see private vaults you belong to."}
           </p>
           <Link className="btn btn-primary" href="/pools/new">
-            Start a pool
+            Start a vault
           </Link>
         </div>
       ) : (

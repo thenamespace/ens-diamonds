@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Coffer — Pool up to claim premium ENS names, together",
     description:
-      "Found a premium ENS name too rich to grab solo? Start a pool, invite people through their on-chain records, and buy it with a multisig you all control.",
+      "Found a premium ENS name too rich to grab solo? Start a vault, invite people through their on-chain records, and buy it with a multisig you all control.",
     type: "website",
     url: "https://coffer.xyz",
     siteName: "Coffer",

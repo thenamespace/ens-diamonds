@@ -5,9 +5,9 @@ export default function Loading() {
     <div className="wrap">
       <div className="page-head">
         <div>
-          <h1>Pools</h1>
+          <h1>Vaults</h1>
           <p>
-            Public pools plus any private pools you belong to. Ownership is always reconstructable from on-chain
+            Public vaults plus any private vaults you belong to. Ownership is always reconstructable from on-chain
             deposits.
           </p>
         </div>

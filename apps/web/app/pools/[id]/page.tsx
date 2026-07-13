@@ -105,10 +105,10 @@ export default function PoolDashboard() {
       <div className="wrap">
         <div className="empty">
           <span className="mark" aria-hidden />
-          <h3>Pool #{idStr} not found</h3>
-          <p>No pool with this id exists on the deployed escrow yet.</p>
+          <h3>Vault #{idStr} not found</h3>
+          <p>No vault with this id exists on the deployed escrow yet.</p>
           <Link className="btn btn-primary" href="/pools">
-            All pools
+            All vaults
           </Link>
         </div>
       </div>
@@ -116,7 +116,7 @@ export default function PoolDashboard() {
   }
 
   if (isLoading || !pool || statusNum === undefined) {
-    return <div className="wrap">Loading pool #{idStr}…</div>;
+    return <div className="wrap">Loading vault #{idStr}…</div>;
   }
 
   const [label, creator, targetAmount, totalDeposited, fundingDeadline, fundedAt, threshold, safe] = pool;
@@ -135,14 +135,14 @@ export default function PoolDashboard() {
     return (
       <div className="wrap">
         <div className="crumb">
-          <Link href="/pools">Pools</Link> <span>/</span> <span>#{idStr}</span>
+          <Link href="/pools">Vaults</Link> <span>/</span> <span>#{idStr}</span>
         </div>
         <div className="empty">
           <span className="mark" aria-hidden />
-          <h3>This pool is private</h3>
+          <h3>This vault is private</h3>
           <p>Only its creator and invited members can view it. If you were invited, connect the wallet that was invited.</p>
           <Link className="btn btn-primary" href="/pools">
-            Browse public pools
+            Browse public vaults
           </Link>
         </div>
       </div>
@@ -152,13 +152,13 @@ export default function PoolDashboard() {
   return (
     <div className="wrap">
       <div className="crumb">
-        <Link href="/pools">Pools</Link> <span>/</span> <span>#{idStr}</span>
+        <Link href="/pools">Vaults</Link> <span>/</span> <span>#{idStr}</span>
       </div>
 
       <div className="page-head">
         <div>
           <div className="row" style={{ gap: 12 }}>
-            <h1 style={{ margin: 0 }}>{label}.eth pool</h1>
+            <h1 style={{ margin: 0 }}>{label}.eth vault</h1>
             <span className={`tag tag-${status}`}>{status}</span>
           </div>
           <p>
@@ -197,7 +197,7 @@ export default function PoolDashboard() {
           <div className="b-cta">
             {isConnected && yourDeposit === 0n ? (
               <span className="muted" style={{ fontSize: 13, textAlign: "right", display: "block", maxWidth: 240 }}>
-                Only contributors can finalize — deposit into this pool to help finalize it.
+                Only contributors can finalize — deposit into this vault to help finalize it.
               </span>
             ) : (
               <button

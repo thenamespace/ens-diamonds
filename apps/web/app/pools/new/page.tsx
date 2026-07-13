@@ -32,22 +32,22 @@ const NAME_STATUS: Record<
   premium: {
     text: "In temporary premium",
     kind: "ok",
-    note: "In its 21-day premium auction — exactly what pools are for. Good to go.",
+    note: "In its 21-day premium auction — exactly what vaults are for. Good to go.",
   },
   available: {
     text: "Available",
     kind: "ok",
-    note: "Expired and available at base price — good to pool for.",
+    note: "Expired and available at base price — good to start a vault for.",
   },
   active: {
     text: "Registered",
     kind: "block",
-    note: "This name is currently registered to someone else — you can't register it, so a pool for it can never succeed.",
+    note: "This name is currently registered to someone else — you can't register it, so a vault for it can never succeed.",
   },
   grace: {
     text: "In grace period",
     kind: "block",
-    note: "Expired but still in its 90-day grace period, so the current owner can renew it. It can't be pooled until it enters the premium auction.",
+    note: "Expired but still in its 90-day grace period, so the current owner can renew it. You can't start a vault for it until it enters the premium auction.",
   },
   tooShort: { text: "Too short", kind: "info", note: "ENS names need at least 3 characters." },
   invalid: { text: "Not a valid name", kind: "block", note: "This isn't a registrable ENS label." },
@@ -371,12 +371,12 @@ function NewPoolForm() {
             <Link href={`/name/${label}`}>{label}.eth</Link> <span>/</span>
           </>
         ) : null}
-        <span>Start a pool</span>
+        <span>Start a vault</span>
       </div>
 
       <div className="page-head">
         <div>
-          <h1>Start a pool{labelInput ? ` to buy ${labelInput}.eth` : ""}</h1>
+          <h1>Start a vault{labelInput ? ` to buy ${labelInput}.eth` : ""}</h1>
           <p>
             Set your stake, then invite people by address. Everyone deposits into the audited escrow on Sepolia; on
             success it deploys a multisig you all control.
@@ -394,11 +394,11 @@ function NewPoolForm() {
       <div className="cols">
         <div className="stack">
           <div className="panel">
-            <span className="panel-title">1 · Pool basics</span>
+            <span className="panel-title">1 · Vault basics</span>
 
             <div className="field">
               <label>
-                Name <span className="hint">the one .eth name this pool will buy · min 3 chars</span>
+                Name <span className="hint">the one .eth name this vault will buy · min 3 chars</span>
               </label>
               <div className="input-group" style={{ borderColor: nameBlocked ? "var(--danger)" : undefined }}>
                 <input value={labelInput} onChange={(e) => setLabelInput(e.target.value.toLowerCase())} placeholder="defi" />
@@ -422,7 +422,7 @@ function NewPoolForm() {
 
             <div className="field">
               <label>
-                Target amount <span className="hint">total the pool must raise · overpay refunded</span>
+                Target amount <span className="hint">total the vault must raise · overpay refunded</span>
               </label>
               <div className="input-group">
                 <input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} />
@@ -508,7 +508,7 @@ function NewPoolForm() {
             <div className="field" style={{ marginTop: 18, marginBottom: 0 }}>
               <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                 <span>
-                  List this pool publicly <span className="hint">shows in the Pools directory</span>
+                  List this vault publicly <span className="hint">shows in the Vaults directory</span>
                 </span>
                 <button
                   type="button"
@@ -522,7 +522,7 @@ function NewPoolForm() {
               </label>
               <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
                 {isPublic
-                  ? "Anyone can find this pool in the directory. Only addresses you invite can deposit."
+                  ? "Anyone can find this vault in the directory. Only addresses you invite can deposit."
                   : "Private — only you and the people you invite can see it. You’ll sign a quick message to confirm you’re the creator."}
               </p>
             </div>
@@ -531,7 +531,7 @@ function NewPoolForm() {
           <div className="panel">
             <span className="panel-title">2 · Invite co-owners</span>
             <p className="muted" style={{ fontSize: 13.5, marginTop: 0 }}>
-              <strong>At least one co-owner is required</strong> — a pool splits a name between people. Add each by ENS
+              <strong>At least one co-owner is required</strong> — a vault splits a name between people. Add each by ENS
               name or wallet address.
             </p>
             {invitees.map((i) => (
@@ -566,7 +566,7 @@ function NewPoolForm() {
 
         <div className="stack">
           <div className="howto">
-            <strong className="howto-title">How a pool works</strong>
+            <strong className="howto-title">How a vault works</strong>
             <div className="howto-steps">
               <div className="howto-step">
                 <span className="howto-num">1</span>
@@ -615,7 +615,7 @@ function NewPoolForm() {
             {!isConnected ? (
               <div className="note note-info mt-16">
                 <span>ℹ</span>
-                <span>Connect your wallet (top right) to create the pool.</span>
+                <span>Connect your wallet (top right) to create the vault.</span>
               </div>
             ) : wrongChain ? (
               <div className="note note-warn mt-16">
@@ -630,12 +630,12 @@ function NewPoolForm() {
             ) : badInvitees.length > 0 || hasDuplicate || hasSelfInvite ? (
               <div className="note note-warn mt-16">
                 <span>⚠</span>
-                <span>Fix the highlighted co-owner {badInvitees.length + duplicateIds.size + (hasSelfInvite ? 1 : 0) === 1 ? "error" : "errors"} above before creating the pool.</span>
+                <span>Fix the highlighted co-owner {badInvitees.length + duplicateIds.size + (hasSelfInvite ? 1 : 0) === 1 ? "error" : "errors"} above before creating the vault.</span>
               </div>
             ) : inviteeAddrs.length === 0 ? (
               <div className="note note-info mt-16">
                 <span>ℹ</span>
-                <span>Invite at least one co-owner to start a pool, or buy the name solo instead.</span>
+                <span>Invite at least one co-owner to start a vault, or buy the name solo instead.</span>
               </div>
             ) : null}
 
@@ -647,7 +647,7 @@ function NewPoolForm() {
             )}
 
             <button className="btn btn-primary btn-block btn-lg mt-16" disabled={!canSubmit}>
-              {step === "creating" ? "Confirm create in wallet…" : step === "depositing" ? "Confirm deposit in wallet…" : "Create pool & deposit"}
+              {step === "creating" ? "Confirm create in wallet…" : step === "depositing" ? "Confirm deposit in wallet…" : "Create vault & deposit"}
             </button>
             <div style={{ textAlign: "center", marginTop: 10, fontSize: 12.5, color: "var(--faint)" }}>
               {busy ? "Two transactions: createPool, then your deposit." : `A ${schemeLabel} Safe deploys at finalization.`}

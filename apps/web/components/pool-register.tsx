@@ -201,7 +201,7 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
         <div className="note note-info" style={{ background: "rgba(34,197,94,0.1)" }}>
           <span>✓</span>
           <span>
-            <strong>{label}.eth</strong> is registered and owned by your pool’s Safe.{" "}
+            <strong>{label}.eth</strong> is registered and owned by your vault’s Safe.{" "}
             <a href={`https://sepolia.app.ens.domains/${label}.eth`} target="_blank" rel="noreferrer" style={{ color: "var(--accent-2)" }}>
               View on ENS →
             </a>
@@ -244,7 +244,7 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
         amOwner === false ? (
           <div className="note note-info mt-16">
             <span>ℹ</span>
-            <span>Only contributors can register this pool’s name.</span>
+            <span>Only contributors can register this vault’s name.</span>
           </div>
         ) : (
           <button className="btn btn-primary btn-block btn-lg mt-16" disabled={busy !== null} onClick={doCommit}>

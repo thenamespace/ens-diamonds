@@ -6,7 +6,7 @@ import { fmtEth, fmtCountdown } from "@/lib/format";
 import { getEnsNameData, weiToUsd, type EnsNameData, DAY, GRACE, PREMIUM } from "@/lib/ens-name";
 import { getNameSignals } from "@/lib/discover-feed";
 
-// Watchers + pools for a name — the same signals that rank the Trending tab.
+// Watchers + vaults for a name — the same signals that rank the Trending tab.
 function NameSignalsLine({ watchers, pools }: { watchers: number; pools: number }) {
   return (
     <span className="name-stats" style={{ marginTop: 10 }}>
@@ -17,15 +17,13 @@ function NameSignalsLine({ watchers, pools }: { watchers: number; pools: number 
         </svg>
         {watchers} watching
       </span>
-      <span className="name-stat" title={`${pools} pool${pools === 1 ? "" : "s"} created`}>
+      <span className="name-stat" title={`${pools} vault${pools === 1 ? "" : "s"} created`}>
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <ellipse cx="12" cy="15" rx="9.5" ry="4.5" />
-          <path d="M7 15V7.5a1.4 1.4 0 0 1 2.8 0V15" />
-          <path d="M7 10h2.8" />
-          <path d="M7 12.2h2.8" />
-          <path d="M12.6 14.6c.7-.75 1.5-.75 2.2 0s1.5.75 2.2 0" />
+          <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+          <circle cx="12" cy="12" r="3.2" />
+          <path d="M12 12l2.3-2.3" />
         </svg>
-        {pools} pool{pools === 1 ? "" : "s"}
+        {pools} vault{pools === 1 ? "" : "s"}
       </span>
     </span>
   );
@@ -270,19 +268,19 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
                 Buy now (pay solo)
               </Link>
               <Link className="btn btn-soft btn-lg" style={{ flex: 1 }} href={`/pools/new?label=${display}`}>
-                Start a pool to buy
+                Start a vault to buy
               </Link>
             </div>
           </div>
 
           <div className="panel">
-            <span className="panel-title">Pools</span>
+            <span className="panel-title">Vaults</span>
             <p className="muted" style={{ fontSize: 14, marginTop: -4 }}>
-              Already a pool forming for {display}.eth? Browse every open pool on the escrow.
+              Already a vault forming for {display}.eth? Browse every open vault on the escrow.
             </p>
             <div className="row mt-8" style={{ gap: 8 }}>
               <Link className="btn btn-ghost btn-sm" href="/pools">
-                All pools →
+                All vaults →
               </Link>
             </div>
           </div>

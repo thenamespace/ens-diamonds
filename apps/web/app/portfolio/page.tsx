@@ -13,7 +13,7 @@ export default function PortfolioPage() {
       <div className="page-head">
         <div>
           <h1>Portfolio</h1>
-          <p>Names your wallet co-owns across pools, with your cost basis and renewal status.</p>
+          <p>Names your wallet co-owns across vaults, with your cost basis and renewal status.</p>
         </div>
       </div>
 
@@ -21,7 +21,7 @@ export default function PortfolioPage() {
         <div className="empty">
           <span className="mark" aria-hidden />
           <h3>No co-owned names yet</h3>
-          <p>Once a pool you&rsquo;re in registers its name, it shows up here with your share and renewal status.</p>
+          <p>Once a vault you&rsquo;re in registers its name, it shows up here with your share and renewal status.</p>
           <Link className="btn btn-primary" href="/">
             Browse names in premium
           </Link>
