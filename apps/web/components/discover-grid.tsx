@@ -38,7 +38,7 @@ function priceLabel(n: PremiumEntry): string {
   return n.priceUsd !== null ? fmtUsd(n.priceUsd) : `${n.priceEth.toFixed(3)} ETH`;
 }
 
-// Engagement counts that drive the Trending rank: watchers (eye) + pools (users).
+// Engagement counts that drive the Trending rank: watchers (eye) + vaults (vault icon).
 function NameStats({ watchers, pools }: { watchers: number; pools: number }) {
   return (
     <span className="name-stats">
@@ -49,13 +49,11 @@ function NameStats({ watchers, pools }: { watchers: number; pools: number }) {
         </svg>
         {watchers}
       </span>
-      <span className="name-stat" title={`${pools} pool${pools === 1 ? "" : "s"} created`}>
+      <span className="name-stat" title={`${pools} vault${pools === 1 ? "" : "s"} created`}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <ellipse cx="12" cy="15" rx="9.5" ry="4.5" />
-          <path d="M7 15V7.5a1.4 1.4 0 0 1 2.8 0V15" />
-          <path d="M7 10h2.8" />
-          <path d="M7 12.2h2.8" />
-          <path d="M12.6 14.6c.7-.75 1.5-.75 2.2 0s1.5.75 2.2 0" />
+          <rect x="3.5" y="5" width="17" height="14" rx="2.5" />
+          <circle cx="12" cy="12" r="3.2" />
+          <path d="M12 12l2.3-2.3" />
         </svg>
         {pools}
       </span>

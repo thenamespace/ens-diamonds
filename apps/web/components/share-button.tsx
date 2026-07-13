@@ -8,7 +8,7 @@ export default function ShareButton({ name, className }: { name?: string; classN
   const [copied, setCopied] = useState(false);
 
   const url = typeof window !== "undefined" ? window.location.href : "";
-  const text = name ? `Join my Coffer pool to buy ${name}.eth together` : "Join my Coffer pool";
+  const text = name ? `Join my Coffer vault to buy ${name}.eth together` : "Join my Coffer vault";
   const xHref = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
 
   async function copy() {
@@ -29,19 +29,19 @@ export default function ShareButton({ name, className }: { name?: string; classN
 
       {open && (
         <div className="modal-overlay" onClick={() => setOpen(false)} role="presentation">
-          <div className="modal-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Share pool">
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Share vault">
             <div className="modal-head">
-              <h3>Invite people to this pool</h3>
+              <h3>Invite people to this vault</h3>
               <button className="modal-x" onClick={() => setOpen(false)} aria-label="Close">
                 ✕
               </button>
             </div>
             <p className="muted" style={{ fontSize: 14, marginTop: -4 }}>
-              Anyone you invited on-chain can open this link, review the pool, and deposit their share.
+              Anyone you invited on-chain can open this link, review the vault, and deposit their share.
             </p>
 
             <div className="share-url">
-              <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} aria-label="Pool link" />
+              <input readOnly value={url} onFocus={(e) => e.currentTarget.select()} aria-label="Vault link" />
               <button className="btn btn-primary btn-sm" onClick={copy}>
                 {copied ? "Copied ✓" : "Copy"}
               </button>

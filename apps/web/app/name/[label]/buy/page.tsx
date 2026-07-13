@@ -148,7 +148,7 @@ export default function BuySoloPage() {
           <h1 style={{ margin: 0 }}>
             Buy {label}.eth <span style={{ color: "var(--faint)", fontWeight: 400 }}>solo</span>
           </h1>
-          <p>Register it to your own wallet on Sepolia — no pool needed. ENS uses a two-step commit → wait → register.</p>
+          <p>Register it to your own wallet on Sepolia — no vault needed. ENS uses a two-step commit → wait → register.</p>
         </div>
         <Link className="btn btn-ghost" href={`/name/${label}`}>
           ← Back

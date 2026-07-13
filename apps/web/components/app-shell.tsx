@@ -13,7 +13,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           <nav className="topnav">
             <Link href="/">Discover</Link>
-            <Link href="/pools">Pools</Link>
+            <Link href="/pools">Vaults</Link>
             <Link href="/watching">Watching</Link>
             <Link href="/portfolio">Portfolio</Link>
           </nav>
