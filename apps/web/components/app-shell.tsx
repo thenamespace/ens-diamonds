@@ -17,6 +17,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <Link href="/pools">Vaults</Link>
             <Link href="/watching">Watching</Link>
             <Link href="/portfolio">Portfolio</Link>
+            <Link href="/about">About</Link>
           </nav>
 
           <div className="topbar-right">
@@ -29,8 +30,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <footer className="app-footer">
         <div className="app-footer-inner">
-          <span className="fine">Coffer · pool ETH to claim premium ENS names, together</span>
-          <span className="fine mono">Ethereum mainnet · non-custodial · audited escrow</span>
+          <span className="fine">
+            Built by{" "}
+            <a href="https://namespace.ninja" target="_blank" rel="noreferrer" className="footer-link">
+              Namespace
+            </a>{" "}
+            · <Link href="/about" className="footer-link">About Coffer</Link>
+          </span>
+          <span className="fine mono">non-custodial · audited escrow · on Sepolia testnet</span>
         </div>
       </footer>
     </div>
