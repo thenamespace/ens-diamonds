@@ -51,9 +51,8 @@ function NameStats({ watchers, pools }: { watchers: number; pools: number }) {
       </span>
       <span className="name-stat" title={`${pools} pool${pools === 1 ? "" : "s"} created`}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
-          <path d="M17 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeLinecap="round" strokeLinejoin="round" />
-          <circle cx="9.5" cy="7" r="3.2" />
-          <path d="M22 20v-2a4 4 0 0 0-3-3.87M16 3.5a4 4 0 0 1 0 7" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M2 9q2.5 -3 5 0t5 0t5 0t5 0" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M2 15q2.5 -3 5 0t5 0t5 0t5 0" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         {pools}
       </span>
