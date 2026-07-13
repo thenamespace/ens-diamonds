@@ -31,11 +31,13 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://coffer.xyz",
     siteName: "Coffer",
+    images: [{ url: "/coffer-logo.png", width: 500, height: 500, alt: "Coffer" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Coffer — Pool up to claim premium ENS names, together",
     description: "Pool ETH to buy a premium ENS name. Audited escrow, unilateral refunds, a multisig you all control.",
+    images: ["/coffer-logo.png"],
   },
 };
 

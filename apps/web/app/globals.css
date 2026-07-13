@@ -106,10 +106,18 @@ h4 {
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   font-weight: 600;
   font-size: 18px;
   letter-spacing: -0.02em;
+}
+
+.brand-logo {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  object-fit: contain;
+  display: block;
 }
 
 /* ---------------- buttons ---------------- */

@@ -7,7 +7,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <header className="topbar">
         <div className="topbar-inner">
           <Link className="brand" href="/">
-            <span className="mark" aria-hidden />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="brand-logo" src="/coffer-logo.png" alt="" width={30} height={30} />
             <span>Coffer</span>
           </Link>
 
