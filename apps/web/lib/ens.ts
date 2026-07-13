@@ -8,6 +8,19 @@ const REVERSE = `${ROOT}/reverse`;
 
 type ReverseRecord = { name: string | null; hasReverseRecord: boolean; address: string };
 type TextRecord = { key: string; value: string; exists: boolean };
+type AddressRecord = { coin: number; chain: string; value?: string; exists: boolean };
+
+/**
+ * Forward-resolve an ENS name to its Ethereum address (coin type 60), or null
+ * if the name doesn't resolve. Same Resolvio backend as the reverse lookups.
+ */
+export async function fetchAddress(name: string): Promise<string | null> {
+  const res = await fetch(`${ROOT}/addresses/${encodeURIComponent(name)}?chains=eth`);
+  if (!res.ok) return null;
+  const data = (await res.json()) as { addresses?: AddressRecord[] };
+  const eth = data.addresses?.find((a) => a.chain === "eth" && a.exists && a.value);
+  return eth?.value ?? null;
+}
 
 /** Resolve a single address to its primary ENS name, or null if none set. */
 export async function fetchPrimaryName(address: string): Promise<string | null> {
