@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -15,17 +14,10 @@ export default function AboutPage() {
         <img className="about-logo" src="/coffer-logo.png" alt="Coffer" width={148} height={148} />
         <h1>Coffer</h1>
         <p className="about-tagline">
-          Some ENS names are too rich to grab alone. Coffer lets a group pool ETH into a shared vault, buy the name
-          together, and co-own it — no trust required, all on-chain.
+          <span className="about-hook">The best ENS names are too expensive to buy alone.</span>
+          Coffer lets groups <strong>pool ETH</strong> into a shared vault, <strong>buy premium names</strong> together,
+          and <strong>co-own them</strong>.
         </p>
-        <div className="about-cta">
-          <Link className="btn btn-primary btn-lg" href="/">
-            Browse names in premium
-          </Link>
-          <Link className="btn btn-soft btn-lg" href="/pools/new">
-            Start a vault
-          </Link>
-        </div>
       </section>
 
       <section className="about-section">
@@ -46,9 +38,7 @@ export default function AboutPage() {
           <a href="https://namespace.ninja" target="_blank" rel="noreferrer">
             Namespace
           </a>{" "}
-          team — an ENS-DAO-backed service provider building the naming and identity layer for Web3. Our mission is to
-          name the next billion crypto users: gasless offchain subnames, onchain L1/L2 minting, and the developer tools
-          that put ENS everywhere.
+          team — an ENS-DAO-backed service provider.
         </p>
       </section>
     </div>
