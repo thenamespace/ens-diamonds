@@ -1910,6 +1910,7 @@ h4 {
 
 .about-section {
   margin-top: 48px;
+  text-align: center;
 }
 
 .about-section h2 {
@@ -1923,6 +1924,7 @@ h4 {
   line-height: 1.65;
   color: var(--muted);
   max-width: 680px;
+  margin-inline: auto;
 }
 
 .about-lead + .about-lead {
@@ -1941,15 +1943,6 @@ h4 {
 .built-by {
   padding-top: 36px;
   border-top: 1px solid var(--line);
-}
-
-.built-by h2 {
-  margin-bottom: 14px;
-}
-
-.built-by .about-cta {
-  justify-content: flex-start;
-  margin-top: 22px;
 }
 
 @media (max-width: 720px) {
