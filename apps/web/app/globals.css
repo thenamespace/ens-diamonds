@@ -1900,12 +1900,18 @@ h4 {
   color: var(--muted);
 }
 
-.about-cta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: center;
-  margin-top: 26px;
+.about-tagline strong {
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
+.about-hook {
+  display: block;
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  margin-bottom: 10px;
 }
 
 .about-section {
