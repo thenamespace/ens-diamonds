@@ -10,6 +10,8 @@ const e = (label: string, o: Partial<PremiumEntry>): PremiumEntry => ({
   dayIntoPremium: 0,
   premiumEndsAt: 0,
   expiryDate: 0,
+  watchers: 0,
+  pools: 0,
   ...o,
 });
 
