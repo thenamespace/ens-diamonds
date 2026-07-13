@@ -15,6 +15,8 @@ export type PremiumEntry = {
   dayIntoPremium: number; // 0..21
   premiumEndsAt: number; // unix seconds
   expiryDate: number; // registrar expiry (unix seconds) — for the "newest" sort
+  watchers: number; // people watching this name (0 until enriched)
+  pools: number; // pools created for this name (0 until enriched)
 };
 
 // Pure: where a name sits in its 21-day premium window, from its registrar
@@ -154,6 +156,8 @@ export async function priceLabels(rows: WindowRow[]): Promise<PremiumEntry[]> {
       dayIntoPremium,
       premiumEndsAt,
       expiryDate: v.expiryDate,
+      watchers: 0, // filled in by the feed layer (see enrichSignals)
+      pools: 0,
     };
   });
 }

@@ -1,10 +1,39 @@
-import { createPublicClient, http } from "viem";
-import { CHAIN, SEPOLIA_RPC } from "./chain";
+import { createPublicClient, http, getAbiItem } from "viem";
+import { unstable_cache } from "next/cache";
+import { CHAIN, SEPOLIA_RPC, ESCROW_DEPLOY_BLOCK } from "./chain";
 import { cofferEscrow } from "./contract";
 
 // Read-only Sepolia client for server routes (verify a pool's on-chain creator).
 // Server-only — never import from a "use client" file.
 export const sepoliaClient = createPublicClient({ chain: CHAIN, transport: http(SEPOLIA_RPC) });
+
+const poolCreatedEvent = getAbiItem({ abi: cofferEscrow.abi, name: "PoolCreated" });
+
+async function fetchPoolCountsByLabel(): Promise<Record<string, number>> {
+  try {
+    const logs = await sepoliaClient.getLogs({
+      address: cofferEscrow.address,
+      event: poolCreatedEvent,
+      fromBlock: ESCROW_DEPLOY_BLOCK,
+      toBlock: "latest",
+    });
+    const counts: Record<string, number> = {};
+    for (const log of logs) {
+      const label = ((log.args as { label?: string }).label ?? "").toLowerCase();
+      if (label) counts[label] = (counts[label] ?? 0) + 1;
+    }
+    return counts;
+  } catch {
+    return {};
+  }
+}
+
+// How many pools have been created per label (lowercased), from PoolCreated logs.
+// Cached 2m — a plain object (unstable_cache can't serialize a Map). Drives the
+// Trending rank + the per-name pool count shown on cards.
+export const getPoolCountsByLabel = unstable_cache(fetchPoolCountsByLabel, ["pool-counts-by-label"], {
+  revalidate: 120,
+});
 
 // Lowercased creator of a pool, or null if out of range / unreadable.
 export async function getPoolCreator(poolId: number): Promise<string | null> {

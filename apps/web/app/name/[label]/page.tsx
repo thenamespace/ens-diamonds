@@ -4,6 +4,30 @@ import DecayChart from "@/components/decay-chart";
 import { usd } from "@/lib/data";
 import { fmtEth, fmtCountdown } from "@/lib/format";
 import { getEnsNameData, weiToUsd, type EnsNameData, DAY, GRACE, PREMIUM } from "@/lib/ens-name";
+import { getNameSignals } from "@/lib/discover-feed";
+
+// Watchers + pools for a name — the same signals that rank the Trending tab.
+function NameSignalsLine({ watchers, pools }: { watchers: number; pools: number }) {
+  return (
+    <span className="name-stats" style={{ marginTop: 10 }}>
+      <span className="name-stat" title={`${watchers} watching`}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
+          <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" strokeLinejoin="round" strokeLinecap="round" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        {watchers} watching
+      </span>
+      <span className="name-stat" title={`${pools} pool${pools === 1 ? "" : "s"} created`}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
+          <path d="M17 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="9.5" cy="7" r="3.2" />
+          <path d="M22 20v-2a4 4 0 0 0-3-3.87M16 3.5a4 4 0 0 1 0 7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        {pools} pool{pools === 1 ? "" : "s"}
+      </span>
+    </span>
+  );
+}
 
 // Cache the rendered page ~60s per name (satisfies the spec's caching
 // requirement): bounds mainnet RPC usage, and premium decay tolerates 60s
@@ -97,6 +121,7 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
   }
 
   const tag = STATUS_TAG[d.status];
+  const signals = await getNameSignals(display);
 
   // Non-buyable states (active / grace): show status, no buy box.
   if (!d.buyable) {
@@ -119,6 +144,7 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
             <p>
               {d.letters} letters · {d.status === "active" ? "registered" : "in grace period"}
             </p>
+            <NameSignalsLine watchers={signals.watchers} pools={signals.pools} />
           </div>
           <div className="row">
             <Link className="btn btn-ghost" href="/">
@@ -155,6 +181,7 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
           <p>
             {d.letters} letters · {d.status === "premium" ? "in the 21-day premium auction" : "available at base price"}
           </p>
+          <NameSignalsLine watchers={signals.watchers} pools={signals.pools} />
         </div>
         <div className="row">
           <Link className="btn btn-ghost" href="/">

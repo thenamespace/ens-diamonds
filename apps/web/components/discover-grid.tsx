@@ -38,6 +38,29 @@ function priceLabel(n: PremiumEntry): string {
   return n.priceUsd !== null ? fmtUsd(n.priceUsd) : `${n.priceEth.toFixed(3)} ETH`;
 }
 
+// Engagement counts that drive the Trending rank: watchers (eye) + pools (users).
+function NameStats({ watchers, pools }: { watchers: number; pools: number }) {
+  return (
+    <span className="name-stats">
+      <span className="name-stat" title={`${watchers} watching`}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
+          <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" strokeLinejoin="round" strokeLinecap="round" />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        {watchers}
+      </span>
+      <span className="name-stat" title={`${pools} pool${pools === 1 ? "" : "s"} created`}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
+          <path d="M17 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx="9.5" cy="7" r="3.2" />
+          <path d="M22 20v-2a4 4 0 0 0-3-3.87M16 3.5a4 4 0 0 1 0 7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        {pools}
+      </span>
+    </span>
+  );
+}
+
 function NameCard({ n }: { n: PremiumEntry }) {
   const [c1, c2] = gradientFor(n.label);
   return (
@@ -69,6 +92,7 @@ function NameCard({ n }: { n: PremiumEntry }) {
           <ClockIcon />
           {fmtCountdown(n.premiumEndsAt)} left
         </span>
+        <NameStats watchers={n.watchers} pools={n.pools} />
       </div>
     </Link>
   );
@@ -84,6 +108,9 @@ function NameRow({ n }: { n: PremiumEntry }) {
       <span className="nrow-name">
         {n.label}
         <span className="eth">.eth</span>
+      </span>
+      <span className="nrow-stats">
+        <NameStats watchers={n.watchers} pools={n.pools} />
       </span>
       <span className="nrow-timer">
         <ClockIcon size={12} />
