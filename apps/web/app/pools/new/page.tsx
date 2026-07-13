@@ -581,8 +581,8 @@ function NewPoolForm() {
               <div className="howto-step">
                 <span className="howto-num">3</span>
                 <span>
-                  Once it&rsquo;s met, a shared wallet deploys and buys the name. Each person co-owns it in proportion to
-                  their deposit.
+                  Once it&rsquo;s met, a shared Safe wallet is deployed to buy the name with. Each person co-owns it in
+                  proportion to their deposit.
                 </span>
               </div>
               <div className="howto-step">
