@@ -1060,13 +1060,14 @@ h4 {
 }
 
 .panel-title {
+  display: block;
   font-size: 13px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--faint);
   font-family: var(--font-mono);
-  margin: 0 0 16px;
+  margin: 0 0 18px;
 }
 
 .cols {
@@ -1298,6 +1299,91 @@ h4 {
   color: var(--faint);
 }
 
+/* quick amount chips + minimum emphasis */
+.amount-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.amount-min {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.amount-min strong {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--accent-2);
+}
+
+.chip-row {
+  display: flex;
+  gap: 6px;
+}
+
+.chip-btn {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.chip-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent-2);
+  background: var(--accent-soft);
+}
+
+.chip-btn.active {
+  border-color: var(--accent-2);
+  color: var(--accent-2);
+  background: var(--accent-soft);
+}
+
+/* invitee resolution status */
+.invitee-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.invitee-status.muted {
+  color: var(--faint);
+}
+
+.invitee-status.ok {
+  color: var(--good);
+}
+
+.invitee-status.ok strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.invitee-status.bad {
+  color: var(--danger);
+}
+
+.invitee-addr {
+  color: var(--faint);
+  font-size: 12px;
+}
+
 .range {
   width: 100%;
   accent-color: var(--accent);
@@ -1320,6 +1406,77 @@ h4 {
 .note-warn {
   background: var(--warn-soft);
   color: #9a5316;
+}
+
+.note-ok {
+  background: var(--good-soft);
+  color: var(--good);
+}
+
+/* ---------------- how-it-works card ---------------- */
+
+.howto {
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent-2) 14%, transparent);
+  border-radius: var(--radius);
+  padding: 18px 18px 16px;
+}
+
+.howto-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+}
+
+.howto-title::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-2);
+}
+
+.howto-steps {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.howto-step {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 11px;
+  align-items: start;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+.howto-num {
+  display: grid;
+  place-items: center;
+  width: 21px;
+  height: 21px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+  color: var(--accent-2);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.howto-foot {
+  margin: 14px 0 0;
+  padding-top: 13px;
+  border-top: 1px solid color-mix(in srgb, var(--accent-2) 14%, transparent);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
 }
 
 /* ---------------- state banner ---------------- */
