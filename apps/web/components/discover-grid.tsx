@@ -50,9 +50,10 @@ function NameStats({ watchers, pools }: { watchers: number; pools: number }) {
         {watchers}
       </span>
       <span className="name-stat" title={`${pools} pool${pools === 1 ? "" : "s"} created`}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden>
-          <path d="M2 9q2.5 -3 5 0t5 0t5 0t5 0" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M2 15q2.5 -3 5 0t5 0t5 0t5 0" strokeLinecap="round" strokeLinejoin="round" />
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden>
+          <ellipse cx="12" cy="6.5" rx="7.5" ry="3" strokeLinejoin="round" />
+          <path d="M4.5 6.5v11c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3v-11" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M4.5 12c0 1.66 3.36 3 7.5 3s7.5-1.34 7.5-3" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
         {pools}
       </span>
