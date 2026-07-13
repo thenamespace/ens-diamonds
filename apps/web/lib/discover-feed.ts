@@ -6,7 +6,7 @@ import {
   type PremiumEntry,
   type WindowRow,
 } from "./ens-premium";
-import { getTrendingScores } from "./watchlist";
+import { getWatcherCounts } from "./watchlist";
 import { getPoolCountsByLabel } from "./sepolia-client";
 import type { Sort } from "./discover-sort";
 
@@ -25,7 +25,7 @@ const TREND_POOL_WEIGHT = 4;
 type Signals = { watchers: Map<string, number>; pools: Record<string, number> };
 
 async function getSignals(): Promise<Signals> {
-  const [watchers, pools] = await Promise.all([getTrendingScores(), getPoolCountsByLabel()]);
+  const [watchers, pools] = await Promise.all([getWatcherCounts(), getPoolCountsByLabel()]);
   return { watchers, pools };
 }
 
