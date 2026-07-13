@@ -741,19 +741,43 @@ h4 {
   border-top: 1px solid var(--line);
 }
 
+/* Collapsed by default; the summary is the click target. */
 .coowners-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
   font-size: 11.5px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--faint);
-  margin-bottom: 14px;
+  transition: color 0.15s ease;
+}
+
+.coowners-head::-webkit-details-marker {
+  display: none;
+}
+
+.coowners-head:hover {
+  color: var(--muted);
+}
+
+.coowners-caret {
+  transition: transform 0.18s ease;
+}
+
+.coowners[open] .coowners-caret {
+  transform: rotate(180deg);
 }
 
 .coowner-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-top: 16px;
 }
 
 .coowner {

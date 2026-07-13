@@ -90,8 +90,13 @@ export default function PortfolioPage() {
                     .filter((m) => m.status === "accepted" && m.contributionEth > 0)
                     .sort((a, b) => b.ownershipBps - a.ownershipBps);
                   return (
-                    <div className="coowners">
-                      <div className="sub coowners-head">Co-owners · {coOwners.length}</div>
+                    <details className="coowners">
+                      <summary className="coowners-head">
+                        Co-owners · {coOwners.length}
+                        <svg className="coowners-caret" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                      </summary>
                       <div className="coowner-list">
                         {coOwners.map((m) => {
                           const isYou = m.handle === "you";
@@ -118,7 +123,7 @@ export default function PortfolioPage() {
                           );
                         })}
                       </div>
-                    </div>
+                    </details>
                   );
                 })()}
               </div>
