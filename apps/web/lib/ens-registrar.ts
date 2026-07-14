@@ -143,6 +143,16 @@ export const v2ControllerAbi = [
     inputs: [{ name: "commitment", type: "bytes32" }],
     outputs: [],
   },
+  // commitments(hash) → the commit's block timestamp, 0 if not committed
+  // (selector 0x839df945) — the authoritative "is the commit mined and how
+  // old" read; never trust a client-attested committedAt for readiness.
+  {
+    type: "function",
+    name: "commitments",
+    stateMutability: "view",
+    inputs: [{ name: "commitment", type: "bytes32" }],
+    outputs: [{ type: "uint256" }],
+  },
   {
     type: "function",
     name: "register",

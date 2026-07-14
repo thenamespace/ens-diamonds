@@ -2,6 +2,7 @@ import { SiweMessage, configure, createViemConfig } from "@signinwithethereum/si
 import { createPublicClient, http } from "viem";
 import { mainnet, sepolia } from "viem/chains";
 import { getSession } from "@/lib/session";
+import { apiLimiter, clientId } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -19,6 +20,9 @@ async function ensureSiweConfigured(chainId: number): Promise<void> {
 }
 
 export async function POST(req: Request) {
+  if (!(await apiLimiter(clientId(req), "auth-verify"))) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   const session = await getSession();
   if (!session.nonce) return Response.json({ error: "No sign-in challenge" }, { status: 422 });
 
