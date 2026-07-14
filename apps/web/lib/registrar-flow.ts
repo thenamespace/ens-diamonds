@@ -18,9 +18,16 @@ export function commitFreshness(committedAt: number, now: number): CommitFreshne
   return "ready";
 }
 
-// Server-side gate for the value co-owners sign: must cover the fresh price,
-// not exceed a 30% ceiling (prevents a malicious client draining the Safe via
-// gross overpayment), and fit the Safe's balance. Free-instant is always 0.
+// A signable value must cover the fresh price but stay within a 30% ceiling
+// (prevents a malicious client draining the Safe via gross overpayment).
+// Shared by sign-time validation and the GET route's pinned-value drift heal.
+export function valueWithinBand(value: bigint, freshTotalPrice: bigint): boolean {
+  return value >= freshTotalPrice && value <= (freshTotalPrice * 130n) / 100n;
+}
+
+// Server-side gate for the value co-owners sign: must sit in the fresh price
+// band (see valueWithinBand) and fit the Safe's balance. Free-instant is
+// always 0.
 export function validateSignedValue(
   value: bigint,
   freshTotalPrice: bigint,
@@ -28,8 +35,7 @@ export function validateSignedValue(
   mode: RegistrationMode,
 ): boolean {
   if (mode === "free-instant") return value === 0n;
-  if (value < freshTotalPrice) return false;
-  if (value > (freshTotalPrice * 130n) / 100n) return false;
+  if (!valueWithinBand(value, freshTotalPrice)) return false;
   if (value > safeBalance) return false;
   return true;
 }

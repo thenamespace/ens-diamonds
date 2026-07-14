@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { registerValue, commitFreshness, validateSignedValue } from "./registrar-flow";
+import { registerValue, commitFreshness, validateSignedValue, valueWithinBand } from "./registrar-flow";
 
 describe("registerValue", () => {
   it("adds a 10% buffer on commit-reveal", () => {
@@ -17,6 +17,14 @@ describe("commitFreshness", () => {
   it("expired after maxAge", () => expect(commitFreshness(t, t + 86401)).toBe("expired"));
   it("ready at exactly minAge (on-chain allows age == 60)", () => expect(commitFreshness(t, t + 60)).toBe("ready"));
   it("expired at exactly maxAge (on-chain reverts at age == 86400)", () => expect(commitFreshness(t, t + 86400)).toBe("expired"));
+});
+
+describe("valueWithinBand (price band predicate)", () => {
+  const price = 1000n;
+  it("accepts the exact fresh price", () => expect(valueWithinBand(1000n, price)).toBe(true));
+  it("accepts exactly 130% of price (ceiling inclusive)", () => expect(valueWithinBand(1300n, price)).toBe(true));
+  it("rejects below the fresh price", () => expect(valueWithinBand(999n, price)).toBe(false));
+  it("rejects above the 130% ceiling", () => expect(valueWithinBand(1301n, price)).toBe(false));
 });
 
 describe("validateSignedValue (server-side sign gate)", () => {
