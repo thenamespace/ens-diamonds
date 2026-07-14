@@ -2,28 +2,24 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import { useAccount, useChainId, usePublicClient, useReadContracts, useSwitchChain, useWriteContract } from "wagmi";
+import { useState } from "react";
+import { useAccount, useChainId, usePublicClient, useReadContract, useSwitchChain, useWriteContract } from "wagmi";
 import { sepolia } from "wagmi/chains";
+import { labelhash } from "viem";
 import {
   ENS_CONTROLLER,
+  ENS_BASE_REGISTRAR,
   controllerAbi,
-  ONE_YEAR,
-  MIN_COMMIT_WAIT,
-  MAX_COMMIT_AGE,
-  randomSecret,
+  baseRegistrarAbi,
   buildRegistration,
 } from "@/lib/ens-registrar";
-import { fmtEth } from "@/lib/format";
 import { txErrorMessage as errMsg } from "@/lib/tx-error";
 
-type Step = "idle" | "committing" | "waiting" | "registering" | "done";
-type Saved = { secret: `0x${string}`; committedAt: number; owner: string };
+type Step = "idle" | "registering" | "done";
 
 export default function BuySoloPage() {
   const { label: rawLabel } = useParams<{ label: string }>();
   const label = decodeURIComponent(rawLabel).toLowerCase().replace(/\.eth$/, "");
-  const lsKey = `coffer:commit:${label}`;
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -32,90 +28,21 @@ export default function BuySoloPage() {
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
 
-  const [secret, setSecret] = useState<`0x${string}` | null>(null);
-  const [committedAt, setCommittedAt] = useState<number | null>(null);
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
-  const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
 
-  const { data: reads, isLoading } = useReadContracts({
-    contracts: [
-      { address: ENS_CONTROLLER, abi: controllerAbi, functionName: "available", args: [label] },
-      { address: ENS_CONTROLLER, abi: controllerAbi, functionName: "rentPrice", args: [label, ONE_YEAR] },
-    ],
+  const { data: available, isLoading } = useReadContract({
+    address: ENS_BASE_REGISTRAR,
+    abi: baseRegistrarAbi,
+    functionName: "available",
+    args: [BigInt(labelhash(label))],
     query: { enabled: label.length >= 3 },
   });
-  const available = reads?.[0]?.result as boolean | undefined;
-  const price = reads?.[1]?.result as { base: bigint; premium: bigint } | undefined;
-  const total = price ? price.base + price.premium : 0n;
-  const value = total > 0n ? (total * 110n) / 100n : 0n; // +10% buffer for price/gas drift
-
-  // Recover an in-progress commit after a refresh during the 60s wait.
-  useEffect(() => {
-    if (!address) return;
-    try {
-      const raw = localStorage.getItem(lsKey);
-      if (!raw) return;
-      const saved = JSON.parse(raw) as Saved;
-      if (saved.owner?.toLowerCase() !== address.toLowerCase()) return;
-      if (Math.floor(Date.now() / 1000) - saved.committedAt > MAX_COMMIT_AGE) {
-        localStorage.removeItem(lsKey);
-        return;
-      }
-      setSecret(saved.secret);
-      setCommittedAt(saved.committedAt);
-      setStep((s) => (s === "idle" ? "waiting" : s));
-    } catch {
-      /* ignore corrupt state */
-    }
-  }, [address, lsKey]);
-
-  useEffect(() => {
-    if (step !== "waiting") return;
-    const t = setInterval(() => setNowSec(Math.floor(Date.now() / 1000)), 1000);
-    return () => clearInterval(t);
-  }, [step]);
-
-  const waited = committedAt ? nowSec - committedAt : 0;
-  const remaining = Math.max(0, MIN_COMMIT_WAIT - waited);
-  const canRegister = step === "waiting" && remaining === 0;
-
-  async function doCommit() {
-    if (!publicClient || !address) return;
-    setError(null);
-    const s = randomSecret();
-    const reg = buildRegistration(label, address, s);
-    try {
-      setStep("committing");
-      const commitment = (await publicClient.readContract({
-        address: ENS_CONTROLLER,
-        abi: controllerAbi,
-        functionName: "makeCommitment",
-        args: [reg],
-      })) as `0x${string}`;
-      const hash = await writeContractAsync({
-        address: ENS_CONTROLLER,
-        abi: controllerAbi,
-        functionName: "commit",
-        args: [commitment],
-      });
-      await publicClient.waitForTransactionReceipt({ hash });
-      const ts = Math.floor(Date.now() / 1000);
-      setSecret(s);
-      setCommittedAt(ts);
-      setNowSec(ts);
-      setStep("waiting");
-      localStorage.setItem(lsKey, JSON.stringify({ secret: s, committedAt: ts, owner: address } satisfies Saved));
-    } catch (err) {
-      setStep("idle");
-      setError(errMsg(err));
-    }
-  }
 
   async function doRegister() {
-    if (!publicClient || !address || !secret) return;
+    if (!publicClient || !address) return;
     setError(null);
-    const reg = buildRegistration(label, address, secret);
+    const reg = buildRegistration(label, address);
     try {
       setStep("registering");
       const hash = await writeContractAsync({
@@ -123,18 +50,14 @@ export default function BuySoloPage() {
         abi: controllerAbi,
         functionName: "register",
         args: [reg],
-        value,
       });
       await publicClient.waitForTransactionReceipt({ hash });
-      localStorage.removeItem(lsKey);
       setStep("done");
     } catch (err) {
-      setStep("waiting");
+      setStep("idle");
       setError(errMsg(err));
     }
   }
-
-  const busy = step === "committing" || step === "registering";
 
   return (
     <div className="wrap">
@@ -148,7 +71,7 @@ export default function BuySoloPage() {
           <h1 style={{ margin: 0 }}>
             Buy {label}.eth <span style={{ color: "var(--faint)", fontWeight: 400 }}>solo</span>
           </h1>
-          <p>Register it to your own wallet on Sepolia — no vault needed. ENS uses a two-step commit → wait → register.</p>
+          <p>Register it to your own wallet on Sepolia — no vault needed. One transaction and it&rsquo;s yours.</p>
         </div>
         <Link className="btn btn-ghost" href={`/name/${label}`}>
           ← Back
@@ -158,8 +81,8 @@ export default function BuySoloPage() {
       <div className="note note-info" style={{ marginBottom: 20 }}>
         <span>ℹ</span>
         <span>
-          This registers on <strong>Sepolia testnet</strong> (test ETH, no real funds). Mainnet buying arrives with the
-          mainnet deployment.
+          This registers on <strong>Sepolia testnet</strong>, where ENS registration is free — you pay only gas.
+          Mainnet buying (with real premium pricing) arrives with the mainnet deployment.
         </span>
       </div>
 
@@ -172,19 +95,15 @@ export default function BuySoloPage() {
               <span className="v">{label}.eth</span>
             </div>
             <div className="kv">
-              <span className="k">Registration (1 yr)</span>
-              <span className="v">{price ? fmtEth(price.base, 4) + " ETH" : "…"}</span>
+              <span className="k">Duration</span>
+              <span className="v">1 year</span>
             </div>
             <div className="kv">
-              <span className="k">Temporary premium</span>
-              <span className="v">{price ? fmtEth(price.premium, 4) + " ETH" : "…"}</span>
-            </div>
-            <div className="kv">
-              <span className="k">You pay (with buffer)</span>
-              <span className="v big accent">{value > 0n ? fmtEth(value, 4) + " ETH" : "…"}</span>
+              <span className="k">Registration cost</span>
+              <span className="v big accent">Free</span>
             </div>
             <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
-              We send a 10% buffer over the quoted price; ENS refunds any overpayment.
+              Sepolia&rsquo;s ENS registrar charges nothing and refunds any ETH sent — the only cost is gas.
             </p>
           </div>
         </div>
@@ -226,75 +145,16 @@ export default function BuySoloPage() {
               </button>
             ) : (
               <>
-                <div className="stepper">
-                  <div className={`sstep ${step === "idle" || step === "committing" ? "on" : "done"}`}>
-                    <span className="sstep-dot">
-                      {step === "idle" || step === "committing" ? (
-                        "1"
-                      ) : (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      )}
-                    </span>
-                    <span>
-                      <span className="sstep-t">Commit</span>
-                      <span className="sstep-d">A first transaction that reserves your claim.</span>
-                    </span>
-                  </div>
-
-                  <div className={`sstep ${step === "waiting" && !canRegister ? "on" : canRegister || step === "registering" ? "done" : ""}`}>
-                    <span className="sstep-dot">
-                      {canRegister || step === "registering" ? (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      ) : (
-                        "2"
-                      )}
-                    </span>
-                    <span>
-                      <span className="sstep-t">Wait 60 seconds</span>
-                      <span className="sstep-d">ENS&rsquo;s anti-front-running delay.</span>
-                      {step === "waiting" && !canRegister && (
-                        <span className="sstep-wait" style={{ display: "block" }}>
-                          <span className="wait-bar" style={{ display: "block" }}>
-                            <span
-                              className="wait-fill"
-                              style={{ display: "block", width: `${Math.min(100, (waited / MIN_COMMIT_WAIT) * 100)}%` }}
-                            />
-                          </span>
-                          <span className="wait-label">
-                            <span>Keep this tab open · safe to refresh</span>
-                            <span>{remaining}s</span>
-                          </span>
-                        </span>
-                      )}
-                    </span>
-                  </div>
-
-                  <div className={`sstep ${canRegister || step === "registering" ? "on" : ""}`}>
-                    <span className="sstep-dot">3</span>
-                    <span>
-                      <span className="sstep-t">Register</span>
-                      <span className="sstep-d">A second transaction that mints the name to your wallet.</span>
-                    </span>
-                  </div>
-                </div>
-
-                {step === "idle" || step === "committing" ? (
-                  <button className="btn btn-primary btn-block btn-lg mt-16" disabled={busy || !price} onClick={doCommit}>
-                    {step === "committing" ? "Confirm commit in wallet…" : "Commit"}
-                  </button>
-                ) : (
-                  <button className="btn btn-primary btn-block btn-lg mt-16" disabled={!canRegister} onClick={doRegister}>
-                    {step === "registering"
-                      ? "Confirm register in wallet…"
-                      : canRegister
-                        ? "Register & claim"
-                        : `Register — ready in ${remaining}s`}
-                  </button>
-                )}
+                <p className="muted" style={{ fontSize: 13.5 }}>
+                  One transaction registers <strong>{label}.eth</strong> to your wallet and sets the public resolver.
+                </p>
+                <button
+                  className="btn btn-primary btn-block btn-lg mt-16"
+                  disabled={step === "registering"}
+                  onClick={doRegister}
+                >
+                  {step === "registering" ? "Confirm in wallet…" : "Register & claim"}
+                </button>
               </>
             )}
 
