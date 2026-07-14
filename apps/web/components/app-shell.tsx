@@ -37,7 +37,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </a>{" "}
             · <Link href="/about" className="footer-link">About Coffer</Link>
           </span>
-          <span className="fine mono">non-custodial · audited escrow · on Sepolia testnet</span>
+          <span className="fine mono">non-custodial · open-source escrow · on Sepolia testnet</span>
         </div>
       </footer>
     </div>

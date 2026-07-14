@@ -378,7 +378,7 @@ function NewPoolForm() {
         <div>
           <h1>Start a vault{labelInput ? ` to buy ${labelInput}.eth` : ""}</h1>
           <p>
-            Set your stake, then invite people by address. Everyone deposits into the audited escrow on Sepolia; on
+            Set your stake, then invite people by address. Everyone deposits into the open-source escrow on Sepolia; on
             success it deploys a multisig you all control.
           </p>
         </div>
