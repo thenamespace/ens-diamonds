@@ -202,7 +202,7 @@ function NewPoolForm() {
 
   const [target, setTarget] = useState("0.03");
   const [yourContrib, setYourContrib] = useState("0.02");
-  const [days, setDays] = useState(7);
+  const [days, setDays] = useState(1);
   const [invitees, setInvitees] = useState<Invitee[]>([]);
   const [resolved, setResolved] = useState<Record<number, Resolution | undefined>>({});
   const [labelInput, setLabelInput] = useState(label || "");
@@ -498,7 +498,7 @@ function NewPoolForm() {
                 Funding deadline <span className="hint">days from now</span>
               </label>
               <div className="row" style={{ gap: 14 }}>
-                <input className="range" type="range" min={1} max={30} value={days} onChange={(e) => setDays(+e.target.value)} />
+                <input className="range" type="range" min={1} max={14} value={days} onChange={(e) => setDays(+e.target.value)} />
                 <span className="mono" style={{ minWidth: 60, textAlign: "right", fontWeight: 600 }}>
                   {days}d
                 </span>

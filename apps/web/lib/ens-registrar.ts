@@ -62,6 +62,20 @@ export const baseRegistrarAbi = [
     inputs: [{ name: "id", type: "uint256" }],
     outputs: [{ type: "bool" }],
   },
+  {
+    type: "function",
+    name: "ownerOf",
+    stateMutability: "view",
+    inputs: [{ name: "tokenId", type: "uint256" }],
+    outputs: [{ type: "address" }],
+  },
+  {
+    type: "function",
+    name: "nameExpires",
+    stateMutability: "view",
+    inputs: [{ name: "id", type: "uint256" }],
+    outputs: [{ type: "uint256" }],
+  },
 ] as const;
 
 export type Registration = {

@@ -38,7 +38,13 @@ const chainlinkAbi = [
   },
 ] as const;
 
-// Live ETH/USD, or null if the oracle read fails (callers degrade to ETH-only).
+// Reject oracle answers older than this — Chainlink's ETH/USD heartbeat is 1h,
+// so anything beyond it means the feed has stalled.
+const MAX_ORACLE_AGE = 3600;
+
+// Live ETH/USD, or null if the oracle read fails, returns a non-positive
+// answer, or is stale (callers degrade to ETH-only display; nothing is ever
+// charged off this number — charging is enforced by the ENS contract itself).
 export async function getEthUsd(): Promise<number | null> {
   try {
     const [decimals, round] = await ensClient.multicall({
@@ -48,7 +54,11 @@ export async function getEthUsd(): Promise<number | null> {
         { address: CHAINLINK_ETH_USD, abi: chainlinkAbi, functionName: "latestRoundData" },
       ],
     });
-    return Number(round[1]) / 10 ** Number(decimals);
+    const answer = round[1];
+    const updatedAt = Number(round[3]);
+    if (answer <= 0n) return null;
+    if (Math.floor(Date.now() / 1000) - updatedAt > MAX_ORACLE_AGE) return null;
+    return Number(answer) / 10 ** Number(decimals);
   } catch {
     return null;
   }
