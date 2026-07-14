@@ -226,36 +226,74 @@ export default function BuySoloPage() {
               </button>
             ) : (
               <>
-                <ol className="buy-steps">
-                  <li className={step === "idle" || step === "committing" ? "on" : waited > 0 ? "done" : ""}>
-                    <strong>1. Commit</strong> — a first tx that reserves your claim.
-                  </li>
-                  <li className={step === "waiting" ? "on" : step === "registering" ? "done" : ""}>
-                    <strong>2. Wait ~60s</strong> — ENS anti-front-running delay.
-                  </li>
-                  <li className={step === "registering" ? "on" : ""}>
-                    <strong>3. Register</strong> — a second tx that mints the name to you.
-                  </li>
-                </ol>
+                <div className="stepper">
+                  <div className={`sstep ${step === "idle" || step === "committing" ? "on" : "done"}`}>
+                    <span className="sstep-dot">
+                      {step === "idle" || step === "committing" ? (
+                        "1"
+                      ) : (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                      )}
+                    </span>
+                    <span>
+                      <span className="sstep-t">Commit</span>
+                      <span className="sstep-d">A first transaction that reserves your claim.</span>
+                    </span>
+                  </div>
+
+                  <div className={`sstep ${step === "waiting" && !canRegister ? "on" : canRegister || step === "registering" ? "done" : ""}`}>
+                    <span className="sstep-dot">
+                      {canRegister || step === "registering" ? (
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                      ) : (
+                        "2"
+                      )}
+                    </span>
+                    <span>
+                      <span className="sstep-t">Wait 60 seconds</span>
+                      <span className="sstep-d">ENS&rsquo;s anti-front-running delay.</span>
+                      {step === "waiting" && !canRegister && (
+                        <span className="sstep-wait" style={{ display: "block" }}>
+                          <span className="wait-bar" style={{ display: "block" }}>
+                            <span
+                              className="wait-fill"
+                              style={{ display: "block", width: `${Math.min(100, (waited / MIN_COMMIT_WAIT) * 100)}%` }}
+                            />
+                          </span>
+                          <span className="wait-label">
+                            <span>Keep this tab open · safe to refresh</span>
+                            <span>{remaining}s</span>
+                          </span>
+                        </span>
+                      )}
+                    </span>
+                  </div>
+
+                  <div className={`sstep ${canRegister || step === "registering" ? "on" : ""}`}>
+                    <span className="sstep-dot">3</span>
+                    <span>
+                      <span className="sstep-t">Register</span>
+                      <span className="sstep-d">A second transaction that mints the name to your wallet.</span>
+                    </span>
+                  </div>
+                </div>
 
                 {step === "idle" || step === "committing" ? (
                   <button className="btn btn-primary btn-block btn-lg mt-16" disabled={busy || !price} onClick={doCommit}>
-                    {step === "committing" ? "Confirm commit in wallet…" : "Step 1 · Commit"}
+                    {step === "committing" ? "Confirm commit in wallet…" : "Commit"}
                   </button>
                 ) : (
                   <button className="btn btn-primary btn-block btn-lg mt-16" disabled={!canRegister} onClick={doRegister}>
                     {step === "registering"
                       ? "Confirm register in wallet…"
                       : canRegister
-                        ? "Step 3 · Register & claim"
-                        : `Waiting… ${remaining}s`}
+                        ? "Register & claim"
+                        : `Register — ready in ${remaining}s`}
                   </button>
-                )}
-
-                {step === "waiting" && !canRegister && (
-                  <p className="muted" style={{ fontSize: 12.5, marginTop: 10, textAlign: "center" }}>
-                    Keep this tab open. Safe to refresh — your commit is saved for 24h.
-                  </p>
                 )}
               </>
             )}
