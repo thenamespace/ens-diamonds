@@ -30,6 +30,8 @@ export const ONE_YEAR = 31536000n; // seconds
 export const MIN_COMMIT_WAIT = 60; // controller minCommitmentAge (seconds) — verified live on the mainnet controller, 2026-07-14
 export const MAX_COMMIT_AGE = 86400; // controller maxCommitmentAge (24h) — verified live on the mainnet controller, 2026-07-14
 const ZERO_BYTES32 = "0x0000000000000000000000000000000000000000000000000000000000000000" as const;
+// Shape of a valid commit-reveal secret (32 bytes, 0x-prefixed hex).
+export const SECRET_RE = /^0x[0-9a-fA-F]{64}$/;
 
 const registrationTupleInput = {
   name: "registration",
