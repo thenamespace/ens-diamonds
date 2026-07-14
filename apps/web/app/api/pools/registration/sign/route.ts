@@ -1,11 +1,13 @@
 import { encodeFunctionData, recoverTypedDataAddress } from "viem";
 import { getPool, isSafeOwner, sepoliaClient } from "@/lib/sepolia-client";
-import { getCommit, pinRegisterParams, saveSignature, getSignatures } from "@/lib/pool-registration";
-import { controllerAbi, buildRegistration, ENS_CONTROLLER, ONE_YEAR } from "@/lib/ens-registrar";
+import { getRegParams, pinRegisterParams, saveSignature, getSignatures } from "@/lib/pool-registration";
+import { controllerAbi, buildRegistration, ENS_CONTROLLER } from "@/lib/ens-registrar";
 import { SAFE_TX_TYPES, safeAbi, safeTxDomain, buildCallSafeTx } from "@/lib/safe";
 import { CHAIN } from "@/lib/chain";
 
 export const runtime = "nodejs";
+
+const ZERO = "0x0000000000000000000000000000000000000000";
 
 // Collect one owner's signature over the register Safe-tx. The signature itself
 // proves ownership (it must recover to an on-chain Safe owner), so no SIWE needed
@@ -33,9 +35,10 @@ export async function POST(req: Request) {
   }
 
   const pool = await getPool(poolId);
-  if (!pool || !pool.safe) return Response.json({ error: "Pool not finalized" }, { status: 404 });
-  const commit = await getCommit(poolId);
-  if (!commit) return Response.json({ error: "No commit yet" }, { status: 409 });
+  if (!pool || !pool.safe || pool.safe === ZERO) return Response.json({ error: "Pool not finalized" }, { status: 404 });
+
+  // Registration is free on Sepolia's premigration registrar — the Safe pays 0.
+  if (BigInt(value) !== 0n) return Response.json({ error: "Bad value" }, { status: 400 });
 
   // Freshness — the signed nonce must equal the Safe's current nonce.
   const currentNonce = (await sepoliaClient.readContract({
@@ -46,24 +49,15 @@ export async function POST(req: Request) {
   if (BigInt(nonce) !== currentNonce) return Response.json({ error: "Stale nonce, refresh", code: "REFRESH" }, { status: 409 });
 
   // Pin canonical (value, nonce) on the first signature; later signatures must match.
-  if (commit.regNonce === undefined || commit.regValue === undefined) {
-    const price = (await sepoliaClient.readContract({
-      address: ENS_CONTROLLER,
-      abi: controllerAbi,
-      functionName: "rentPrice",
-      args: [commit.label, ONE_YEAR],
-    })) as { base: bigint; premium: bigint };
-    const total = price.base + price.premium;
-    const v = BigInt(value);
-    const bal = await sepoliaClient.getBalance({ address: pool.safe as `0x${string}` });
-    if (v < total || v > (total * 130n) / 100n || v > bal) return Response.json({ error: "Bad value" }, { status: 400 });
+  const params = await getRegParams(poolId);
+  if (!params) {
     await pinRegisterParams(poolId, value, nonce);
-  } else if (commit.regValue !== value || commit.regNonce !== nonce) {
+  } else if (params.regValue !== value || params.regNonce !== nonce) {
     return Response.json({ error: "Params changed, refresh", code: "REFRESH" }, { status: 409 });
   }
 
   // Rebuild the exact SafeTx and recover the signer.
-  const reg = buildRegistration(commit.label, commit.safe as `0x${string}`, commit.secret);
+  const reg = buildRegistration(pool.label, pool.safe as `0x${string}`);
   const data = encodeFunctionData({ abi: controllerAbi, functionName: "register", args: [reg] });
   const tx = buildCallSafeTx({ to: ENS_CONTROLLER, value: BigInt(value), data, nonce: BigInt(nonce) });
 

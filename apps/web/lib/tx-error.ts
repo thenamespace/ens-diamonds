@@ -3,23 +3,32 @@
 // useless "[object Object]"), and the useful reason is usually on `shortMessage`
 // or a nested `cause`.
 export function txErrorMessage(err: unknown): string {
-  const fromObj = (o: unknown): string | null => {
-    if (!o || typeof o !== "object") return null;
-    const rec = o as Record<string, unknown>;
+  const chain: Record<string, unknown>[] = [];
+  let cur: unknown = err;
+  for (let i = 0; i < 8 && cur && typeof cur === "object"; i++) {
+    chain.push(cur as Record<string, unknown>);
+    cur = (cur as { cause?: unknown }).cause;
+  }
+
+  // First pass: a decoded revert (viem ContractFunctionRevertedError) anywhere
+  // in the cause chain. Outer errors carry a bland "reverted with the following
+  // reason:" shortMessage, so the error name must win over them.
+  for (const rec of chain) {
+    const data = rec.data as Record<string, unknown> | undefined;
+    const errorName =
+      (typeof rec.reason === "string" && rec.reason.trim() && rec.reason) ||
+      (data && typeof data.errorName === "string" && data.errorName.trim() ? data.errorName : null);
+    if (errorName) return `Reverted: ${errorName}`.slice(0, 200);
+  }
+
+  // Second pass: best available message text.
+  for (const rec of chain) {
     for (const key of ["shortMessage", "details", "message"]) {
       const v = rec[key];
       if (typeof v === "string" && v.trim()) return v.split("\n")[0].slice(0, 200);
     }
-    return null;
-  };
-
-  // Walk the cause chain (viem nests the revert reason a few levels deep).
-  let cur: unknown = err;
-  for (let i = 0; i < 5 && cur; i++) {
-    const msg = fromObj(cur);
-    if (msg) return msg;
-    cur = (cur as { cause?: unknown }).cause;
   }
+
   if (typeof err === "string" && err.trim()) return err;
   return "Transaction failed. Please try again.";
 }
