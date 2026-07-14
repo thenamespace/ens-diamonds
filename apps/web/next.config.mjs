@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   webpack: (config) => {
     // Optional native-only dep pulled in by @metamask/sdk via wagmi connectors.
     // Not used in the browser build — stub it to silence the warning.
