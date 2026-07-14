@@ -1,0 +1,33 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/web } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm exec vitest run
+      - run: pnpm build
+        env:
+          NEXT_PUBLIC_ESCROW_ADDRESS: "0x5229b09a1f1EC16E69545bAE19E3b2A453a3Ae39"
+          # Placeholder only — RainbowKit's getDefaultConfig() throws during
+          # prerender when projectId is "", even though lib/wagmi.ts's own
+          # comment says WalletConnect degrades gracefully without it. Real
+          # deploys must set a live cloud.reown.com id.
+          NEXT_PUBLIC_WC_PROJECT_ID: "00000000000000000000000000000000"
+  contracts:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: packages/contracts } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge test -vv
