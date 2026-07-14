@@ -219,17 +219,61 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
         register. {threshold > 1 ? `Registering needs ${threshold} of your signers to sign.` : "You can do it in one go."}
       </p>
 
-      <ol className="buy-steps" style={{ marginTop: 14 }}>
-        <li className={!commit ? "on" : "done"}>
-          <strong>1. Commit</strong> — any contributor reserves the claim (one free tx).
-        </li>
-        <li className={commit && !readyToSign ? "on" : readyToSign ? "done" : ""}>
-          <strong>2. Wait ~60s</strong> — ENS anti-front-running delay.
-        </li>
-        <li className={readyToSign ? "on" : ""}>
-          <strong>3. Sign &amp; register</strong> — owners sign; then anyone submits it from the Safe.
-        </li>
-      </ol>
+      <div className="stepper" style={{ marginTop: 14 }}>
+        <div className={`sstep ${!commit ? "on" : "done"}`}>
+          <span className="sstep-dot">
+            {!commit ? (
+              "1"
+            ) : (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            )}
+          </span>
+          <span>
+            <span className="sstep-t">Commit</span>
+            <span className="sstep-d">Any contributor reserves the claim (one free tx).</span>
+          </span>
+        </div>
+
+        <div className={`sstep ${commit && !readyToSign ? "on" : readyToSign ? "done" : ""}`}>
+          <span className="sstep-dot">
+            {readyToSign ? (
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            ) : (
+              "2"
+            )}
+          </span>
+          <span>
+            <span className="sstep-t">Wait 60 seconds</span>
+            <span className="sstep-d">ENS&rsquo;s anti-front-running delay.</span>
+            {commit && !readyToSign && (
+              <span className="sstep-wait" style={{ display: "block" }}>
+                <span className="wait-bar" style={{ display: "block" }}>
+                  <span
+                    className="wait-fill"
+                    style={{ display: "block", width: `${Math.min(100, (waited / MIN_COMMIT_WAIT) * 100)}%` }}
+                  />
+                </span>
+                <span className="wait-label">
+                  <span>Keep this tab open · safe to refresh</span>
+                  <span>{remaining}s</span>
+                </span>
+              </span>
+            )}
+          </span>
+        </div>
+
+        <div className={`sstep ${readyToSign ? "on" : ""}`}>
+          <span className="sstep-dot">3</span>
+          <span>
+            <span className="sstep-t">Sign &amp; register</span>
+            <span className="sstep-d">Owners sign; then anyone submits it from the Safe.</span>
+          </span>
+        </div>
+      </div>
 
       {!isConnected ? (
         <div className="note note-info mt-16">
@@ -248,12 +292,12 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
           </div>
         ) : (
           <button className="btn btn-primary btn-block btn-lg mt-16" disabled={busy !== null} onClick={doCommit}>
-            {busy === "commit" ? "Committing…" : "Step 1 · Commit"}
+            {busy === "commit" ? "Committing…" : "Commit"}
           </button>
         )
       ) : !readyToSign ? (
         <button className="btn btn-primary btn-block btn-lg mt-16" disabled>
-          Waiting… {remaining}s
+          Sign &amp; register — ready in {remaining}s
         </button>
       ) : (
         <>
