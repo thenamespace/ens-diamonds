@@ -16,6 +16,7 @@ import {
 import { registerValue, commitFreshness, valueWithinBand } from "@/lib/registrar-flow";
 import { buildCallSafeTx, safeAbi, safeTxHash } from "@/lib/safe";
 import { CHAIN, assertEscrowConfigured } from "@/lib/chain";
+import { apiLimiter, clientId } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -196,6 +197,9 @@ export async function GET(req: Request) {
 // session required + must be a contributor. Not applicable on free-instant
 // deployments (Sepolia's premigration registrar has no commit step).
 export async function POST(req: Request) {
+  if (!(await apiLimiter(clientId(req), "reg-commit"))) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   assertEscrowConfigured();
   if (REGISTRATION_MODE !== "commit-reveal") {
     return Response.json({ error: "Not applicable on this deployment" }, { status: 405 });

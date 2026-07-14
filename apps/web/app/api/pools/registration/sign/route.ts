@@ -13,6 +13,7 @@ import {
 import { validateSignedValue, commitFreshness } from "@/lib/registrar-flow";
 import { SAFE_TX_TYPES, safeAbi, safeTxDomain, buildCallSafeTx } from "@/lib/safe";
 import { CHAIN, assertEscrowConfigured } from "@/lib/chain";
+import { apiLimiter, clientId } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,9 @@ const ZERO = "0x0000000000000000000000000000000000000000";
 // here — the sig is self-authenticating. The server rebuilds the exact SafeTx from
 // on-chain state so a client can't get a bogus tx signed.
 export async function POST(req: Request) {
+  if (!(await apiLimiter(clientId(req), "reg-sign"))) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   assertEscrowConfigured();
   const body = (await req.json().catch(() => ({}))) as {
     poolId?: unknown;
