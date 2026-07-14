@@ -53,6 +53,12 @@ export default function BuySoloPage() {
       });
       await publicClient.waitForTransactionReceipt({ hash });
       setStep("done");
+      // Record for the portfolio page (server re-verifies ownership on-chain).
+      fetch("/api/portfolio/record", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ address, label }),
+      }).catch(() => {});
     } catch (err) {
       setStep("idle");
       setError(errMsg(err));

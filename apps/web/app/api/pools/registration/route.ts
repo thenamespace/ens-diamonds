@@ -33,7 +33,10 @@ export async function GET(req: Request) {
 
   const base = { safe: pool.safe, label: pool.label, threshold: pool.threshold };
   if (!pool.safe || pool.safe === ZERO) {
-    return Response.json({ ...base, safe: null, available: null, registerTx: null, signatures: [] }, { headers: noStore });
+    return Response.json(
+      { ...base, safe: null, available: null, nameOwner: null, registerTx: null, signatures: [] },
+      { headers: noStore },
+    );
   }
 
   let available: boolean | null = null;
@@ -46,6 +49,22 @@ export async function GET(req: Request) {
     })) as boolean;
   } catch {
     /* leave null */
+  }
+
+  // Who actually holds the name right now (null while unregistered) — the
+  // panel must only claim "your Safe owns it" when this equals the Safe.
+  let nameOwner: string | null = null;
+  if (available === false) {
+    try {
+      nameOwner = (await sepoliaClient.readContract({
+        address: ENS_BASE_REGISTRAR,
+        abi: baseRegistrarAbi,
+        functionName: "ownerOf",
+        args: [BigInt(labelhash(pool.label))],
+      })) as string;
+    } catch {
+      /* leave null */
+    }
   }
 
   let registerTx: { to: string; value: string; data: string; nonce: string; safeTxHash: string } | null = null;
@@ -65,5 +84,5 @@ export async function GET(req: Request) {
   }
 
   const signatures = available !== false ? await getSignatures(poolId) : [];
-  return Response.json({ ...base, available, registerTx, signatures }, { headers: noStore });
+  return Response.json({ ...base, available, nameOwner, registerTx, signatures }, { headers: noStore });
 }
