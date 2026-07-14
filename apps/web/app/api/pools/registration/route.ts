@@ -1,5 +1,5 @@
 import { encodeFunctionData, labelhash } from "viem";
-import { getPool, isContributor, sepoliaClient } from "@/lib/sepolia-client";
+import { getPool, isContributor, readCommitTimestamp, sepoliaClient } from "@/lib/sepolia-client";
 import { getSession } from "@/lib/session";
 import { getRegParams, getSignatures, clearSignatures, getCommit, saveCommit, clearCommit } from "@/lib/pool-registration";
 import {
@@ -13,7 +13,7 @@ import {
   ONE_YEAR,
   SECRET_RE,
 } from "@/lib/ens-registrar";
-import { registerValue, commitFreshness, valueWithinBand } from "@/lib/registrar-flow";
+import { registerValue, chainCommitFreshness, valueWithinBand } from "@/lib/registrar-flow";
 import { buildCallSafeTx, safeAbi, safeTxHash } from "@/lib/safe";
 import { CHAIN, assertEscrowConfigured } from "@/lib/chain";
 import { apiLimiter, clientId } from "@/lib/rate-limit";
@@ -145,20 +145,34 @@ export async function GET(req: Request) {
     commit = null;
   }
 
-  const nowSec = Math.floor(Date.now() / 1000);
-  if (commit && commitFreshness(commit.committedAt, nowSec) === "expired") {
-    await clearCommit(poolId);
-    await clearSignatures(poolId);
-    commit = null;
-  }
-
   if (!commit) {
     return Response.json({ ...base, available, nameOwner, commit: null, registerTx: null, signatures: [] }, { headers: noStore });
   }
 
-  if (commitFreshness(commit.committedAt, nowSec) === "waiting") {
+  // The on-chain commitment timestamp is authoritative for freshness — the
+  // client-attested committedAt in KV only bounds cleanup of a commit that
+  // never mines. A failed read counts as "not mined yet": never "ready" on a
+  // guess (register() would revert CommitmentNotFound/CommitmentTooNew).
+  let onchainTs = 0n;
+  try {
+    onchainTs = await readCommitTimestamp(pool.label, pool.safe as `0x${string}`, commit.secret);
+  } catch {
+    /* treat as unmined */
+  }
+  const nowSec = Math.floor(Date.now() / 1000);
+  const freshness = chainCommitFreshness(onchainTs, commit.committedAt, nowSec);
+  if (freshness === "expired") {
+    await clearCommit(poolId);
+    await clearSignatures(poolId);
+    return Response.json({ ...base, available, nameOwner, commit: null, registerTx: null, signatures: [] }, { headers: noStore });
+  }
+
+  // Report the mined timestamp when we have it — the client's countdown then
+  // tracks the chain, not the committer's wall clock.
+  const committedAt = onchainTs > 0n ? Number(onchainTs) : commit.committedAt;
+  if (freshness === "waiting") {
     return Response.json(
-      { ...base, available, nameOwner, commit: { committedAt: commit.committedAt }, registerTx: null, signatures: [] },
+      { ...base, available, nameOwner, commit: { committedAt }, registerTx: null, signatures: [] },
       { headers: noStore },
     );
   }
@@ -188,7 +202,7 @@ export async function GET(req: Request) {
   }
   const signatures = available !== false ? await getSignatures(poolId) : [];
   return Response.json(
-    { ...base, available, nameOwner, commit: { committedAt: commit.committedAt }, registerTx, signatures },
+    { ...base, available, nameOwner, commit: { committedAt }, registerTx, signatures },
     { headers: noStore },
   );
 }

@@ -1,4 +1,5 @@
 import { getKv } from "./kv";
+import { APP_CHAIN } from "./app-chain";
 
 // Coordinates the Safe-executed ENS registration for a finalized pool: the
 // pinned SafeTx params (so every owner signs the identical tx) and the
@@ -23,21 +24,30 @@ export type CommitRecord = {
   label: string;
 };
 
-const regKey = (id: number) => `poolreg:${id}`;
-const sigKey = (id: number) => `poolsig:${id}`;
-const commitKey = (id: number) => `poolcommit:${id}`;
+// Keys are chain-namespaced: the Sepolia and mainnet deployments share one
+// Upstash store, and pool ids restart per escrow contract — an unscoped key
+// would let one chain's coordination data leak into the other's.
+const regKey = (id: number) => `poolreg:${APP_CHAIN.key}:${id}`;
+const sigKey = (id: number) => `poolsig:${APP_CHAIN.key}:${id}`;
+const commitKey = (id: number) => `poolcommit:${APP_CHAIN.key}:${id}`;
 
 export async function getRegParams(id: number): Promise<RegParams | null> {
   // Upstash auto-coerces numeric-looking strings back to numbers on read, so
   // stringify every field we depend on comparing/using as a string.
-  const rec = await getKv().hgetall<Record<string, unknown>>(regKey(id));
+  const rec = await getKv().get<Record<string, unknown>>(regKey(id));
   if (!rec || rec.regNonce === undefined || rec.regNonce === null) return null;
   return { regValue: String(rec.regValue), regNonce: String(rec.regNonce) };
 }
 
-// Pin the canonical (value, nonce) all owners sign — set once, on the first signature.
-export async function pinRegisterParams(id: number, value: string, nonce: string): Promise<void> {
-  await getKv().hset(regKey(id), { regValue: value, regNonce: nonce });
+// Atomically pin the canonical (value, nonce) all owners sign — SET NX, so two
+// concurrent first-signers can't both pin (last-write-wins would strand the
+// loser's signature over a different safeTxHash). Returns the winning pin —
+// callers must check it matches what their signer actually signed. null only
+// if the pin vanished under a concurrent clear (treat as "refresh").
+export async function pinRegisterParamsIfAbsent(id: number, params: RegParams): Promise<RegParams | null> {
+  const created = await getKv().set(regKey(id), params, { nx: true });
+  if (created === "OK") return params;
+  return getRegParams(id);
 }
 
 // Drop collected signatures + pinned params (e.g. the Safe nonce advanced → stale).

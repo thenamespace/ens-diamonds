@@ -2,6 +2,7 @@ import { createPublicClient, http } from "viem";
 import { unstable_cache } from "next/cache";
 import { APP_RPC, CHAIN, assertEscrowConfigured } from "./chain";
 import { cofferEscrow } from "./contract";
+import { v2ControllerAbi, buildRegistration, ENS_CONTROLLER } from "./ens-registrar";
 
 // Read-only app-chain client for server routes (verify a pool's on-chain creator).
 // Server-only — never import from a "use client" file.
@@ -87,6 +88,28 @@ export async function isContributor(poolId: number, addr: string): Promise<boole
   } catch {
     return false;
   }
+}
+
+// On-chain commit timestamp for the pool's registration (commit-reveal mode
+// only): makeCommitment(buildRegistration(label, safe, secret)) via the
+// controller's own view, then commitments(hash) — the mined commit's block
+// timestamp, or 0n if the commit isn't on chain (not mined, or a secret that
+// was never committed). Throws on RPC failure — callers decide the fallback
+// (the registration routes treat it as "not mined", i.e. never "ready").
+export async function readCommitTimestamp(label: string, safe: `0x${string}`, secret: `0x${string}`): Promise<bigint> {
+  const reg = buildRegistration(label, safe, secret);
+  const commitment = (await sepoliaClient.readContract({
+    address: ENS_CONTROLLER,
+    abi: v2ControllerAbi,
+    functionName: "makeCommitment",
+    args: [reg],
+  })) as `0x${string}`;
+  return (await sepoliaClient.readContract({
+    address: ENS_CONTROLLER,
+    abi: v2ControllerAbi,
+    functionName: "commitments",
+    args: [commitment],
+  })) as bigint;
 }
 
 // True if `addr` is an owner of the Safe (used to validate register signatures).

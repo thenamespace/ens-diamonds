@@ -1,16 +1,22 @@
 import { getKv } from "./kv";
 
-type KvLike = { incr(k: string): Promise<number>; expire(k: string, s: number): Promise<unknown> };
+type KvLike = { eval(script: string, keys: string[], args: (string | number)[]): Promise<unknown> };
 
-// Fixed-window limiter on Upstash: INCR + EXPIRE on first hit. Fails OPEN on
-// KV errors — availability beats strictness for these low-stakes writes (every
-// write route also has on-chain or signature verification as the real gate).
+// INCR + EXPIRE-on-first-hit as ONE atomic script. Two separate commands can
+// strand a key: if EXPIRE fails after a successful INCR the key never expires
+// and that IP+bucket eventually hard-blocks forever.
+const WINDOW_SCRIPT =
+  "local n = redis.call('INCR', KEYS[1]) if n == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end return n";
+
+// Fixed-window limiter on Upstash. Fails OPEN on KV errors — availability
+// beats strictness for these low-stakes writes (every write route also has
+// on-chain or signature verification as the real gate).
 export function makeLimiter(kv: KvLike, opts: { max: number; windowSec: number }) {
   return async function limit(id: string, bucket: string): Promise<boolean> {
     try {
       const key = `rl:${bucket}:${id}`;
-      const n = await kv.incr(key);
-      if (n === 1) await kv.expire(key, opts.windowSec);
+      const n = Number(await kv.eval(WINDOW_SCRIPT, [key], [opts.windowSec]));
+      if (!Number.isFinite(n)) return true; // unexpected reply — fail open
       return n <= opts.max;
     } catch {
       return true;
