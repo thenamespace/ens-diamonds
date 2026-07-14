@@ -1,25 +1,31 @@
-import { createPublicClient, http, getAbiItem } from "viem";
+import { createPublicClient, http } from "viem";
 import { unstable_cache } from "next/cache";
-import { CHAIN, SEPOLIA_RPC, ESCROW_DEPLOY_BLOCK } from "./chain";
+import { CHAIN, SEPOLIA_RPC } from "./chain";
 import { cofferEscrow } from "./contract";
 
 // Read-only Sepolia client for server routes (verify a pool's on-chain creator).
 // Server-only — never import from a "use client" file.
 export const sepoliaClient = createPublicClient({ chain: CHAIN, transport: http(SEPOLIA_RPC) });
 
-const poolCreatedEvent = getAbiItem({ abi: cofferEscrow.abi, name: "PoolCreated" });
+// Newest pools considered for per-label counts. Bounds the multicall size no
+// matter how many pools exist; trending only cares about recent activity.
+const COUNT_SCAN_LIMIT = 500;
 
 async function fetchPoolCountsByLabel(): Promise<Record<string, number>> {
   try {
-    const logs = await sepoliaClient.getLogs({
-      address: cofferEscrow.address,
-      event: poolCreatedEvent,
-      fromBlock: ESCROW_DEPLOY_BLOCK,
-      toBlock: "latest",
+    // poolCount + pools(id) reads instead of an event scan: public RPCs (the
+    // no-config fallback) reject wide eth_getLogs ranges as archive requests.
+    const poolCount = Number(await sepoliaClient.readContract({ ...cofferEscrow, functionName: "poolCount" }));
+    if (!poolCount) return {};
+    const from = Math.max(0, poolCount - COUNT_SCAN_LIMIT);
+    const ids = Array.from({ length: poolCount - from }, (_, i) => from + i);
+    const results = await sepoliaClient.multicall({
+      contracts: ids.map((id) => ({ ...cofferEscrow, functionName: "pools" as const, args: [BigInt(id)] })),
     });
     const counts: Record<string, number> = {};
-    for (const log of logs) {
-      const label = ((log.args as { label?: string }).label ?? "").toLowerCase();
+    for (const r of results) {
+      if (r.status !== "success") continue;
+      const label = String((r.result as readonly unknown[])[0] ?? "").toLowerCase();
       if (label) counts[label] = (counts[label] ?? 0) + 1;
     }
     return counts;

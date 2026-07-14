@@ -23,12 +23,23 @@ export default function AboutPage() {
       <section className="about-section">
         <h2>What Coffer does</h2>
         <p className="about-lead">
-          Coffer turns buying premium ENS names from a solo experience into a multiplayer one. When a name expires it
-          enters a 21-day auction where the price starts high and decays to zero — but the best names are still too
-          expensive for any one person to grab alone. Instead of watching them slip by, rally a few people, split the
-          cost, and co-own the name together: funds sit in an audited escrow you can always pull out of, and the name is
-          bought and held by a multisig you all control. No one can run off with the money, and no single person can act
-          alone.
+          Coffer turns buying ENS names in temporary premium from a solo experience into a multiplayer one.
+        </p>
+        <p className="about-lead">
+          When a name expires it enters a 21-day auction where the price starts high and decays to zero, but the best
+          names are usually too expensive for any one person to grab alone.
+        </p>
+        <p className="about-lead">
+          Instead of watching them be sniped by wealthy individuals, create a shared vault for you and your friends,
+          split the cost, and co-own the name together.
+        </p>
+        <p className="about-lead">
+          Funds sit in an escrow contract until you decide to move them to Safe multisig to do the purchase. You can
+          always pull out of escrow if you want to, but once the name is bought, it is held by a Safe multisig you all
+          control.
+        </p>
+        <p className="about-lead">
+          No one can run off with the money, with a purchased name, and no single person can act alone.
         </p>
       </section>
 
