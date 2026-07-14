@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ConnectButton from "./connect-button";
+import { APP_CHAIN } from "@/lib/app-chain";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -37,7 +38,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </a>{" "}
             · <Link href="/about" className="footer-link">About Coffer</Link>
           </span>
-          <span className="fine mono">non-custodial · open-source escrow · on Sepolia testnet</span>
+          <span className="fine mono">non-custodial · open-source escrow · on {APP_CHAIN.label}{APP_CHAIN.isTestnet ? " testnet" : ""}</span>
         </div>
       </footer>
     </div>

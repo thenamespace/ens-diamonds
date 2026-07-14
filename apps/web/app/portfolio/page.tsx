@@ -5,6 +5,7 @@ import { useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
 import AddressLabel from "@/components/address-label";
 import { fmtEth } from "@/lib/format";
+import { APP_CHAIN } from "@/lib/app-chain";
 
 type Solo = { label: string; expiry: number };
 type Vault = {
@@ -136,7 +137,7 @@ export default function PortfolioPage() {
                 <ActionButtons />
               </div>
               <div className="row mt-16" style={{ gap: 8 }}>
-                <a className="btn btn-soft btn-sm" href={`https://sepolia.app.ens.domains/${n.label}.eth`} target="_blank" rel="noreferrer">
+                <a className="btn btn-soft btn-sm" href={`${APP_CHAIN.ensAppUrl}/${n.label}.eth`} target="_blank" rel="noreferrer">
                   View on ENS →
                 </a>
               </div>
@@ -220,7 +221,7 @@ export default function PortfolioPage() {
                   <Link className="btn btn-soft btn-sm" href={`/pools/${v.poolId}`}>
                     View vault →
                   </Link>
-                  <a className="btn btn-ghost btn-sm" href={`https://sepolia.app.ens.domains/${v.label}.eth`} target="_blank" rel="noreferrer">
+                  <a className="btn btn-ghost btn-sm" href={`${APP_CHAIN.ensAppUrl}/${v.label}.eth`} target="_blank" rel="noreferrer">
                     View on ENS →
                   </a>
                 </div>

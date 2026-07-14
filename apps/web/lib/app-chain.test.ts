@@ -27,6 +27,16 @@ describe("resolveAppChain", () => {
   it("BaseRegistrar address is chain-invariant", () => {
     expect(resolveAppChain("sepolia").ensBaseRegistrar).toBe(resolveAppChain("mainnet").ensBaseRegistrar);
   });
+  it("carries chain-labelled UI fields", () => {
+    const s = resolveAppChain("sepolia");
+    expect(s.label).toBe("Sepolia");
+    expect(s.isTestnet).toBe(true);
+    expect(s.safePrefix).toBe("sep");
+    const m = resolveAppChain("mainnet");
+    expect(m.label).toBe("Ethereum");
+    expect(m.isTestnet).toBe(false);
+    expect(m.safePrefix).toBe("eth");
+  });
   it("throws on garbage", () => {
     expect(() => resolveAppChain("goerli")).toThrow();
   });
