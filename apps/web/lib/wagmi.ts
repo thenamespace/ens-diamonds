@@ -1,7 +1,7 @@
 import { http } from "wagmi";
-import { sepolia } from "wagmi/chains";
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
-import { SEPOLIA_RPC } from "./chain";
+import { APP_CHAIN } from "./app-chain";
+import { APP_RPC } from "./chain";
 
 // RainbowKit builds the connector list (EIP-6963 discovery + WalletConnect +
 // Coinbase) and drives a modal that lists each installed wallet separately,
@@ -16,9 +16,9 @@ const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID || "coffer_dev_placehold
 export const wagmiConfig = getDefaultConfig({
   appName: "Coffer",
   projectId,
-  chains: [sepolia],
+  chains: [APP_CHAIN.chain],
   transports: {
-    [sepolia.id]: http(SEPOLIA_RPC),
+    [APP_CHAIN.chainId]: http(APP_RPC),
   },
   ssr: true,
 });

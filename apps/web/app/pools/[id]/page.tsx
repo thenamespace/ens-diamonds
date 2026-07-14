@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useAccount, useChainId, usePublicClient, useReadContracts, useWriteContract } from "wagmi";
-import { sepolia } from "wagmi/chains";
 import { formatEther } from "viem";
 import { useQuery } from "@tanstack/react-query";
+import { APP_CHAIN } from "@/lib/app-chain";
 import { cofferEscrow, statusName } from "@/lib/contract";
 import { isEscrowConfigured } from "@/lib/chain";
 import { isPoolVisible } from "@/lib/pool-filter";
@@ -37,7 +37,7 @@ export default function PoolDashboard() {
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const wrongChain = isConnected && chainId !== sepolia.id;
+  const wrongChain = isConnected && chainId !== APP_CHAIN.chainId;
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
 

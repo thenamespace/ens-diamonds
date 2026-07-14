@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useAccount, useChainId, usePublicClient, useReadContract, useSignTypedData, useSwitchChain, useWriteContract } from "wagmi";
-import { sepolia } from "wagmi/chains";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { APP_CHAIN } from "@/lib/app-chain";
 import { SAFE_TX_TYPES, safeAbi, safeTxDomain, buildCallSafeTx, packSignatures, ZERO_ADDRESS } from "@/lib/safe";
 import { txErrorMessage } from "@/lib/tx-error";
 import LivePrice from "@/components/live-price";
@@ -28,7 +28,7 @@ async function fetchState(poolId: number): Promise<State> {
 export default function PoolRegister({ poolId, safe }: { poolId: number; label: string; safe: `0x${string}` }) {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const wrongChain = isConnected && chainId !== sepolia.id;
+  const wrongChain = isConnected && chainId !== APP_CHAIN.chainId;
   const { switchChain } = useSwitchChain();
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
@@ -80,7 +80,7 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
         nonce: BigInt(registerTx.nonce),
       });
       const signature = await signTypedDataAsync({
-        domain: safeTxDomain(safe, sepolia.id),
+        domain: safeTxDomain(safe, APP_CHAIN.chainId),
         types: SAFE_TX_TYPES,
         primaryType: "SafeTx",
         message: tx,
@@ -238,7 +238,7 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
               <span>Connect your wallet to register the name.</span>
             </div>
           ) : wrongChain ? (
-            <button className="btn btn-primary btn-block mt-16" onClick={() => switchChain({ chainId: sepolia.id })}>
+            <button className="btn btn-primary btn-block mt-16" onClick={() => switchChain({ chainId: APP_CHAIN.chainId })}>
               Switch to Sepolia
             </button>
           ) : !registerTx ? (

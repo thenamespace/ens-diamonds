@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
-import { sepolia } from "wagmi/chains";
 import { getAddress, isAddress, parseEventLogs } from "viem";
+import { APP_CHAIN } from "@/lib/app-chain";
 import { cofferEscrow } from "@/lib/contract";
 import { cofferEscrowAbi } from "@/lib/abi/coffer-escrow";
 import { isEscrowConfigured } from "@/lib/chain";
@@ -286,7 +286,7 @@ function NewPoolForm() {
   const fundsFullTarget = targetNum > 0 && yourNum >= targetNum;
   const contribTooLow = yourNum > 0 && !fundsFullTarget && yourNum < MIN_CONTRIB;
 
-  const wrongChain = isConnected && chainId !== sepolia.id;
+  const wrongChain = isConnected && chainId !== APP_CHAIN.chainId;
   const canSubmit =
     isConnected &&
     !wrongChain &&

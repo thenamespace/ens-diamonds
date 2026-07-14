@@ -3,7 +3,7 @@ import { getPool, isSafeOwner, sepoliaClient } from "@/lib/sepolia-client";
 import { getRegParams, pinRegisterParams, saveSignature, getSignatures } from "@/lib/pool-registration";
 import { controllerAbi, buildRegistration, ENS_CONTROLLER } from "@/lib/ens-registrar";
 import { SAFE_TX_TYPES, safeAbi, safeTxDomain, buildCallSafeTx } from "@/lib/safe";
-import { CHAIN } from "@/lib/chain";
+import { CHAIN, assertEscrowConfigured } from "@/lib/chain";
 
 export const runtime = "nodejs";
 
@@ -14,6 +14,7 @@ const ZERO = "0x0000000000000000000000000000000000000000";
 // here — the sig is self-authenticating. The server rebuilds the exact SafeTx from
 // on-chain state so a client can't get a bogus tx signed.
 export async function POST(req: Request) {
+  assertEscrowConfigured();
   const body = (await req.json().catch(() => ({}))) as {
     poolId?: unknown;
     value?: unknown;
