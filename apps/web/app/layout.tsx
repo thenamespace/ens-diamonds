@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://coffer.xyz"),
   title: "Coffer — Pool up to claim premium ENS names, together",
   description:
-    "Premium ENS names cost thousands. Coffer lets a group pool ETH to buy one together — held in an audited escrow with unilateral refunds, then registered by a multisig you all control.",
+    "Premium ENS names cost thousands. Coffer lets a group pool ETH to buy one together — held in an open-source escrow with unilateral refunds, then registered by a multisig you all control.",
   keywords: ["ENS", "premium names", "Dutch auction", "multisig", "Safe", "pooling", "ethereum"],
   openGraph: {
     title: "Coffer — Pool up to claim premium ENS names, together",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Coffer — Pool up to claim premium ENS names, together",
-    description: "Pool ETH to buy a premium ENS name. Audited escrow, unilateral refunds, a multisig you all control.",
+    description: "Pool ETH to buy a premium ENS name. Open-source escrow, unilateral refunds, a multisig you all control.",
     images: ["/coffer-logo.png"],
   },
 };
