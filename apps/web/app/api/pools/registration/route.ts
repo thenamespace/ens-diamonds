@@ -3,7 +3,7 @@ import { getPool, sepoliaClient } from "@/lib/sepolia-client";
 import { getRegParams, getSignatures, clearSignatures } from "@/lib/pool-registration";
 import { controllerAbi, baseRegistrarAbi, buildRegistration, ENS_CONTROLLER, ENS_BASE_REGISTRAR } from "@/lib/ens-registrar";
 import { buildCallSafeTx, safeAbi, safeTxHash } from "@/lib/safe";
-import { CHAIN } from "@/lib/chain";
+import { CHAIN, assertEscrowConfigured } from "@/lib/chain";
 
 export const runtime = "nodejs";
 
@@ -26,6 +26,7 @@ async function buildRegisterTx(safe: string, label: string, pinnedNonce?: string
 }
 
 export async function GET(req: Request) {
+  assertEscrowConfigured();
   const poolId = Number(new URL(req.url).searchParams.get("poolId"));
   if (!Number.isInteger(poolId) || poolId < 0) return Response.json({ error: "Bad poolId" }, { status: 400 });
   const pool = await getPool(poolId);

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useAccount, useChainId, usePublicClient, useReadContract, useSwitchChain, useWriteContract } from "wagmi";
-import { sepolia } from "wagmi/chains";
 import { labelhash } from "viem";
+import { APP_CHAIN } from "@/lib/app-chain";
 import {
   ENS_CONTROLLER,
   ENS_BASE_REGISTRAR,
@@ -23,7 +23,7 @@ export default function BuySoloPage() {
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const wrongChain = isConnected && chainId !== sepolia.id;
+  const wrongChain = isConnected && chainId !== APP_CHAIN.chainId;
   const { switchChain } = useSwitchChain();
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
@@ -146,7 +146,7 @@ export default function BuySoloPage() {
                 <span>Connect your wallet (top right) to register.</span>
               </div>
             ) : wrongChain ? (
-              <button className="btn btn-primary btn-block mt-8" onClick={() => switchChain({ chainId: sepolia.id })}>
+              <button className="btn btn-primary btn-block mt-8" onClick={() => switchChain({ chainId: APP_CHAIN.chainId })}>
                 Switch to Sepolia
               </button>
             ) : (

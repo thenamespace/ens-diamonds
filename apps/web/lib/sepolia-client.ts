@@ -1,17 +1,18 @@
 import { createPublicClient, http } from "viem";
 import { unstable_cache } from "next/cache";
-import { CHAIN, SEPOLIA_RPC } from "./chain";
+import { APP_RPC, CHAIN, assertEscrowConfigured } from "./chain";
 import { cofferEscrow } from "./contract";
 
-// Read-only Sepolia client for server routes (verify a pool's on-chain creator).
+// Read-only app-chain client for server routes (verify a pool's on-chain creator).
 // Server-only — never import from a "use client" file.
-export const sepoliaClient = createPublicClient({ chain: CHAIN, transport: http(SEPOLIA_RPC) });
+export const sepoliaClient = createPublicClient({ chain: CHAIN, transport: http(APP_RPC) });
 
 // Newest pools considered for per-label counts. Bounds the multicall size no
 // matter how many pools exist; trending only cares about recent activity.
 const COUNT_SCAN_LIMIT = 500;
 
 async function fetchPoolCountsByLabel(): Promise<Record<string, number>> {
+  assertEscrowConfigured();
   try {
     // poolCount + pools(id) reads instead of an event scan: public RPCs (the
     // no-config fallback) reject wide eth_getLogs ranges as archive requests.
@@ -43,6 +44,7 @@ export const getPoolCountsByLabel = unstable_cache(fetchPoolCountsByLabel, ["poo
 
 // Lowercased creator of a pool, or null if out of range / unreadable.
 export async function getPoolCreator(poolId: number): Promise<string | null> {
+  assertEscrowConfigured();
   const pool = await getPool(poolId);
   return pool ? pool.creator : null;
 }
@@ -51,6 +53,7 @@ export type OnchainPool = { creator: string; label: string; safe: string; thresh
 
 // Read the on-chain pool struct (addresses lowercased). null if unreadable.
 export async function getPool(poolId: number): Promise<OnchainPool | null> {
+  assertEscrowConfigured();
   try {
     const p = (await sepoliaClient.readContract({
       ...cofferEscrow,
@@ -73,6 +76,7 @@ export async function getPool(poolId: number): Promise<OnchainPool | null> {
 
 // True if `addr` has a non-zero deposit in the pool (i.e. is a contributor).
 export async function isContributor(poolId: number, addr: string): Promise<boolean> {
+  assertEscrowConfigured();
   try {
     const dep = (await sepoliaClient.readContract({
       ...cofferEscrow,
