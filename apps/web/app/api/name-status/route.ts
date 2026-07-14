@@ -10,7 +10,9 @@ export const runtime = "nodejs";
 // GET /api/name-status?label=<label> → { status, price?, available? }
 export async function GET(req: Request) {
   const raw = new URL(req.url).searchParams.get("label") ?? "";
+  if (raw.length > 255) return Response.json({ status: "invalid", available: null });
   const label = raw.trim().toLowerCase().replace(/\.eth$/, "");
+  if (label.length > 63) return Response.json({ status: "invalid", available: null });
   if (label.length < 3) return Response.json({ status: "tooShort", available: null });
 
   // Start both queries concurrently (mainnet data and app-chain availability)

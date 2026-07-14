@@ -11,6 +11,7 @@ export const runtime = "nodejs";
 // GET /api/resolve?q=<name-or-address> → { ok, address?, name? }
 export async function GET(req: Request) {
   const q = (new URL(req.url).searchParams.get("q") ?? "").trim();
+  if (q.length > 255) return Response.json({ ok: false });
   if (!q) return Response.json({ ok: false });
 
   try {
