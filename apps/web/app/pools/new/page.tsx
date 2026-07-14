@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
-import { sepolia } from "wagmi/chains";
 import { getAddress, isAddress, parseEventLogs } from "viem";
+import { APP_CHAIN } from "@/lib/app-chain";
 import { cofferEscrow } from "@/lib/contract";
 import { cofferEscrowAbi } from "@/lib/abi/coffer-escrow";
 import { isEscrowConfigured } from "@/lib/chain";
@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { txErrorMessage } from "@/lib/tx-error";
 
 const MAX_SIGNERS = 10;
-const MIN_CONTRIB = 0.01; // matches CofferEscrow MIN_CONTRIBUTION for partial deposits
+const MIN_CONTRIB = 0.01; // matches EnsDiamondsEscrow MIN_CONTRIBUTION for partial deposits
 
 type Invitee = { id: number; value: string };
 
@@ -286,7 +286,7 @@ function NewPoolForm() {
   const fundsFullTarget = targetNum > 0 && yourNum >= targetNum;
   const contribTooLow = yourNum > 0 && !fundsFullTarget && yourNum < MIN_CONTRIB;
 
-  const wrongChain = isConnected && chainId !== sepolia.id;
+  const wrongChain = isConnected && chainId !== APP_CHAIN.chainId;
   const canSubmit =
     isConnected &&
     !wrongChain &&
@@ -378,7 +378,7 @@ function NewPoolForm() {
         <div>
           <h1>Start a vault{labelInput ? ` to buy ${labelInput}.eth` : ""}</h1>
           <p>
-            Set your stake, then invite people by address. Everyone deposits into the audited escrow on Sepolia; on
+            Set your stake, then invite people by address. Everyone deposits into the open-source escrow on {APP_CHAIN.label}; on
             success it deploys a multisig you all control.
           </p>
         </div>
@@ -620,7 +620,7 @@ function NewPoolForm() {
             ) : wrongChain ? (
               <div className="note note-warn mt-16">
                 <span>⚠</span>
-                <span>Switch your wallet to Sepolia to continue.</span>
+                <span>Switch your wallet to {APP_CHAIN.label} to continue.</span>
               </div>
             ) : checkingInvitees.length > 0 ? (
               <div className="note note-info mt-16">

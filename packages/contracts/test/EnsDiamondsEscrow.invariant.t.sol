@@ -2,13 +2,13 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {CofferEscrow} from "../src/CofferEscrow.sol";
+import {EnsDiamondsEscrow} from "../src/EnsDiamondsEscrow.sol";
 import {EscrowHandler} from "./handlers/EscrowHandler.sol";
 import {MockSafeProxyFactory} from "./mocks/MockSafeProxyFactory.sol";
 import {MockSafe} from "./mocks/MockSafe.sol";
 
-contract CofferEscrowInvariantTest is Test {
-    CofferEscrow escrow;
+contract EnsDiamondsEscrowInvariantTest is Test {
+    EnsDiamondsEscrow escrow;
     EscrowHandler handler;
 
     function setUp() public {
@@ -18,7 +18,7 @@ contract CofferEscrowInvariantTest is Test {
         // addresses, for the singleton/fallbackHandler stand-ins.
         address singleton = address(new MockSafe());
         address fallbackHandler = address(new MockSafeProxyFactory());
-        escrow = new CofferEscrow(address(factory), singleton, fallbackHandler);
+        escrow = new EnsDiamondsEscrow(address(factory), singleton, fallbackHandler);
         handler = new EscrowHandler(escrow);
         targetContract(address(handler));
     }
@@ -30,7 +30,7 @@ contract CofferEscrowInvariantTest is Test {
         uint256 n = handler.poolCount();
         for (uint256 i = 0; i < n; i++) {
             uint256 id = handler.poolIdAt(i);
-            if (escrow.status(id) != CofferEscrow.PoolStatus.Finalized) {
+            if (escrow.status(id) != EnsDiamondsEscrow.PoolStatus.Finalized) {
                 (,,, uint96 total,,,,) = escrow.pools(id);
                 sum += total;
             }

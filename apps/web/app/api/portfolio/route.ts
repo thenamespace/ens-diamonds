@@ -2,6 +2,7 @@ import { isAddress, getAddress, labelhash } from "viem";
 import { sepoliaClient } from "@/lib/sepolia-client";
 import { getSoloNames } from "@/lib/portfolio";
 import { cofferEscrow } from "@/lib/contract";
+import { assertEscrowConfigured } from "@/lib/chain";
 import { ENS_BASE_REGISTRAR, baseRegistrarAbi } from "@/lib/ens-registrar";
 
 export const runtime = "nodejs";
@@ -35,6 +36,7 @@ function nameReads(label: string) {
 //  - solo: names it registered through the app AND still owns
 //  - vaults: finalized vaults it contributed to (with shares + whether the Safe holds the name)
 export async function GET(req: Request) {
+  assertEscrowConfigured();
   const raw = new URL(req.url).searchParams.get("address") ?? "";
   if (!isAddress(raw)) return Response.json({ error: "Bad address" }, { status: 400 });
   const address = getAddress(raw);

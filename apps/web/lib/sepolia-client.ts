@@ -1,17 +1,19 @@
 import { createPublicClient, http } from "viem";
 import { unstable_cache } from "next/cache";
-import { CHAIN, SEPOLIA_RPC } from "./chain";
+import { APP_RPC, CHAIN, assertEscrowConfigured } from "./chain";
 import { cofferEscrow } from "./contract";
+import { v2ControllerAbi, buildRegistration, ENS_CONTROLLER } from "./ens-registrar";
 
-// Read-only Sepolia client for server routes (verify a pool's on-chain creator).
+// Read-only app-chain client for server routes (verify a pool's on-chain creator).
 // Server-only — never import from a "use client" file.
-export const sepoliaClient = createPublicClient({ chain: CHAIN, transport: http(SEPOLIA_RPC) });
+export const sepoliaClient = createPublicClient({ chain: CHAIN, transport: http(APP_RPC) });
 
 // Newest pools considered for per-label counts. Bounds the multicall size no
 // matter how many pools exist; trending only cares about recent activity.
 const COUNT_SCAN_LIMIT = 500;
 
 async function fetchPoolCountsByLabel(): Promise<Record<string, number>> {
+  assertEscrowConfigured();
   try {
     // poolCount + pools(id) reads instead of an event scan: public RPCs (the
     // no-config fallback) reject wide eth_getLogs ranges as archive requests.
@@ -43,6 +45,7 @@ export const getPoolCountsByLabel = unstable_cache(fetchPoolCountsByLabel, ["poo
 
 // Lowercased creator of a pool, or null if out of range / unreadable.
 export async function getPoolCreator(poolId: number): Promise<string | null> {
+  assertEscrowConfigured();
   const pool = await getPool(poolId);
   return pool ? pool.creator : null;
 }
@@ -51,6 +54,7 @@ export type OnchainPool = { creator: string; label: string; safe: string; thresh
 
 // Read the on-chain pool struct (addresses lowercased). null if unreadable.
 export async function getPool(poolId: number): Promise<OnchainPool | null> {
+  assertEscrowConfigured();
   try {
     const p = (await sepoliaClient.readContract({
       ...cofferEscrow,
@@ -73,6 +77,7 @@ export async function getPool(poolId: number): Promise<OnchainPool | null> {
 
 // True if `addr` has a non-zero deposit in the pool (i.e. is a contributor).
 export async function isContributor(poolId: number, addr: string): Promise<boolean> {
+  assertEscrowConfigured();
   try {
     const dep = (await sepoliaClient.readContract({
       ...cofferEscrow,
@@ -83,6 +88,28 @@ export async function isContributor(poolId: number, addr: string): Promise<boole
   } catch {
     return false;
   }
+}
+
+// On-chain commit timestamp for the pool's registration (commit-reveal mode
+// only): makeCommitment(buildRegistration(label, safe, secret)) via the
+// controller's own view, then commitments(hash) — the mined commit's block
+// timestamp, or 0n if the commit isn't on chain (not mined, or a secret that
+// was never committed). Throws on RPC failure — callers decide the fallback
+// (the registration routes treat it as "not mined", i.e. never "ready").
+export async function readCommitTimestamp(label: string, safe: `0x${string}`, secret: `0x${string}`): Promise<bigint> {
+  const reg = buildRegistration(label, safe, secret);
+  const commitment = (await sepoliaClient.readContract({
+    address: ENS_CONTROLLER,
+    abi: v2ControllerAbi,
+    functionName: "makeCommitment",
+    args: [reg],
+  })) as `0x${string}`;
+  return (await sepoliaClient.readContract({
+    address: ENS_CONTROLLER,
+    abi: v2ControllerAbi,
+    functionName: "commitments",
+    args: [commitment],
+  })) as bigint;
 }
 
 // True if `addr` is an owner of the Safe (used to validate register signatures).

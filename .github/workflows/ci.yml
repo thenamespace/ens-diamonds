@@ -1,0 +1,32 @@
+name: CI
+on:
+  push: { branches: [main] }
+  pull_request:
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/web } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: pnpm-lock.yaml }
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: pnpm exec tsc --noEmit
+      - run: pnpm exec vitest run
+      # No NEXT_PUBLIC_WC_PROJECT_ID here on purpose: this exercises the
+      # WalletConnect-less path (lib/wagmi.ts builds an injected+Coinbase
+      # config when the id is unset), which is what a deploy without a
+      # cloud.reown.com id actually runs. Real deploys that want WC set the id.
+      - run: pnpm build
+        env:
+          NEXT_PUBLIC_ESCROW_ADDRESS: "0x5229b09a1f1EC16E69545bAE19E3b2A453a3Ae39"
+  contracts:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: packages/contracts } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+      - run: forge test -vv

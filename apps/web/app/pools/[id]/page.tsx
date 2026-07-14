@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { useAccount, useChainId, usePublicClient, useReadContracts, useWriteContract } from "wagmi";
-import { sepolia } from "wagmi/chains";
 import { formatEther } from "viem";
 import { useQuery } from "@tanstack/react-query";
+import { APP_CHAIN } from "@/lib/app-chain";
 import { cofferEscrow, statusName } from "@/lib/contract";
 import { isEscrowConfigured } from "@/lib/chain";
 import { isPoolVisible } from "@/lib/pool-filter";
@@ -37,7 +37,7 @@ export default function PoolDashboard() {
 
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const wrongChain = isConnected && chainId !== sepolia.id;
+  const wrongChain = isConnected && chainId !== APP_CHAIN.chainId;
   const publicClient = usePublicClient();
   const { writeContractAsync } = useWriteContract();
 
@@ -167,7 +167,7 @@ export default function PoolDashboard() {
               <>
                 {" "}
                 ·{" "}
-                <a style={{ color: "var(--accent-2)" }} href={`https://app.safe.global/home?safe=sep:${safe}`} target="_blank" rel="noreferrer">
+                <a style={{ color: "var(--accent-2)" }} href={`https://app.safe.global/home?safe=${APP_CHAIN.safePrefix}:${safe}`} target="_blank" rel="noreferrer">
                   <AddressLabel address={safe} />
                 </a>
               </>
@@ -235,7 +235,7 @@ export default function PoolDashboard() {
       {wrongChain && (
         <div className="note note-warn" style={{ marginBottom: 20 }}>
           <span>⚠</span>
-          <span>Switch your wallet to Sepolia to transact.</span>
+          <span>Switch your wallet to {APP_CHAIN.label} to transact.</span>
         </div>
       )}
 
@@ -364,9 +364,9 @@ export default function PoolDashboard() {
                 </div>
                 <div className="kv">
                   <span className="k">Network</span>
-                  <span className="v">Sepolia</span>
+                  <span className="v">{APP_CHAIN.label}</span>
                 </div>
-                <a className="btn btn-soft btn-block mt-16" href={`https://app.safe.global/home?safe=sep:${safe}`} target="_blank" rel="noreferrer">
+                <a className="btn btn-soft btn-block mt-16" href={`https://app.safe.global/home?safe=${APP_CHAIN.safePrefix}:${safe}`} target="_blank" rel="noreferrer">
                   Open in Safe →
                 </a>
               </>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ConnectButton from "./connect-button";
+import { APP_CHAIN } from "@/lib/app-chain";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -9,7 +10,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <Link className="brand" href="/">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className="brand-logo" src="/coffer-logo.png" alt="" width={30} height={30} />
-            <span>Coffer</span>
+            <span>ens.diamonds</span>
           </Link>
 
           <nav className="topnav">
@@ -35,9 +36,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <a href="https://namespace.ninja" target="_blank" rel="noreferrer" className="footer-link">
               Namespace
             </a>{" "}
-            · <Link href="/about" className="footer-link">About Coffer</Link>
+            · <Link href="/about" className="footer-link">About ens.diamonds</Link>
           </span>
-          <span className="fine mono">non-custodial · audited escrow · on Sepolia testnet</span>
+          <span className="fine mono">non-custodial · open-source escrow · on {APP_CHAIN.label}{APP_CHAIN.isTestnet ? " testnet" : ""}</span>
         </div>
       </footer>
     </div>

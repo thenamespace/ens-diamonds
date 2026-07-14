@@ -3,12 +3,12 @@ pragma solidity ^0.8.24;
 
 import {Script} from "forge-std/Script.sol";
 import {console2} from "forge-std/console2.sol";
-import {CofferEscrow} from "../src/CofferEscrow.sol";
+import {EnsDiamondsEscrow} from "../src/EnsDiamondsEscrow.sol";
 
-/// @notice Deploys CofferEscrow. All Safe addresses come from env and MUST be
+/// @notice Deploys EnsDiamondsEscrow. All Safe addresses come from env and MUST be
 ///         verified against canonical deployment lists before running.
 contract Deploy is Script {
-    function run() external returns (CofferEscrow escrow) {
+    function run() external returns (EnsDiamondsEscrow escrow) {
         address factory = vm.envAddress("SAFE_PROXY_FACTORY");
         address singleton = vm.envAddress("SAFE_SINGLETON");
         address fallbackHandler = vm.envAddress("SAFE_FALLBACK_HANDLER");
@@ -19,9 +19,9 @@ contract Deploy is Script {
         require(fallbackHandler != address(0), "SAFE_FALLBACK_HANDLER unset");
 
         vm.startBroadcast(pk);
-        escrow = new CofferEscrow(factory, singleton, fallbackHandler);
+        escrow = new EnsDiamondsEscrow(factory, singleton, fallbackHandler);
         vm.stopBroadcast();
 
-        console2.log("CofferEscrow deployed at:", address(escrow));
+        console2.log("EnsDiamondsEscrow deployed at:", address(escrow));
     }
 }
