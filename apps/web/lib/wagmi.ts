@@ -8,10 +8,13 @@ import { APP_RPC } from "./chain";
 // so the user explicitly picks MetaMask vs Ambire instead of silently
 // binding to whatever claimed `window.ethereum`.
 //
-// projectId enables WalletConnect (mobile/QR). Injected wallets work without
-// it; set NEXT_PUBLIC_WC_PROJECT_ID (from https://cloud.reown.com) to enable
-// the rest.
-const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID || "coffer_dev_placeholder";
+// WalletConnect project id (cloud.reown.com). Without it, injected wallets
+// still work; WalletConnect (mobile/QR) is simply absent — and we skip the
+// placeholder that used to spam 403s against WC's APIs.
+const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID || "";
+if (!projectId && typeof window === "undefined") {
+  console.warn("[coffer] NEXT_PUBLIC_WC_PROJECT_ID not set — WalletConnect disabled (injected wallets unaffected)");
+}
 
 export const wagmiConfig = getDefaultConfig({
   appName: "Coffer",
