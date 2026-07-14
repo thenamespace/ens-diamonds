@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/session";
 import { getPoolCreator } from "@/lib/sepolia-client";
 import { getPrivatePoolIds, setPoolPrivate } from "@/lib/pool-visibility";
+import { apiLimiter, clientId } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (!(await apiLimiter(clientId(req), "visibility"))) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   const session = await getSession();
   if (!session.address) return Response.json({ error: "Not signed in" }, { status: 401 });
 

@@ -2,6 +2,7 @@ import { isAddress, getAddress, labelhash } from "viem";
 import { sepoliaClient } from "@/lib/sepolia-client";
 import { recordSoloName } from "@/lib/portfolio";
 import { ENS_BASE_REGISTRAR, baseRegistrarAbi } from "@/lib/ens-registrar";
+import { apiLimiter, clientId } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,9 @@ export const runtime = "nodejs";
 // nobody can pollute someone else's portfolio (or their own with names they
 // don't hold).
 export async function POST(req: Request) {
+  if (!(await apiLimiter(clientId(req), "portfolio-record"))) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   const body = (await req.json().catch(() => ({}))) as { address?: unknown; label?: unknown };
   const address = typeof body.address === "string" && isAddress(body.address) ? getAddress(body.address) : null;
   const label = typeof body.label === "string" ? body.label.trim().toLowerCase().replace(/\.eth$/, "") : "";

@@ -1,5 +1,6 @@
 import { getSession } from "@/lib/session";
 import { getWatched, addWatch, removeWatch, normalizeLabel } from "@/lib/watchlist";
+import { apiLimiter, clientId } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (!(await apiLimiter(clientId(req), "watching"))) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   const addr = await requireAddress();
   if (!addr) return Response.json({ error: "Not signed in" }, { status: 401 });
   const { label } = await req.json().catch(() => ({}) as { label?: unknown });
@@ -26,6 +30,9 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+  if (!(await apiLimiter(clientId(req), "watching"))) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   const addr = await requireAddress();
   if (!addr) return Response.json({ error: "Not signed in" }, { status: 401 });
   const { label } = await req.json().catch(() => ({}) as { label?: unknown });
