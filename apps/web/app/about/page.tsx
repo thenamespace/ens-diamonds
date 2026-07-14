@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About · Coffer",
+  title: "About · ens.diamonds",
   description:
-    "Coffer lets a group pool ETH into a shared vault to claim premium ENS names no one wants to buy alone. Built by the Namespace team.",
+    "ens.diamonds lets a group pool ETH into a shared vault to claim premium ENS names no one wants to buy alone. Built by the Namespace team.",
 };
 
 export default function AboutPage() {
@@ -11,19 +11,19 @@ export default function AboutPage() {
     <div className="wrap about">
       <section className="about-hero">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="about-logo" src="/coffer-logo.png" alt="Coffer" width={148} height={148} />
-        <h1>Coffer</h1>
+        <img className="about-logo" src="/coffer-logo.png" alt="ens.diamonds" width={148} height={148} />
+        <h1>ens.diamonds</h1>
         <p className="about-tagline">
           <span className="about-hook">The best ENS names are too expensive to buy alone.</span>
-          Coffer lets groups <strong>pool ETH</strong> into a shared vault, <strong>buy premium names</strong> together,
+          ens.diamonds lets groups <strong>pool ETH</strong> into a shared vault, <strong>buy premium names</strong> together,
           and <strong>co-own them</strong>.
         </p>
       </section>
 
       <section className="about-section">
-        <h2>What Coffer does</h2>
+        <h2>What ens.diamonds does</h2>
         <p className="about-lead">
-          Coffer turns buying ENS names in temporary premium from a solo experience into a multiplayer one.
+          ens.diamonds turns buying ENS names in temporary premium from a solo experience into a multiplayer one.
         </p>
         <p className="about-lead">
           When a name expires it enters a 21-day auction where the price starts high and decays to zero, but the best
@@ -45,7 +45,7 @@ export default function AboutPage() {
 
       <section className="about-section built-by">
         <p className="about-lead">
-          Coffer is made by the{" "}
+          ens.diamonds is made by the{" "}
           <a href="https://namespace.ninja" target="_blank" rel="noreferrer">
             Namespace
           </a>{" "}

@@ -35,7 +35,7 @@ export function useAuth() {
         const message = new SiweMessage({
           domain: window.location.host,
           address,
-          statement: "Sign in to Coffer to manage your watchlist.",
+          statement: "Sign in to ens.diamonds to manage your watchlist.",
           uri: window.location.origin,
           version: "1",
           chainId: chainId ?? 1,

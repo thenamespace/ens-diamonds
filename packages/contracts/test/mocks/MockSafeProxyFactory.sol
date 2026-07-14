@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {MockSafe} from "./MockSafe.sol";
 
 /// @notice Mirrors SafeProxyFactory.createProxyWithNonce's CREATE2 derivation so
-///         CofferEscrow._computeSafeAddress predicts the same address it deploys.
+///         EnsDiamondsEscrow._computeSafeAddress predicts the same address it deploys.
 contract MockSafeProxyFactory {
     event ProxyCreation(address proxy);
 

@@ -24,7 +24,7 @@ const transports = { [APP_CHAIN.chainId]: http(APP_RPC) };
 function buildConfig() {
   if (projectId) {
     return getDefaultConfig({
-      appName: "Coffer",
+      appName: "ens.diamonds",
       projectId,
       chains: [APP_CHAIN.chain],
       transports,
@@ -39,7 +39,7 @@ function buildConfig() {
   }
   const connectors = connectorsForWallets(
     [{ groupName: "Wallets", wallets: [injectedWallet, coinbaseWallet] }],
-    { appName: "Coffer", projectId },
+    { appName: "ens.diamonds", projectId },
   );
   return createConfig({
     connectors,
