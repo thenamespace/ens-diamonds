@@ -6,6 +6,7 @@ import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
 import { cofferEscrow, statusName } from "@/lib/contract";
 import { isEscrowConfigured } from "@/lib/chain";
+import { APP_CHAIN } from "@/lib/app-chain";
 import { isPoolVisible } from "@/lib/pool-filter";
 import { fmtEth, pct } from "@/lib/format";
 import AddressLabel from "@/components/address-label";
@@ -108,7 +109,7 @@ export default function PoolsPage() {
         <div className="empty">
           <span className="mark" aria-hidden />
           <h3>Couldn&rsquo;t load vaults</h3>
-          <p>The Sepolia RPC didn&rsquo;t respond. Give it a moment and try again.</p>
+          <p>The {APP_CHAIN.label} RPC didn&rsquo;t respond. Give it a moment and try again.</p>
           <button className="btn btn-primary" onClick={() => refetchCount()}>
             Retry
           </button>

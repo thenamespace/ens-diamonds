@@ -378,7 +378,7 @@ function NewPoolForm() {
         <div>
           <h1>Start a vault{labelInput ? ` to buy ${labelInput}.eth` : ""}</h1>
           <p>
-            Set your stake, then invite people by address. Everyone deposits into the open-source escrow on Sepolia; on
+            Set your stake, then invite people by address. Everyone deposits into the open-source escrow on {APP_CHAIN.label}; on
             success it deploys a multisig you all control.
           </p>
         </div>
@@ -620,7 +620,7 @@ function NewPoolForm() {
             ) : wrongChain ? (
               <div className="note note-warn mt-16">
                 <span>⚠</span>
-                <span>Switch your wallet to Sepolia to continue.</span>
+                <span>Switch your wallet to {APP_CHAIN.label} to continue.</span>
               </div>
             ) : checkingInvitees.length > 0 ? (
               <div className="note note-info mt-16">

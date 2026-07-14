@@ -250,7 +250,7 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
           <span>✓</span>
           <span>
             <strong>{label}.eth</strong> is registered and owned by your vault’s Safe.{" "}
-            <a href={`https://sepolia.app.ens.domains/${label}.eth`} target="_blank" rel="noreferrer" style={{ color: "var(--accent-2)" }}>
+            <a href={`${APP_CHAIN.ensAppUrl}/${label}.eth`} target="_blank" rel="noreferrer" style={{ color: "var(--accent-2)" }}>
               View on ENS →
             </a>
           </span>
@@ -363,7 +363,7 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
             </div>
           ) : wrongChain ? (
             <button className="btn btn-primary btn-block mt-16" onClick={() => switchChain({ chainId: APP_CHAIN.chainId })}>
-              Switch to Sepolia
+              Switch to {APP_CHAIN.label}
             </button>
           ) : mode === "commit-reveal" && !commit ? (
             amOwner === false ? (

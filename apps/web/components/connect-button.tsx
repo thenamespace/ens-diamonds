@@ -3,6 +3,7 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import AddressLabel from "@/components/address-label";
 import EnsAvatar from "@/components/ens-avatar";
+import { APP_CHAIN } from "@/lib/app-chain";
 
 export default function CofferConnectButton() {
   return (
@@ -19,11 +20,11 @@ export default function CofferConnectButton() {
           );
         }
 
-        // Connected to the wrong network → prompt to switch to Sepolia.
+        // Connected to the wrong network → prompt to switch to the app chain.
         if (chain.unsupported) {
           return (
             <button className="btn btn-sm" style={{ background: "var(--warn-soft)", color: "#9a5316" }} onClick={openChainModal}>
-              ⚠ Switch to Sepolia
+              ⚠ Switch to {APP_CHAIN.label}
             </button>
           );
         }

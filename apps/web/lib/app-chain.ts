@@ -18,6 +18,12 @@ export type AppChain = {
   ensResolver: `0x${string}`;
   ensAppUrl: string;
   explorerUrl: string;
+  // Human-facing network name for UI copy ("Switch to Sepolia" / "Ethereum").
+  label: string;
+  // Whether this is a test network — gates "testnet"-specific wording.
+  isTestnet: boolean;
+  // Safe web app chain prefix (app.safe.global uses sep:/eth: address prefixes).
+  safePrefix: string;
 };
 
 const SEPOLIA: AppChain = {
@@ -30,6 +36,9 @@ const SEPOLIA: AppChain = {
   ensResolver: "0xE99638b40E4Fff0129D56f03b55b6bbC4BBE49b5",
   ensAppUrl: "https://sepolia.app.ens.domains",
   explorerUrl: "https://sepolia.etherscan.io",
+  label: "Sepolia",
+  isTestnet: true,
+  safePrefix: "sep",
 };
 
 const MAINNET: AppChain = {
@@ -42,6 +51,9 @@ const MAINNET: AppChain = {
   ensResolver: "0xF29100983E058B709F3D539b0c765937B804AC15",
   ensAppUrl: "https://app.ens.domains",
   explorerUrl: "https://etherscan.io",
+  label: "Ethereum",
+  isTestnet: false,
+  safePrefix: "eth",
 };
 
 // Deliberately throws on an unknown value (unlike lib/chain.ts's silent
