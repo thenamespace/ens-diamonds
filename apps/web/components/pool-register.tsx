@@ -217,20 +217,26 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
     return (
       <div className="panel">
         {header}
-        <div className="note note-warn">
-          <span>⚠</span>
-          <span>
-            <strong>{label}.eth</strong> was registered by{" "}
-            {snipedByMe ? (
-              <>
-                <strong>your connected wallet</strong> (outside this vault)
-              </>
-            ) : (
-              <span className="mono">{data?.nameOwner?.slice(0, 6)}…{data?.nameOwner?.slice(-4)}</span>
-            )}{" "}
-            — not by this vault&rsquo;s Safe, so the vault can&rsquo;t buy it anymore. The pooled ETH is untouched and
-            stays in the Safe under its multisig control.
-          </span>
+        <div className="buy-grid">
+          <div className="buy-main">
+            <div className="note note-warn">
+              <span>⚠</span>
+              <span>
+                <strong>{label}.eth</strong> was registered by{" "}
+                {snipedByMe ? (
+                  <>
+                    <strong>your connected wallet</strong> (outside this vault)
+                  </>
+                ) : (
+                  <span className="mono">{data?.nameOwner?.slice(0, 6)}…{data?.nameOwner?.slice(-4)}</span>
+                )}{" "}
+                — not by this vault&rsquo;s Safe, so the vault can&rsquo;t buy it anymore. The pooled ETH is untouched
+                and stays in the Safe under its multisig control.
+              </span>
+            </div>
+          </div>
+
+          {label && <LivePrice label={label} boughtByOther />}
         </div>
       </div>
     );
