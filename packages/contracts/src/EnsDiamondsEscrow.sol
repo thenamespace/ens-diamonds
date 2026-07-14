@@ -4,11 +4,11 @@ pragma solidity ^0.8.24;
 import {ISafeProxyFactory} from "./interfaces/ISafeProxyFactory.sol";
 import {ISafe} from "./interfaces/ISafe.sol";
 
-/// @title CofferEscrow
+/// @title EnsDiamondsEscrow
 /// @notice Singleton escrow that pools ETH to buy premium ENS names. On
 ///         finalization it deploys a Safe owned by all contributors and funds it.
 ///         Immutable by design: no proxy, no admin, no pause, no upgrade path.
-contract CofferEscrow {
+contract EnsDiamondsEscrow {
     // ----------------------------- Types -----------------------------------
     enum PoolStatus {
         Funding,

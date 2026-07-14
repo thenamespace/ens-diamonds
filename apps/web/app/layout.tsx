@@ -19,23 +19,23 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://coffer.xyz"),
-  title: "Coffer — Pool up to claim premium ENS names, together",
+  metadataBase: new URL("https://ens.diamonds"),
+  title: "ens.diamonds — Pool up to claim premium ENS names, together",
   description:
-    "Premium ENS names cost thousands. Coffer lets a group pool ETH to buy one together — held in an open-source escrow with unilateral refunds, then registered by a multisig you all control.",
+    "Premium ENS names cost thousands. ens.diamonds lets a group pool ETH to buy one together — held in an open-source escrow with unilateral refunds, then registered by a multisig you all control.",
   keywords: ["ENS", "premium names", "Dutch auction", "multisig", "Safe", "pooling", "ethereum"],
   openGraph: {
-    title: "Coffer — Pool up to claim premium ENS names, together",
+    title: "ens.diamonds — Pool up to claim premium ENS names, together",
     description:
       "Found a premium ENS name too rich to grab solo? Start a vault, invite people through their on-chain records, and buy it with a multisig you all control.",
     type: "website",
-    url: "https://coffer.xyz",
-    siteName: "Coffer",
-    images: [{ url: "/coffer-logo.png", width: 500, height: 500, alt: "Coffer" }],
+    url: "https://ens.diamonds",
+    siteName: "ens.diamonds",
+    images: [{ url: "/coffer-logo.png", width: 500, height: 500, alt: "ens.diamonds" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Coffer — Pool up to claim premium ENS names, together",
+    title: "ens.diamonds — Pool up to claim premium ENS names, together",
     description: "Pool ETH to buy a premium ENS name. Open-source escrow, unilateral refunds, a multisig you all control.",
     images: ["/coffer-logo.png"],
   },

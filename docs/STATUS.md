@@ -1,10 +1,10 @@
-# Coffer — Status & Handoff
+# ens.diamonds — Status & Handoff
 
 _Last updated: 2026-07-13. Living doc — update as things change._
 
 ## TL;DR
 
-**Coffer** lets people pool ETH to buy premium ENS names together (or buy solo).
+**ens.diamonds** lets people pool ETH to buy premium ENS names together (or buy solo).
 The whole app is **live on Sepolia testnet** and deployed on Vercel. Everything
 below is committed and pushed to `main` (tip `5aaac05`, in sync with origin).
 
@@ -18,7 +18,7 @@ below is committed and pushed to `main` (tip `5aaac05`, in sync with origin).
 
 | Thing | Address / value |
 |---|---|
-| **CofferEscrow (current)** | `0x5229b09a1f1EC16E69545bAE19E3b2A453a3Ae39` |
+| **EnsDiamondsEscrow (current)** [^1] | `0x5229b09a1f1EC16E69545bAE19E3b2A453a3Ae39` |
 | Deploy block | `11258818` (`ESCROW_DEPLOY_BLOCK` in `apps/web/lib/chain.ts`) |
 | `EXECUTION_WINDOW` | **24h** (was 7d) |
 | `MIN_CONTRIBUTION` | 0.01 ETH |
@@ -29,6 +29,11 @@ below is committed and pushed to `main` (tip `5aaac05`, in sync with origin).
 The escrow address is baked into `lib/chain.ts` as `DEFAULT_ESCROW`. Vercel has
 **no** `NEXT_PUBLIC_ESCROW_ADDRESS` override, so the live site uses this default.
 Prior escrows (superseded): `0xa356c3…` (7-day window), `0x4D47f7…`, `0xb35B…`.
+
+[^1]: The source contract was renamed `CofferEscrow` → `EnsDiamondsEscrow` during
+the ens.diamonds rebrand. This already-deployed Sepolia instance keeps its
+original on-chain name (`CofferEscrow`, immutable in the deployed bytecode); the
+new name applies to source and any future (re)deploy.
 
 **Prices/names are live MAINNET ENS data; all transactions run on SEPOLIA.**
 So premium names show real ~$50M day-0 prices; the affordable ones are deep in
@@ -49,7 +54,7 @@ automatic — every step is a button someone presses.
    multisig (owners = contributors, threshold = majority N/2+1) and moves 100%
    of pooled ETH into it.**
 4. **Register the name** — on the finalized pool page, the group buys the name
-   **through Coffer's UI** (not app.safe.global): ENS commit → wait ~60s →
+   **through the ens.diamonds UI** (not app.safe.global): ENS commit → wait ~60s →
    collect majority owner signatures in-app → Safe `execTransaction` pays for
    and registers the name. The Safe now owns it.
 
@@ -126,7 +131,7 @@ Open Decisions.
   co-owners list + Renew/Transfer/Sell placeholders live here
 
 **Contract**
-- `packages/contracts/src/CofferEscrow.sol`, `test/CofferEscrow.t.sol`,
+- `packages/contracts/src/EnsDiamondsEscrow.sol`, `test/EnsDiamondsEscrow.t.sol`,
   `script/Deploy.s.sol`
 - Audit: `docs/security/2026-07-12-cofferescrow-audit.md`
 
@@ -185,7 +190,7 @@ cd packages/contracts && forge test
   `@signinwithethereum/siwe`.
 
 **Before any mainnet move (gated)**
-- Professional third-party audit of CofferEscrow (internal audit done; not a
+- Professional third-party audit of EnsDiamondsEscrow (internal audit done; not a
   substitute for real funds).
 - Mainnet migration: env-drive the chain (wagmi chain → mainnet, ENS
   controller/resolver → mainnet addresses, Safe v1.4.1 mainnet addresses, deploy

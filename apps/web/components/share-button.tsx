@@ -8,7 +8,7 @@ export default function ShareButton({ name, className }: { name?: string; classN
   const [copied, setCopied] = useState(false);
 
   const url = typeof window !== "undefined" ? window.location.href : "";
-  const text = name ? `Join my Coffer vault to buy ${name}.eth together` : "Join my Coffer vault";
+  const text = name ? `Join my ens.diamonds vault to buy ${name}.eth together` : "Join my ens.diamonds vault";
   const xHref = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
 
   async function copy() {

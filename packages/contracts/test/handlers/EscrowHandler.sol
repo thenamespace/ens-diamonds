@@ -2,16 +2,16 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {CofferEscrow} from "../../src/CofferEscrow.sol";
+import {EnsDiamondsEscrow} from "../../src/EnsDiamondsEscrow.sol";
 
 /// @notice Drives randomized createPool/deposit/withdraw sequences for invariant testing.
 contract EscrowHandler is Test {
-    CofferEscrow public escrow;
+    EnsDiamondsEscrow public escrow;
 
     address[] public actors;
     uint256[] public poolIds;
 
-    constructor(CofferEscrow _escrow) {
+    constructor(EnsDiamondsEscrow _escrow) {
         escrow = _escrow;
         for (uint256 i = 0; i < 5; i++) {
             address a = address(uint160(0x1000 + i));

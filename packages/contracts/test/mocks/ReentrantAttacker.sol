@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {CofferEscrow} from "../../src/CofferEscrow.sol";
+import {EnsDiamondsEscrow} from "../../src/EnsDiamondsEscrow.sol";
 
 /// @notice On receiving a withdrawal, tries to re-enter withdraw().
 contract ReentrantAttacker {
-    CofferEscrow public immutable escrow;
+    EnsDiamondsEscrow public immutable escrow;
     uint256 public poolId;
     bool public reentered;
 
-    constructor(CofferEscrow _escrow) {
+    constructor(EnsDiamondsEscrow _escrow) {
         escrow = _escrow;
     }
 

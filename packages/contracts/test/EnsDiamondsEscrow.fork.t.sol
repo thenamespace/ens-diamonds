@@ -2,7 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {CofferEscrow} from "../src/CofferEscrow.sol";
+import {EnsDiamondsEscrow} from "../src/EnsDiamondsEscrow.sol";
 import {IETHRegistrarController, IPriceOracle, IBaseRegistrar} from "../src/interfaces/IENS.sol";
 import {ISafe} from "../src/interfaces/ISafe.sol";
 import {ISafeProxyFactory} from "../src/interfaces/ISafeProxyFactory.sol";
@@ -13,7 +13,7 @@ import {ISafeProxyFactory} from "../src/interfaces/ISafeProxyFactory.sol";
 // - Safe `SafeProxyFactory` + Safe singleton (`SafeL2`/`Safe`) + `CompatibilityFallbackHandler` v1.4.1: use the official `safe-global/safe-deployments` repo (JSON files) or app.safe.global's deployment docs.
 // - ENS `ETHRegistrarController`, `PublicResolver`, `BaseRegistrarImplementation`: resolve via the ENS registry (`resolver("eth")` / documented addresses on docs.ens.domains). Confirm the `ETHRegistrarController` is the version whose `register`/`rentPrice` signatures match `IENS.sol`; if ENS has shipped a newer controller, update the interface to match before writing the test.
 // This test is gated on `MAINNET_RPC_URL`; skip it in CI runs without an archive/full node by not setting the env var (the test `vm.skip`s itself).
-contract CofferEscrowForkTest is Test {
+contract EnsDiamondsEscrowForkTest is Test {
     // === FILL THESE IN at implementation time — verify against canonical lists. ===
     address constant SAFE_PROXY_FACTORY = address(0); // TODO: canonical v1.4.1 factory
     address constant SAFE_SINGLETON = address(0); //     TODO: canonical v1.4.1 singleton
@@ -23,7 +23,7 @@ contract CofferEscrowForkTest is Test {
     address constant ENS_BASE_REGISTRAR = address(0); // TODO: BaseRegistrarImplementation (mainnet)
     // =============================================================================
 
-    CofferEscrow escrow;
+    EnsDiamondsEscrow escrow;
     address alice = address(0xA11CE);
     address bob = address(0xB0B);
 
@@ -32,7 +32,7 @@ contract CofferEscrowForkTest is Test {
         vm.skip(bytes(rpc).length == 0);
         if (bytes(rpc).length == 0) return;
         vm.createSelectFork(rpc);
-        escrow = new CofferEscrow(SAFE_PROXY_FACTORY, SAFE_SINGLETON, SAFE_FALLBACK_HANDLER);
+        escrow = new EnsDiamondsEscrow(SAFE_PROXY_FACTORY, SAFE_SINGLETON, SAFE_FALLBACK_HANDLER);
     }
 
     function test_fork_finalizeDeploysRealSafeAndRegistersName() public {

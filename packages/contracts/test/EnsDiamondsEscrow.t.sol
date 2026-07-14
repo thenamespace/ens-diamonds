@@ -2,14 +2,14 @@
 pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
-import {CofferEscrow} from "../src/CofferEscrow.sol";
+import {EnsDiamondsEscrow} from "../src/EnsDiamondsEscrow.sol";
 import {MockSafe} from "./mocks/MockSafe.sol";
 import {MockSafeProxyFactory} from "./mocks/MockSafeProxyFactory.sol";
 import {ISafe} from "../src/interfaces/ISafe.sol";
 import {ReentrantAttacker} from "./mocks/ReentrantAttacker.sol";
 
-contract CofferEscrowTest is Test {
-    CofferEscrow escrow;
+contract EnsDiamondsEscrowTest is Test {
+    EnsDiamondsEscrow escrow;
 
     address factory;
     // Constructor now requires factory/singleton/fallbackHandler to have code
@@ -27,22 +27,22 @@ contract CofferEscrowTest is Test {
         factory = address(mockFactory);
         singleton = address(new MockSafe());
         fallbackHandler = address(new MockSafeProxyFactory());
-        escrow = new CofferEscrow(factory, singleton, fallbackHandler);
+        escrow = new EnsDiamondsEscrow(factory, singleton, fallbackHandler);
     }
 
     function test_constructor_revertsBadSafeConfig() public {
-        vm.expectRevert(CofferEscrow.InvalidSafeConfig.selector);
-        new CofferEscrow(address(0), singleton, fallbackHandler);
+        vm.expectRevert(EnsDiamondsEscrow.InvalidSafeConfig.selector);
+        new EnsDiamondsEscrow(address(0), singleton, fallbackHandler);
 
-        vm.expectRevert(CofferEscrow.InvalidSafeConfig.selector);
-        new CofferEscrow(factory, address(0), fallbackHandler);
+        vm.expectRevert(EnsDiamondsEscrow.InvalidSafeConfig.selector);
+        new EnsDiamondsEscrow(factory, address(0), fallbackHandler);
 
-        vm.expectRevert(CofferEscrow.InvalidSafeConfig.selector);
-        new CofferEscrow(factory, singleton, address(0));
+        vm.expectRevert(EnsDiamondsEscrow.InvalidSafeConfig.selector);
+        new EnsDiamondsEscrow(factory, singleton, address(0));
 
         // Sanity: a config where every address has code deploys fine (this is
         // exactly what setUp() above already does every test run).
-        CofferEscrow ok = new CofferEscrow(factory, singleton, fallbackHandler);
+        EnsDiamondsEscrow ok = new EnsDiamondsEscrow(factory, singleton, fallbackHandler);
         assertEq(ok.safeProxyFactory(), factory);
     }
 
@@ -102,25 +102,25 @@ contract CofferEscrowTest is Test {
         assertTrue(escrow.invited(id, creator));
         assertTrue(escrow.invited(id, alice));
         assertTrue(escrow.invited(id, bob));
-        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Funding));
+        assertEq(uint256(escrow.status(id)), uint256(EnsDiamondsEscrow.PoolStatus.Funding));
     }
 
     function test_createPool_revertsOnZeroTarget() public {
         vm.prank(creator);
-        vm.expectRevert(CofferEscrow.InvalidTarget.selector);
+        vm.expectRevert(EnsDiamondsEscrow.InvalidTarget.selector);
         escrow.createPool("defi", 0, uint40(block.timestamp + 1 days), _invitees2());
     }
 
     function test_createPool_revertsOnPastDeadline() public {
         vm.warp(1_000_000);
         vm.prank(creator);
-        vm.expectRevert(CofferEscrow.InvalidDeadline.selector);
+        vm.expectRevert(EnsDiamondsEscrow.InvalidDeadline.selector);
         escrow.createPool("defi", 1 ether, uint40(block.timestamp), _invitees2());
     }
 
     function test_createPool_revertsOnShortLabel() public {
         vm.prank(creator);
-        vm.expectRevert(CofferEscrow.LabelTooShort.selector);
+        vm.expectRevert(EnsDiamondsEscrow.LabelTooShort.selector);
         escrow.createPool("ab", 1 ether, uint40(block.timestamp + 1 days), _invitees2());
     }
 
@@ -129,7 +129,7 @@ contract CofferEscrowTest is Test {
         dup[0] = alice;
         dup[1] = alice;
         vm.prank(creator);
-        vm.expectRevert(CofferEscrow.DuplicateInvitee.selector);
+        vm.expectRevert(EnsDiamondsEscrow.DuplicateInvitee.selector);
         escrow.createPool("defi", 1 ether, uint40(block.timestamp + 1 days), dup);
     }
 
@@ -137,14 +137,14 @@ contract CofferEscrowTest is Test {
         address[] memory a = new address[](1);
         a[0] = creator;
         vm.prank(creator);
-        vm.expectRevert(CofferEscrow.DuplicateInvitee.selector);
+        vm.expectRevert(EnsDiamondsEscrow.DuplicateInvitee.selector);
         escrow.createPool("defi", 1 ether, uint40(block.timestamp + 1 days), a);
     }
 
     function test_createPool_emitsEventWithoutThreshold() public {
         vm.prank(creator);
         vm.expectEmit(true, true, false, true, address(escrow));
-        emit CofferEscrow.PoolCreated(
+        emit EnsDiamondsEscrow.PoolCreated(
             0, "defi", creator, 10 ether, uint40(block.timestamp + 3 days), _invitees2()
         );
         escrow.createPool("defi", 10 ether, uint40(block.timestamp + 3 days), _invitees2());
@@ -164,7 +164,7 @@ contract CofferEscrowTest is Test {
 
         vm.prank(alice);
         vm.expectEmit(true, true, false, true, address(escrow));
-        emit CofferEscrow.Deposited(id, alice, 4 ether, 4 ether);
+        emit EnsDiamondsEscrow.Deposited(id, alice, 4 ether, 4 ether);
         escrow.deposit{value: 4 ether}(id);
 
         assertEq(escrow.deposits(id, alice), 4 ether);
@@ -181,14 +181,14 @@ contract CofferEscrowTest is Test {
         address stranger = address(0xDEAD);
         vm.deal(stranger, 1 ether);
         vm.prank(stranger);
-        vm.expectRevert(CofferEscrow.NotInvited.selector);
+        vm.expectRevert(EnsDiamondsEscrow.NotInvited.selector);
         escrow.deposit{value: 1 ether}(id);
     }
 
     function test_deposit_revertsOnZeroValue() public {
         uint256 id = _createDefaultPool();
         vm.prank(alice);
-        vm.expectRevert(CofferEscrow.ZeroValue.selector);
+        vm.expectRevert(EnsDiamondsEscrow.ZeroValue.selector);
         escrow.deposit{value: 0}(id);
     }
 
@@ -202,14 +202,14 @@ contract CofferEscrowTest is Test {
         assertEq(total, target, "capped to target");
         assertEq(escrow.deposits(id, alice), 10 ether, "credited only the gap");
         assertEq(alice.balance, 90 ether, "1 ETH excess refunded");
-        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Funded), "funded");
+        assertEq(uint256(escrow.status(id)), uint256(EnsDiamondsEscrow.PoolStatus.Funded), "funded");
     }
 
     function test_deposit_revertsBelowMinimumForNewDepositor() public {
         uint256 id = _createDefaultPool();
         vm.deal(alice, 1 ether);
         vm.prank(alice);
-        vm.expectRevert(CofferEscrow.BelowMinimum.selector);
+        vm.expectRevert(EnsDiamondsEscrow.BelowMinimum.selector);
         escrow.deposit{value: 0.005 ether}(id); // below 0.01 and not an exact gap
     }
 
@@ -250,12 +250,12 @@ contract CofferEscrowTest is Test {
 
         vm.prank(bob);
         vm.expectEmit(true, false, false, false, address(escrow));
-        emit CofferEscrow.PoolFunded(id);
+        emit EnsDiamondsEscrow.PoolFunded(id);
         escrow.deposit{value: 4 ether}(id); // reaches target exactly
 
         (,,,,, uint40 fundedAt,,) = escrow.pools(id);
         assertEq(fundedAt, uint40(block.timestamp));
-        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Funded));
+        assertEq(uint256(escrow.status(id)), uint256(EnsDiamondsEscrow.PoolStatus.Funded));
     }
 
     function test_deposit_revertsWhenNotFunding() public {
@@ -268,7 +268,7 @@ contract CofferEscrowTest is Test {
         escrow.deposit{value: 4 ether}(id); // now Funded
 
         vm.prank(alice);
-        vm.expectRevert(CofferEscrow.WrongStatus.selector);
+        vm.expectRevert(EnsDiamondsEscrow.WrongStatus.selector);
         escrow.deposit{value: 1 ether}(id);
     }
 
@@ -281,7 +281,7 @@ contract CofferEscrowTest is Test {
         uint256 balBefore = alice.balance;
         vm.prank(alice);
         vm.expectEmit(true, true, false, true, address(escrow));
-        emit CofferEscrow.Withdrawn(id, alice, 4 ether, 0);
+        emit EnsDiamondsEscrow.Withdrawn(id, alice, 4 ether, 0);
         escrow.withdraw(id);
 
         assertEq(alice.balance, balBefore + 4 ether);
@@ -313,7 +313,7 @@ contract CofferEscrowTest is Test {
     function test_withdraw_revertsWithNoDeposit() public {
         uint256 id = _createDefaultPool();
         vm.prank(alice);
-        vm.expectRevert(CofferEscrow.NoDeposit.selector);
+        vm.expectRevert(EnsDiamondsEscrow.NoDeposit.selector);
         escrow.withdraw(id);
     }
 
@@ -328,7 +328,7 @@ contract CofferEscrowTest is Test {
         escrow.deposit{value: 4 ether}(id);
         escrow.withdraw(id);
 
-        vm.expectRevert(CofferEscrow.SameBlock.selector);
+        vm.expectRevert(EnsDiamondsEscrow.SameBlock.selector);
         escrow.deposit{value: 4 ether}(id);
         vm.stopPrank();
 
@@ -342,7 +342,7 @@ contract CofferEscrowTest is Test {
     function test_withdraw_lockedWhileFunded() public {
         uint256 id = _fundPool(); // fully funded, within lock
         vm.prank(alice);
-        vm.expectRevert(CofferEscrow.WithdrawLocked.selector);
+        vm.expectRevert(EnsDiamondsEscrow.WithdrawLocked.selector);
         escrow.withdraw(id);
     }
 
@@ -350,7 +350,7 @@ contract CofferEscrowTest is Test {
         uint256 id = _fundPool();
         // move past the execution window
         vm.warp(block.timestamp + 1 days + 1);
-        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Funding));
+        assertEq(uint256(escrow.status(id)), uint256(EnsDiamondsEscrow.PoolStatus.Funding));
 
         vm.prank(alice);
         escrow.withdraw(id);
@@ -367,7 +367,7 @@ contract CofferEscrowTest is Test {
         escrow.deposit{value: 4 ether}(id); // partial, never funded
 
         vm.warp(block.timestamp + 3 days + 1); // past deadline → Expired
-        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Expired));
+        assertEq(uint256(escrow.status(id)), uint256(EnsDiamondsEscrow.PoolStatus.Expired));
 
         vm.prank(alice);
         escrow.withdraw(id);
@@ -397,7 +397,7 @@ contract CofferEscrowTest is Test {
 
         (,,,,,,, address storedSafe) = escrow.pools(id);
         assertEq(storedSafe, safe);
-        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Finalized));
+        assertEq(uint256(escrow.status(id)), uint256(EnsDiamondsEscrow.PoolStatus.Finalized));
 
         MockSafe s = MockSafe(payable(safe));
         assertEq(s.threshold(), 2);
@@ -425,7 +425,7 @@ contract CofferEscrowTest is Test {
         escrow.deposit{value: 4 ether}(id); // partial only
 
         vm.prank(alice);
-        vm.expectRevert(CofferEscrow.WrongStatus.selector);
+        vm.expectRevert(EnsDiamondsEscrow.WrongStatus.selector);
         escrow.finalize(id);
     }
 
@@ -436,7 +436,7 @@ contract CofferEscrowTest is Test {
         // stranger not invited/contributor:
         address stranger = address(0xBEEF);
         vm.prank(stranger);
-        vm.expectRevert(CofferEscrow.NotContributor.selector);
+        vm.expectRevert(EnsDiamondsEscrow.NotContributor.selector);
         escrow.finalize(id);
     }
 
@@ -450,7 +450,7 @@ contract CofferEscrowTest is Test {
         vm.prank(alice);
         escrow.deposit{value: 5 ether}(id); // funded by ONE contributor
 
-        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Funded));
+        assertEq(uint256(escrow.status(id)), uint256(EnsDiamondsEscrow.PoolStatus.Funded));
         vm.prank(alice);
         address safe = escrow.finalize(id);
 
@@ -501,7 +501,7 @@ contract CofferEscrowTest is Test {
         uint256 id = _fundPool();
         vm.warp(block.timestamp + 1 days + 1); // lock lapsed → status Funding, not Funded
         vm.prank(alice);
-        vm.expectRevert(CofferEscrow.WrongStatus.selector);
+        vm.expectRevert(EnsDiamondsEscrow.WrongStatus.selector);
         escrow.finalize(id);
     }
 
@@ -552,7 +552,7 @@ contract CofferEscrowTest is Test {
         assertEq(address(escrow).balance, 0);
         (,,,,,,, address storedSafe) = escrow.pools(id);
         assertEq(storedSafe, safe);
-        assertEq(uint256(escrow.status(id)), uint256(CofferEscrow.PoolStatus.Finalized));
+        assertEq(uint256(escrow.status(id)), uint256(EnsDiamondsEscrow.PoolStatus.Finalized));
     }
 
     function test_createPool_revertsAboveMaxOwners() public {
@@ -563,7 +563,7 @@ contract CofferEscrowTest is Test {
             many[i] = address(uint160(0x2000 + i));
         }
         vm.prank(creator);
-        vm.expectRevert(CofferEscrow.TooManyOwners.selector);
+        vm.expectRevert(EnsDiamondsEscrow.TooManyOwners.selector);
         escrow.createPool("defi", 1 ether, uint40(block.timestamp + 1 days), many);
     }
 

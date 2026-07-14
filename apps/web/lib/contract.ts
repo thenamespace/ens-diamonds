@@ -6,7 +6,7 @@ export const cofferEscrow = {
   abi: cofferEscrowAbi,
 } as const;
 
-// PoolStatus enum ordering must match CofferEscrow.PoolStatus.
+// PoolStatus enum ordering must match EnsDiamondsEscrow.PoolStatus.
 export const POOL_STATUS = ["funding", "funded", "finalized", "expired"] as const;
 export type PoolStatusName = (typeof POOL_STATUS)[number];
 

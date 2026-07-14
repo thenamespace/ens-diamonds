@@ -1,6 +1,6 @@
-# Coffer — Deployment Runbook
+# ens.diamonds — Deployment Runbook
 
-Operational guide for deploying Coffer to **Sepolia** and **mainnet**. Pairs
+Operational guide for deploying ens.diamonds to **Sepolia** and **mainnet**. Pairs
 with `docs/STATUS.md` (state/handoff) and `apps/web/.env.example` (env template).
 
 > **Golden rule — one build per chain.** `NEXT_PUBLIC_APP_CHAIN` and every
@@ -96,7 +96,7 @@ against a scratch dir instead: `NEXT_DIST_DIR=.next-check pnpm build`.
 
 ## 4. Deploy the escrow contract (mainnet) — USER-GATED
 
-CofferEscrow's constructor takes the canonical **Safe v1.4.1** infra:
+EnsDiamondsEscrow's constructor takes the canonical **Safe v1.4.1** infra:
 `(SAFE_PROXY_FACTORY, SAFE_SINGLETON, SAFE_FALLBACK_HANDLER)`. The Sepolia
 deployment used:
 

@@ -14,7 +14,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { txErrorMessage } from "@/lib/tx-error";
 
 const MAX_SIGNERS = 10;
-const MIN_CONTRIB = 0.01; // matches CofferEscrow MIN_CONTRIBUTION for partial deposits
+const MIN_CONTRIB = 0.01; // matches EnsDiamondsEscrow MIN_CONTRIBUTION for partial deposits
 
 type Invitee = { id: number; value: string };
 
