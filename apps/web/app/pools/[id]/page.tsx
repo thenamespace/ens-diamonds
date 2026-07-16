@@ -7,7 +7,7 @@ import { useAccount, useChainId, usePublicClient, useReadContracts, useWriteCont
 import { formatEther } from "viem";
 import { useQuery } from "@tanstack/react-query";
 import { APP_CHAIN } from "@/lib/app-chain";
-import { cofferEscrow, statusName } from "@/lib/contract";
+import { cofferEscrow, statusName, EXECUTION_WINDOW_SECONDS } from "@/lib/contract";
 import { isEscrowConfigured } from "@/lib/chain";
 import { isPoolVisible } from "@/lib/pool-filter";
 import { txErrorMessage } from "@/lib/tx-error";
@@ -122,7 +122,7 @@ export default function PoolDashboard() {
   const [label, creator, targetAmount, totalDeposited, fundingDeadline, fundedAt, threshold, safe] = pool;
   const status = statusName(statusNum);
   const funded = pct(totalDeposited, targetAmount);
-  const lockEnds = fundedAt > 0 ? fundedAt + 7 * 86400 : 0;
+  const lockEnds = fundedAt > 0 ? fundedAt + EXECUTION_WINDOW_SECONDS : 0;
   const contributorCount = contributors ? contributors[0].length : 0;
   const remaining = targetAmount > totalDeposited ? targetAmount - totalDeposited : 0n;
   const effThreshold = status === "finalized" ? threshold : Math.floor(contributorCount / 2) + 1;
@@ -197,7 +197,9 @@ export default function PoolDashboard() {
           <div className="b-cta">
             {isConnected && yourDeposit === 0n ? (
               <span className="muted" style={{ fontSize: 13, textAlign: "right", display: "block", maxWidth: 240 }}>
-                Only contributors can finalize — deposit into this vault to help finalize it.
+                {invitedYou
+                  ? "Only contributors can finalize — deposit into this vault to help finalize it."
+                  : "Only this vault's contributors can finalize it."}
               </span>
             ) : (
               <button
@@ -321,7 +323,7 @@ export default function PoolDashboard() {
             <div className="row mt-8" style={{ gap: 8 }}>
               <button
                 className="btn btn-primary btn-block"
-                disabled={!isConnected || wrongChain || pending !== null || status !== "funding"}
+                disabled={!isConnected || wrongChain || pending !== null || status !== "funding" || !invitedYou}
                 onClick={() => act("deposit", parseEther(amount || "0"))}
               >
                 {pending === "deposit" ? "Depositing…" : "Deposit"}
@@ -337,13 +339,22 @@ export default function PoolDashboard() {
             {status === "funded" && (
               <div className="note note-warn mt-8">
                 <span>🔒</span>
-                <span>Withdrawals locked during the 7-day execution window.</span>
+                <span>Withdrawals locked during the 24-hour execution window.</span>
               </div>
             )}
             {!isConnected && (
               <div className="note note-info mt-8">
                 <span>ℹ</span>
                 <span>Connect your wallet to deposit or withdraw.</span>
+              </div>
+            )}
+            {isConnected && !invitedYou && (
+              <div className="note note-info mt-8">
+                <span>ℹ</span>
+                <span>
+                  This wallet isn&rsquo;t on the invite list, so it can&rsquo;t deposit. Only the creator and invited
+                  members can contribute to a vault.
+                </span>
               </div>
             )}
           </div>

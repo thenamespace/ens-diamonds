@@ -116,7 +116,7 @@ export const POOLS: Pool[] = [
       { handle: "0x9f…21", address: "0x9f00…0021", contributionEth: usdToEth(10000), ownershipBps: 2018, status: "accepted", via: "link" },
     ],
     activity: [
-      { at: "just now", text: "Target reached — execution window open for 7 days" },
+      { at: "just now", text: "Target reached — execution window open for 24 hours" },
       { at: "3h ago", text: "hasu.eth deposited 3.16 ETH" },
       { at: "2d ago", text: "Pool created by punk6529.eth" },
     ],
