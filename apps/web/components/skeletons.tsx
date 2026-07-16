@@ -1,29 +1,32 @@
-// Server-safe skeleton primitives for route loading states (loading.tsx). Pure
-// markup that reuses the shimmer CSS in globals.css (.skeleton, .sk, sk-*).
+// Server-safe skeleton primitives for route loading states (loading.tsx),
+// built on UIKit's <Skeleton> and <Card>.
+
+import { Card } from "@thenamespace/uikit/card";
+import { Skeleton } from "@thenamespace/uikit/skeleton";
 
 export function SkeletonCard() {
   return (
-    <div className="ncard sk" aria-hidden>
-      <div className="ncard-top">
-        <span className="skeleton sk-mono" />
-        <span className="skeleton sk-star" />
+    <Card aria-hidden className="border border-separator">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-4 w-16 rounded" />
+        <Skeleton className="size-7 rounded-full" />
       </div>
-      <span className="skeleton sk-line" style={{ width: "62%", height: 24, marginTop: 4 }} />
-      <div className="ncard-price">
-        <span className="skeleton sk-line" style={{ width: 74, height: 9 }} />
-        <span className="skeleton sk-line" style={{ width: "56%", height: 24, marginTop: 6 }} />
-        <span className="skeleton sk-line" style={{ width: 96, height: 11, marginTop: 6 }} />
+      <Skeleton className="mt-1 h-6 w-3/5 rounded" />
+      <div className="mt-4 space-y-2">
+        <Skeleton className="h-2.5 w-[74px] rounded" />
+        <Skeleton className="h-6 w-1/2 rounded" />
+        <Skeleton className="h-3 w-24 rounded" />
       </div>
-      <div className="ncard-foot">
-        <span className="skeleton sk-chip" />
+      <div className="mt-4">
+        <Skeleton className="h-5 w-20 rounded-full" />
       </div>
-    </div>
+    </Card>
   );
 }
 
 export function SkeletonCardGrid({ count = 8 }: { count?: number }) {
   return (
-    <div className="grid" aria-hidden>
+    <div className="card-grid" aria-hidden>
       {Array.from({ length: count }, (_, i) => (
         <SkeletonCard key={i} />
       ))}
@@ -35,17 +38,17 @@ export function SkeletonPanelList({ count = 4 }: { count?: number }) {
   return (
     <div className="stack" aria-hidden>
       {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="panel sk">
-          <div className="row" style={{ gap: 14, alignItems: "center" }}>
-            <span className="skeleton sk-mono" />
-            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-              <span className="skeleton sk-line" style={{ width: 170, height: 18 }} />
-              <span className="skeleton sk-line" style={{ width: 230, height: 12 }} />
+        <Card key={i}>
+          <div className="flex items-center gap-3.5">
+            <Skeleton className="h-4 w-16 rounded" />
+            <div className="flex flex-col gap-2">
+              <Skeleton className="h-[18px] w-[170px] rounded" />
+              <Skeleton className="h-3 w-[230px] rounded" />
             </div>
-            <span className="skeleton sk-chip" style={{ marginLeft: "auto" }} />
+            <Skeleton className="ml-auto h-5 w-20 rounded-full" />
           </div>
-          <span className="skeleton sk-line" style={{ width: "100%", height: 8, marginTop: 18, borderRadius: 999 }} />
-        </div>
+          <Skeleton className="mt-4 h-2 w-full rounded-full" />
+        </Card>
       ))}
     </div>
   );
@@ -55,10 +58,10 @@ export function SkeletonPanelList({ count = 4 }: { count?: number }) {
 export function SkeletonPageHead() {
   return (
     <div className="page-head" aria-hidden>
-      <div>
-        <span className="skeleton sk-line" style={{ display: "block", width: 190, height: 13 }} />
-        <span className="skeleton sk-line" style={{ display: "block", width: 300, height: 34, marginTop: 16 }} />
-        <span className="skeleton sk-line" style={{ display: "block", width: "70%", maxWidth: 560, height: 14, marginTop: 14 }} />
+      <div className="space-y-3.5">
+        <Skeleton className="h-[13px] w-[190px] rounded" />
+        <Skeleton className="h-[34px] w-[300px] rounded" />
+        <Skeleton className="h-3.5 w-[70%] max-w-[560px] rounded" />
       </div>
     </div>
   );

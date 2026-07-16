@@ -24,7 +24,7 @@ export default function DecayChart({
   const area = `${line} L${x(DAYS).toFixed(1)},${H - PAD} L${x(0).toFixed(1)},${H - PAD} Z`;
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="decay" role="img" aria-label="Premium price decay curve">
+    <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label="Premium price decay curve">
       <defs>
         <linearGradient id="dc-fill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#2f6bff" stopOpacity="0.2" />

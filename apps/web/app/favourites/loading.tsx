@@ -5,7 +5,7 @@ export default function Loading() {
     <div className="wrap">
       <div className="page-head">
         <div>
-          <h1>Your watchlist</h1>
+          <h1>Your favourites</h1>
           <p>Loading the names you’re tracking…</p>
         </div>
       </div>

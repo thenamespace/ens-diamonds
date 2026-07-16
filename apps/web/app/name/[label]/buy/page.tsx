@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAccount, useChainId, usePublicClient, useReadContract, useSwitchChain, useWriteContract } from "wagmi";
 import { labelhash } from "viem";
+import { Alert, Button, buttonVariants, Card, ProgressBar, Stepper } from "@thenamespace/uikit";
 import { APP_CHAIN } from "@/lib/app-chain";
 import {
   ENS_CONTROLLER,
@@ -19,7 +20,7 @@ import {
   MIN_COMMIT_WAIT,
 } from "@/lib/ens-registrar";
 import { registerValue, commitFreshness } from "@/lib/registrar-flow";
-import { fmtEth } from "@/lib/format";
+import { fmtEth, shortLabel } from "@/lib/format";
 import { txErrorMessage as errMsg } from "@/lib/tx-error";
 
 export default function BuySoloPage() {
@@ -69,7 +70,7 @@ function BuyInstant() {
       });
       await publicClient.waitForTransactionReceipt({ hash });
       setStep("done");
-      // Record for the portfolio page (server re-verifies ownership on-chain).
+      // Record for the portfolio page (server re-verifies ownership onchain).
       fetch("/api/portfolio/record", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -90,103 +91,135 @@ function BuyInstant() {
 
       <div className="page-head">
         <div>
-          <h1 style={{ margin: 0 }}>
-            Buy {label}.eth <span style={{ color: "var(--faint)", fontWeight: 400 }}>solo</span>
+          <h1 style={{ margin: 0 }} title={`${label}.eth`}>
+            Buy {shortLabel(label)}.eth <span className="font-normal text-muted">solo</span>
           </h1>
           <p>Register it to your own wallet on Sepolia — no vault needed. One transaction and it&rsquo;s yours.</p>
         </div>
-        <Link className="btn btn-ghost" href={`/name/${label}`}>
+        <Link className={buttonVariants({ variant: "outline" })} href={`/name/${label}`}>
           ← Back
         </Link>
       </div>
 
-      <div className="note note-info" style={{ marginBottom: 20 }}>
-        <span>ℹ</span>
-        <span>
-          This registers on <strong>Sepolia testnet</strong>, where ENS registration is free — you pay only gas.
-          Mainnet buying (with real premium pricing) arrives with the mainnet deployment.
-        </span>
-      </div>
+      <Alert status="accent" className="mb-5">
+        <Alert.Indicator />
+        <Alert.Content>
+          <Alert.Description>
+            This registers on <strong>Sepolia testnet</strong>, where ENS registration is free — you pay only gas.
+            Mainnet buying (with real premium pricing) arrives with the mainnet deployment.
+          </Alert.Description>
+        </Alert.Content>
+      </Alert>
 
-      <div className="cols">
+      <div className="grid grid-cols-1 items-start gap-[22px] min-[901px]:grid-cols-[1.4fr_0.9fr]">
         <div className="stack">
-          <div className="panel">
-            <span className="panel-title">Register for 1 year</span>
-            <div className="kv">
-              <span className="k">Name</span>
-              <span className="v">{label}.eth</span>
-            </div>
-            <div className="kv">
-              <span className="k">Duration</span>
-              <span className="v">1 year</span>
-            </div>
-            <div className="kv">
-              <span className="k">Registration cost</span>
-              <span className="v big accent">Free</span>
-            </div>
-            <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
-              Sepolia&rsquo;s ENS registrar charges nothing and refunds any ETH sent — the only cost is gas.
-            </p>
-          </div>
+          <Card>
+            <Card.Header>
+              <Card.Title>Register for 1 year</Card.Title>
+            </Card.Header>
+            <Card.Content>
+              <div className="kv">
+                <span className="k">Name</span>
+                <span className="v">{label}.eth</span>
+              </div>
+              <div className="kv">
+                <span className="k">Duration</span>
+                <span className="v">1 year</span>
+              </div>
+              <div className="kv">
+                <span className="k">Registration cost</span>
+                <span className="v big accent">Free</span>
+              </div>
+              <p className="mt-2 mb-0 text-[12.5px] text-muted">
+                Sepolia&rsquo;s ENS registrar charges nothing and refunds any ETH sent — the only cost is gas.
+              </p>
+            </Card.Content>
+          </Card>
         </div>
 
         <div className="stack">
-          <div className="panel">
-            <span className="panel-title">Buy it</span>
-
-            {label.length < 3 ? (
-              <div className="note note-warn mt-8">
-                <span>⚠</span>
-                <span>ENS names must be at least 3 characters.</span>
-              </div>
-            ) : isLoading ? (
-              <p className="muted">Checking availability…</p>
-            ) : available === false && step !== "done" ? (
-              <div className="note note-warn mt-8">
-                <span>⚠</span>
-                <span>{label}.eth is already registered on Sepolia. Try another name.</span>
-              </div>
-            ) : step === "done" ? (
-              <div className="note note-ok mt-8" style={{ background: "rgba(34,197,94,0.1)" }}>
-                <span>✓</span>
-                <span>
-                  Registered! {label}.eth is now owned by your wallet on Sepolia.{" "}
-                  <a href={`${APP_CHAIN.ensAppUrl}/${label}.eth`} target="_blank" rel="noreferrer" style={{ color: "var(--accent-2)" }}>
-                    View on ENS →
-                  </a>
-                </span>
-              </div>
-            ) : !isConnected ? (
-              <div className="note note-info mt-8">
-                <span>ℹ</span>
-                <span>Connect your wallet (top right) to register.</span>
-              </div>
-            ) : wrongChain ? (
-              <button className="btn btn-primary btn-block mt-8" onClick={() => switchChain({ chainId: APP_CHAIN.chainId })}>
-                Switch to Sepolia
-              </button>
-            ) : (
-              <>
-                <p className="muted" style={{ fontSize: 13.5 }}>
-                  One transaction registers <strong>{label}.eth</strong> to your wallet and sets the public resolver.
-                </p>
-                <button
-                  className="btn btn-primary btn-block btn-lg mt-16"
-                  disabled={step === "registering"}
-                  onClick={doRegister}
+          <Card>
+            <Card.Header>
+              <Card.Title>Buy it</Card.Title>
+            </Card.Header>
+            <Card.Content>
+              {label.length < 3 ? (
+                <Alert status="warning" className="mt-2">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>ENS names must be at least 3 characters.</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : isLoading ? (
+                <p className="text-muted">Checking availability…</p>
+              ) : available === false && step !== "done" ? (
+                <Alert status="warning" className="mt-2">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>
+                      {label}.eth is already registered on Sepolia. Try another name.
+                    </Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : step === "done" ? (
+                <Alert status="success" className="mt-2">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>
+                      Registered! {label}.eth is now owned by your wallet on Sepolia.{" "}
+                      <a
+                        href={`${APP_CHAIN.ensAppUrl}/${label}.eth`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-semibold text-accent"
+                      >
+                        View on ENS →
+                      </a>
+                    </Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : !isConnected ? (
+                <Alert status="accent" className="mt-2">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>Connect your wallet (top right) to register.</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : wrongChain ? (
+                <Button
+                  variant="primary"
+                  className="mt-2 w-full"
+                  onPress={() => switchChain({ chainId: APP_CHAIN.chainId })}
                 >
-                  {step === "registering" ? "Confirm in wallet…" : "Register & claim"}
-                </button>
-              </>
-            )}
+                  Switch to Sepolia
+                </Button>
+              ) : (
+                <>
+                  <p className="text-[13.5px] text-muted">
+                    One transaction registers <strong>{label}.eth</strong> to your wallet and sets the public resolver.
+                  </p>
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="mt-4 w-full"
+                    isPending={step === "registering"}
+                    onPress={doRegister}
+                  >
+                    {step === "registering" ? "Confirm in wallet…" : "Register & claim"}
+                  </Button>
+                </>
+              )}
 
-            {error && (
-              <div className="note note-warn mt-16">
-                <span>⚠</span>
-                <span>{error}</span>
-              </div>
-            )}
-          </div>
+              {error && (
+                <Alert status="warning" className="mt-4">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>{error}</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              )}
+            </Card.Content>
+          </Card>
         </div>
       </div>
     </div>
@@ -357,7 +390,7 @@ function BuyCommitReveal() {
       await publicClient.waitForTransactionReceipt({ hash });
       localStorage.removeItem(lsKey);
       setStep("done");
-      // Record for the portfolio page (server re-verifies ownership on-chain).
+      // Record for the portfolio page (server re-verifies ownership onchain).
       fetch("/api/portfolio/record", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -369,7 +402,9 @@ function BuyCommitReveal() {
     }
   }
 
-  const busy = step === "committing" || step === "registering";
+  // Stepper display state: 0 = commit, 1 = wait, 2 = register. Steps below
+  // `currentStep` render as complete, the current one as active.
+  const currentStep = step === "idle" || step === "committing" ? 0 : step === "waiting" && !canRegister ? 1 : 2;
 
   return (
     <div className="wrap">
@@ -380,184 +415,220 @@ function BuyCommitReveal() {
 
       <div className="page-head">
         <div>
-          <h1 style={{ margin: 0 }}>
-            Buy {label}.eth <span style={{ color: "var(--faint)", fontWeight: 400 }}>solo</span>
+          <h1 style={{ margin: 0 }} title={`${label}.eth`}>
+            Buy {shortLabel(label)}.eth <span className="font-normal text-muted">solo</span>
           </h1>
           <p>Register it to your own wallet — no vault needed. ENS uses a two-step commit → wait → register.</p>
         </div>
-        <Link className="btn btn-ghost" href={`/name/${label}`}>
+        <Link className={buttonVariants({ variant: "outline" })} href={`/name/${label}`}>
           ← Back
         </Link>
       </div>
 
-      <div className="note note-info" style={{ marginBottom: 20 }}>
-        <span>ℹ</span>
-        <span>
-          This registers on <strong>Ethereum mainnet with real ETH</strong>. ENS uses a two-step commit → wait →
-          register to prevent front-running.
-        </span>
-      </div>
+      <Alert status="accent" className="mb-5">
+        <Alert.Indicator />
+        <Alert.Content>
+          <Alert.Description>
+            This registers on <strong>Ethereum mainnet with real ETH</strong>. ENS uses a two-step commit → wait →
+            register to prevent front-running.
+          </Alert.Description>
+        </Alert.Content>
+      </Alert>
 
-      <div className="cols">
+      <div className="grid grid-cols-1 items-start gap-[22px] min-[901px]:grid-cols-[1.4fr_0.9fr]">
         <div className="stack">
-          <div className="panel">
-            <span className="panel-title">Register for 1 year</span>
-            <div className="kv">
-              <span className="k">Name</span>
-              <span className="v">{label}.eth</span>
-            </div>
-            <div className="kv">
-              <span className="k">Registration (1 yr)</span>
-              <span className="v">{price ? fmtEth(price.base, 4) : "…"}</span>
-            </div>
-            <div className="kv">
-              <span className="k">Temporary premium</span>
-              <span className="v">{price ? fmtEth(price.premium, 4) : "…"}</span>
-            </div>
-            <div className="kv">
-              <span className="k">Total</span>
-              <span className="v">{price ? fmtEth(total, 4) : "…"}</span>
-            </div>
-            <div className="kv">
-              <span className="k">You pay (with buffer)</span>
-              <span className="v big accent">{value > 0n ? fmtEth(value, 4) : "…"}</span>
-            </div>
-            <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
-              We send a 10% buffer over the quoted price; ENS refunds any overpayment in the same transaction.
-            </p>
-          </div>
+          <Card>
+            <Card.Header>
+              <Card.Title>Register for 1 year</Card.Title>
+            </Card.Header>
+            <Card.Content>
+              <div className="kv">
+                <span className="k">Name</span>
+                <span className="v">{label}.eth</span>
+              </div>
+              <div className="kv">
+                <span className="k">Registration (1 yr)</span>
+                <span className="v">{price ? fmtEth(price.base, 4) : "…"}</span>
+              </div>
+              <div className="kv">
+                <span className="k">Temporary premium</span>
+                <span className="v">{price ? fmtEth(price.premium, 4) : "…"}</span>
+              </div>
+              <div className="kv">
+                <span className="k">Total</span>
+                <span className="v">{price ? fmtEth(total, 4) : "…"}</span>
+              </div>
+              <div className="kv">
+                <span className="k">You pay (with buffer)</span>
+                <span className="v big accent">{value > 0n ? fmtEth(value, 4) : "…"}</span>
+              </div>
+              <p className="mt-2 mb-0 text-[12.5px] text-muted">
+                We send a 10% buffer over the quoted price; ENS refunds any overpayment in the same transaction.
+              </p>
+            </Card.Content>
+          </Card>
         </div>
 
         <div className="stack">
-          <div className="panel">
-            <span className="panel-title">Buy it</span>
+          <Card>
+            <Card.Header>
+              <Card.Title>Buy it</Card.Title>
+            </Card.Header>
+            <Card.Content>
+              {label.length < 3 ? (
+                <Alert status="warning" className="mt-2">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>ENS names must be at least 3 characters.</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : isLoading ? (
+                <p className="text-muted">Checking availability…</p>
+              ) : available === false && step !== "done" ? (
+                <Alert status="warning" className="mt-2">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>{label}.eth is already registered. Try another name.</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : step === "done" ? (
+                <Alert status="success" className="mt-2">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>
+                      Registered! {label}.eth is now owned by your wallet.{" "}
+                      <a
+                        href={`${APP_CHAIN.ensAppUrl}/${label}.eth`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-semibold text-accent"
+                      >
+                        View on ENS →
+                      </a>
+                    </Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : !isConnected ? (
+                <Alert status="accent" className="mt-2">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>Connect your wallet (top right) to register.</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : wrongChain ? (
+                <Button
+                  variant="primary"
+                  className="mt-2 w-full"
+                  onPress={() => switchChain({ chainId: APP_CHAIN.chainId })}
+                >
+                  Switch to Ethereum
+                </Button>
+              ) : (
+                <>
+                  <Stepper orientation="vertical" size="sm" currentStep={currentStep}>
+                    <Stepper.Step>
+                      <Stepper.Indicator />
+                      <Stepper.Content>
+                        <Stepper.Title>Commit</Stepper.Title>
+                        <Stepper.Description>A first transaction that reserves your claim.</Stepper.Description>
+                      </Stepper.Content>
+                      <Stepper.Separator />
+                    </Stepper.Step>
 
-            {label.length < 3 ? (
-              <div className="note note-warn mt-8">
-                <span>⚠</span>
-                <span>ENS names must be at least 3 characters.</span>
-              </div>
-            ) : isLoading ? (
-              <p className="muted">Checking availability…</p>
-            ) : available === false && step !== "done" ? (
-              <div className="note note-warn mt-8">
-                <span>⚠</span>
-                <span>{label}.eth is already registered. Try another name.</span>
-              </div>
-            ) : step === "done" ? (
-              <div className="note note-ok mt-8" style={{ background: "rgba(34,197,94,0.1)" }}>
-                <span>✓</span>
-                <span>
-                  Registered! {label}.eth is now owned by your wallet.{" "}
-                  <a href={`${APP_CHAIN.ensAppUrl}/${label}.eth`} target="_blank" rel="noreferrer" style={{ color: "var(--accent-2)" }}>
-                    View on ENS →
-                  </a>
-                </span>
-              </div>
-            ) : !isConnected ? (
-              <div className="note note-info mt-8">
-                <span>ℹ</span>
-                <span>Connect your wallet (top right) to register.</span>
-              </div>
-            ) : wrongChain ? (
-              <button className="btn btn-primary btn-block mt-8" onClick={() => switchChain({ chainId: APP_CHAIN.chainId })}>
-                Switch to Ethereum
-              </button>
-            ) : (
-              <>
-                <div className="stepper">
-                  <div className={`sstep ${step === "idle" || step === "committing" ? "on" : "done"}`}>
-                    <span className="sstep-dot">
-                      {step === "idle" || step === "committing" ? (
-                        "1"
-                      ) : (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      )}
-                    </span>
-                    <span>
-                      <span className="sstep-t">Commit</span>
-                      <span className="sstep-d">A first transaction that reserves your claim.</span>
-                    </span>
-                  </div>
-
-                  <div className={`sstep ${step === "waiting" && !canRegister ? "on" : canRegister || step === "registering" ? "done" : ""}`}>
-                    <span className="sstep-dot">
-                      {canRegister || step === "registering" ? (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                          <path d="M20 6L9 17l-5-5" />
-                        </svg>
-                      ) : (
-                        "2"
-                      )}
-                    </span>
-                    <span>
-                      <span className="sstep-t">Wait 60 seconds</span>
-                      <span className="sstep-d">ENS&rsquo;s anti-front-running delay.</span>
-                      {step === "waiting" && !canRegister && (
-                        <span className="sstep-wait" style={{ display: "block" }}>
-                          <span className="wait-bar" style={{ display: "block" }}>
-                            <span
-                              className="wait-fill"
-                              style={{ display: "block", width: `${Math.min(100, (waited / MIN_COMMIT_WAIT) * 100)}%` }}
-                            />
+                    <Stepper.Step>
+                      <Stepper.Indicator />
+                      <Stepper.Content>
+                        <Stepper.Title>Wait 60 seconds</Stepper.Title>
+                        <Stepper.Description>ENS&rsquo;s anti-front-running delay.</Stepper.Description>
+                        {step === "waiting" && !canRegister && (
+                          <span className="mt-2 block">
+                            <ProgressBar
+                              aria-label="Commit wait"
+                              size="sm"
+                              value={Math.min(100, (waited / MIN_COMMIT_WAIT) * 100)}
+                            >
+                              <ProgressBar.Track>
+                                <ProgressBar.Fill />
+                              </ProgressBar.Track>
+                            </ProgressBar>
+                            <span className="mono mt-1.5 flex justify-between gap-3 text-[11px] text-muted">
+                              <span>Keep this tab open · safe to refresh</span>
+                              <span>{remaining}s</span>
+                            </span>
                           </span>
-                          <span className="wait-label">
-                            <span>Keep this tab open · safe to refresh</span>
-                            <span>{remaining}s</span>
-                          </span>
-                        </span>
+                        )}
+                      </Stepper.Content>
+                      <Stepper.Separator />
+                    </Stepper.Step>
+
+                    <Stepper.Step>
+                      <Stepper.Indicator />
+                      <Stepper.Content>
+                        <Stepper.Title>Register</Stepper.Title>
+                        <Stepper.Description>
+                          A second transaction that mints the name to your wallet.
+                        </Stepper.Description>
+                      </Stepper.Content>
+                      <Stepper.Separator />
+                    </Stepper.Step>
+                  </Stepper>
+
+                  {step === "idle" || step === "committing" ? (
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      className="mt-4 w-full"
+                      isDisabled={!price}
+                      isPending={step === "committing"}
+                      onPress={doCommit}
+                    >
+                      {step === "committing" ? "Confirm commit in wallet…" : "Commit"}
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        className="mt-4 w-full"
+                        isDisabled={!canRegister}
+                        isPending={step === "registering"}
+                        onPress={doRegister}
+                      >
+                        {step === "registering"
+                          ? "Confirm register in wallet…"
+                          : canRegister
+                            ? "Register & claim"
+                            : `Register — ready in ${remaining}s`}
+                      </Button>
+                      {ownerMismatch && (
+                        <Alert status="warning" className="mt-4">
+                          <Alert.Indicator />
+                          <Alert.Content>
+                            <Alert.Description>
+                              This commit was made with a different wallet (
+                              <span className="mono">
+                                {committedOwner!.slice(0, 6)}…{committedOwner!.slice(-4)}
+                              </span>
+                              ). Switch back to that account to register, or start a new commit.
+                            </Alert.Description>
+                          </Alert.Content>
+                        </Alert>
                       )}
-                    </span>
-                  </div>
+                    </>
+                  )}
+                </>
+              )}
 
-                  <div className={`sstep ${canRegister || step === "registering" ? "on" : ""}`}>
-                    <span className="sstep-dot">3</span>
-                    <span>
-                      <span className="sstep-t">Register</span>
-                      <span className="sstep-d">A second transaction that mints the name to your wallet.</span>
-                    </span>
-                  </div>
-                </div>
-
-                {step === "idle" || step === "committing" ? (
-                  <button className="btn btn-primary btn-block btn-lg mt-16" disabled={busy || !price} onClick={doCommit}>
-                    {step === "committing" ? "Confirm commit in wallet…" : "Commit"}
-                  </button>
-                ) : (
-                  <>
-                    <button className="btn btn-primary btn-block btn-lg mt-16" disabled={!canRegister} onClick={doRegister}>
-                      {step === "registering"
-                        ? "Confirm register in wallet…"
-                        : canRegister
-                          ? "Register & claim"
-                          : `Register — ready in ${remaining}s`}
-                    </button>
-                    {ownerMismatch && (
-                      <div className="note note-warn mt-16">
-                        <span>⚠</span>
-                        <span>
-                          This commit was made with a different wallet (
-                          <span className="mono">
-                            {committedOwner!.slice(0, 6)}…{committedOwner!.slice(-4)}
-                          </span>
-                          ). Switch back to that account to register, or start a new commit.
-                        </span>
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
-
-            {error && (
-              <div className="note note-warn mt-16">
-                <span>⚠</span>
-                <span>{error}</span>
-              </div>
-            )}
-          </div>
+              {error && (
+                <Alert status="warning" className="mt-4">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>{error}</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              )}
+            </Card.Content>
+          </Card>
         </div>
       </div>
     </div>

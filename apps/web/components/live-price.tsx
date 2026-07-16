@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Alert, Card } from "@thenamespace/uikit";
 import { usd } from "@/lib/data";
 import { fmtCountdown } from "@/lib/format";
 
@@ -90,38 +91,44 @@ export default function LivePrice({ label, boughtByOther }: { label: string; bou
   const fmt = (v: number | null) => (v === null ? "—" : usd(v));
 
   return (
-    <div className="live-price">
-      <div style={{ marginBottom: 12 }}>
-        <span className="live-price-title">Live price · Ethereum mainnet</span>
-      </div>
-      {banner ? (
-        <div className="note note-warn" style={{ margin: 0 }}>
-          <span>⚠</span>
-          <span>
-            <strong>This name has just been bought.</strong> Someone registered it before the vault could — the
-            pooled ETH is untouched in the Safe.
-          </span>
-        </div>
-      ) : p ? (
-        <>
-          <div className="kv">
-            <span className="k">Registration (1 yr)</span>
-            <span className="v">{fmt(p.baseUsd)}</span>
-          </div>
-          <div className="kv">
-            <span className="k">Temporary premium</span>
-            <span className="v">{fmt(p.premiumUsd)}</span>
-          </div>
-          <div className="kv">
-            <span className="k">Total to buy now</span>
-            <span className="v big accent">{fmt(p.totalUsd)}</span>
-          </div>
-          <div className="progress-label" style={{ marginTop: 6 }}>
-            <span>≈ {p.totalEth.toFixed(3)} ETH</span>
-            {p.premiumEndsAt && <span>premium gone in {fmtLiveCountdown(p.premiumEndsAt)}</span>}
-          </div>
-        </>
-      ) : null}
-    </div>
+    <Card variant="secondary">
+      <Card.Header>
+        <Card.Title className="mono text-[11px] font-semibold tracking-[0.08em] uppercase text-muted">
+          Live price · Ethereum mainnet
+        </Card.Title>
+      </Card.Header>
+      <Card.Content>
+        {banner ? (
+          <Alert status="warning">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>This name has just been bought.</Alert.Title>
+              <Alert.Description>
+                Someone registered it before the vault could — the pooled ETH is untouched in the Safe.
+              </Alert.Description>
+            </Alert.Content>
+          </Alert>
+        ) : p ? (
+          <>
+            <div className="kv">
+              <span className="k">Registration (1 yr)</span>
+              <span className="v">{fmt(p.baseUsd)}</span>
+            </div>
+            <div className="kv">
+              <span className="k">Temporary premium</span>
+              <span className="v">{fmt(p.premiumUsd)}</span>
+            </div>
+            <div className="kv">
+              <span className="k">Total to buy now</span>
+              <span className="v big accent">{fmt(p.totalUsd)}</span>
+            </div>
+            <div className="mono mt-1.5 flex justify-between text-[13px] text-muted">
+              <span>≈ {p.totalEth.toFixed(3)} ETH</span>
+              {p.premiumEndsAt && <span>premium gone in {fmtLiveCountdown(p.premiumEndsAt)}</span>}
+            </div>
+          </>
+        ) : null}
+      </Card.Content>
+    </Card>
   );
 }

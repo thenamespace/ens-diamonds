@@ -1,15 +1,8 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/app-shell";
 import Providers from "./providers";
-
-const display = Space_Grotesk({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-display",
-  display: "swap",
-});
 
 const mono = JetBrains_Mono({
   subsets: ["latin"],
@@ -27,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "ens.diamonds — Pool up to claim premium ENS names, together",
     description:
-      "Found a premium ENS name too rich to grab solo? Start a vault, invite people through their on-chain records, and buy it with a multisig you all control.",
+      "Found a premium ENS name too rich to grab solo? Start a vault, invite people through their onchain records, and buy it with a multisig you all control.",
     type: "website",
     url: "https://ens.diamonds",
     siteName: "ens.diamonds",
@@ -43,8 +36,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${mono.variable}`}>
-      <body>
+    <html lang="en" className={`light ${mono.variable}`} data-theme="light">
+      <body className="bg-background text-foreground">
         <Providers>
           <AppShell>{children}</AppShell>
         </Providers>

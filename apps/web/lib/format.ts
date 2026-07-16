@@ -32,3 +32,9 @@ export function fmtCountdown(deadlineSec: number): string {
 export function fmtUsd(n: number): string {
   return "$" + Math.round(n).toLocaleString("en-US");
 }
+
+// Long ENS labels get a middle ellipsis for display (keeps start + end
+// readable); the full label should still be used for links, checks, and txs.
+export function shortLabel(label: string, max = 24): string {
+  return label.length <= max ? label : `${label.slice(0, 14)}…${label.slice(-6)}`;
+}

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
+import { Button, buttonVariants, Card, Chip, EmptyState, Spinner } from "@thenamespace/uikit";
 import AddressLabel from "@/components/address-label";
+import NameAvatar from "@/components/name-avatar";
 import { fmtEth } from "@/lib/format";
 import { APP_CHAIN } from "@/lib/app-chain";
 
@@ -41,18 +43,23 @@ function sharePct(deposit: string, total: string): number {
 function NameHead({ label, sub }: { label: string; sub: string }) {
   return (
     <div className="row" style={{ gap: 14 }}>
-      <div className="avatar" style={{ width: 44, height: 44, fontSize: 16 }}>
-        {label.slice(0, 1).toUpperCase()}
-      </div>
+      <NameAvatar className="rounded-full" label={label} size={44} />
       <div>
         <div style={{ fontSize: 22, fontWeight: 600 }}>
           {label}
-          <span style={{ color: "var(--faint)", fontWeight: 400 }}>.eth</span>
+          <span className="font-normal text-muted">.eth</span>
         </div>
-        <div className="sub" style={{ fontSize: 13 }}>
-          {sub}
-        </div>
+        <div className="text-[13px] text-muted">{sub}</div>
       </div>
+    </div>
+  );
+}
+
+function Stat({ label, children, mono = true }: { label: string; children: React.ReactNode; mono?: boolean }) {
+  return (
+    <div>
+      <div className="text-xs text-muted">{label}</div>
+      <div className={`${mono ? "mono " : ""}text-xl font-semibold`}>{children}</div>
     </div>
   );
 }
@@ -60,9 +67,15 @@ function NameHead({ label, sub }: { label: string; sub: string }) {
 function ActionButtons() {
   return (
     <div style={{ marginLeft: "auto", alignSelf: "center", flexWrap: "wrap", justifyContent: "flex-end" }} className="row">
-      <button className="btn btn-ghost btn-sm">Renew</button>
-      <button className="btn btn-ghost btn-sm">Transfer name</button>
-      <button className="btn btn-ghost btn-sm">Sell name</button>
+      <Button variant="outline" size="sm">
+        Renew
+      </Button>
+      <Button variant="outline" size="sm">
+        Transfer name
+      </Button>
+      <Button variant="outline" size="sm">
+        Sell name
+      </Button>
     </div>
   );
 }
@@ -87,129 +100,140 @@ export default function PortfolioPage() {
       <div className="page-head">
         <div>
           <h1>Portfolio</h1>
-          <p>Names your wallet owns or co-owns through vaults, verified live on-chain.</p>
+          <p>Names your wallet owns or co-owns through vaults, verified live onchain.</p>
         </div>
       </div>
 
       {!isConnected ? (
-        <div className="empty">
-          <span className="mark" aria-hidden />
-          <h3>Connect your wallet</h3>
-          <p>Connect your wallet (top right) to see the names you own and co-own.</p>
-        </div>
+        <EmptyState size="lg">
+          <EmptyState.Header>
+            <EmptyState.Title>Connect your wallet</EmptyState.Title>
+            <EmptyState.Description>
+              Connect your wallet (top right) to see the names you own and co-own.
+            </EmptyState.Description>
+          </EmptyState.Header>
+        </EmptyState>
       ) : isLoading ? (
-        <div className="empty">
-          <span className="mark" aria-hidden />
-          <h3>Loading your names…</h3>
-        </div>
+        <EmptyState size="lg">
+          <EmptyState.Header>
+            <EmptyState.Media>
+              <Spinner />
+            </EmptyState.Media>
+            <EmptyState.Title>Loading your names…</EmptyState.Title>
+          </EmptyState.Header>
+        </EmptyState>
       ) : empty ? (
-        <div className="empty">
-          <span className="mark" aria-hidden />
-          <h3>No names yet</h3>
-          <p>Buy a name solo or through a vault and it shows up here with your share and renewal status.</p>
-          <Link className="btn btn-primary" href="/">
-            Browse names in premium
-          </Link>
-        </div>
+        <EmptyState size="lg">
+          <EmptyState.Header>
+            <EmptyState.Title>No names yet</EmptyState.Title>
+            <EmptyState.Description>
+              Buy a name solo or through a vault and it shows up here with your share and renewal status.
+            </EmptyState.Description>
+          </EmptyState.Header>
+          <EmptyState.Content>
+            <Link className={buttonVariants({ variant: "primary" })} href="/">
+              Browse names in premium
+            </Link>
+          </EmptyState.Content>
+        </EmptyState>
       ) : (
         <div className="stack">
           {solo.map((n) => (
-            <div key={n.label} className="panel">
+            <Card key={n.label}>
               <div className="spread" style={{ alignItems: "flex-start" }}>
                 <NameHead label={n.label} sub={`in your wallet · ${fmtExpiry(n.expiry)}`} />
-                <span className="tag tag-finalized">Owned</span>
+                <Chip color="success" variant="soft" size="sm" className="mono text-[10.5px] uppercase tracking-[0.07em]">
+                  Owned
+                </Chip>
               </div>
-              <div className="row mt-16" style={{ gap: 28, flexWrap: "wrap" }}>
-                <div>
-                  <div className="sub" style={{ fontSize: 12 }}>
-                    Ownership
-                  </div>
-                  <div className="mono" style={{ fontSize: 20, fontWeight: 600 }}>
-                    100%
-                  </div>
-                </div>
-                <div>
-                  <div className="sub" style={{ fontSize: 12 }}>
-                    Held by
-                  </div>
-                  <div style={{ fontSize: 20, fontWeight: 600 }}>Your wallet</div>
-                </div>
+              <div className="row mt-4" style={{ gap: 28, flexWrap: "wrap" }}>
+                <Stat label="Ownership">100%</Stat>
+                <Stat label="Held by" mono={false}>
+                  Your wallet
+                </Stat>
                 <ActionButtons />
               </div>
-              <div className="row mt-16" style={{ gap: 8 }}>
-                <a className="btn btn-soft btn-sm" href={`${APP_CHAIN.ensAppUrl}/${n.label}.eth`} target="_blank" rel="noreferrer">
+              <div className="row mt-4" style={{ gap: 8 }}>
+                <a
+                  className={buttonVariants({ variant: "secondary", size: "sm" })}
+                  href={`${APP_CHAIN.ensAppUrl}/${n.label}.eth`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   View on ENS →
                 </a>
               </div>
-            </div>
+            </Card>
           ))}
 
           {vaults.map((v) => {
             const coOwners = [...v.coOwners].sort((a, b) => (BigInt(b.deposit) > BigInt(a.deposit) ? 1 : -1));
             return (
-              <div key={v.poolId} className="panel">
+              <Card key={v.poolId}>
                 <div className="spread" style={{ alignItems: "flex-start" }}>
                   <NameHead label={v.label} sub={`held by your vault's Safe · ${fmtExpiry(v.expiry)}`} />
-                  <span className="tag tag-finalized">Co-owned</span>
+                  <Chip color="success" variant="soft" size="sm" className="mono text-[10.5px] uppercase tracking-[0.07em]">
+                    Co-owned
+                  </Chip>
                 </div>
 
-                <div className="row mt-16" style={{ gap: 28, flexWrap: "wrap" }}>
-                  <div>
-                    <div className="sub" style={{ fontSize: 12 }}>
-                      Your share
-                    </div>
-                    <div className="mono" style={{ fontSize: 20, fontWeight: 600 }}>
-                      {sharePct(v.yourDeposit, v.totalDeposited).toFixed(1)}%
-                    </div>
-                  </div>
-                  <div>
-                    <div className="sub" style={{ fontSize: 12 }}>
-                      Your deposit
-                    </div>
-                    <div className="mono" style={{ fontSize: 20, fontWeight: 600 }}>
-                      {fmtEth(BigInt(v.yourDeposit), 4)} ETH
-                    </div>
-                  </div>
-                  <div>
-                    <div className="sub" style={{ fontSize: 12 }}>
-                      Pooled total
-                    </div>
-                    <div className="mono" style={{ fontSize: 20, fontWeight: 600 }}>
-                      {fmtEth(BigInt(v.totalDeposited), 4)} ETH
-                    </div>
-                  </div>
+                <div className="row mt-4" style={{ gap: 28, flexWrap: "wrap" }}>
+                  <Stat label="Your share">{sharePct(v.yourDeposit, v.totalDeposited).toFixed(1)}%</Stat>
+                  <Stat label="Your deposit">{fmtEth(BigInt(v.yourDeposit), 4)} ETH</Stat>
+                  <Stat label="Pooled total">{fmtEth(BigInt(v.totalDeposited), 4)} ETH</Stat>
                   <ActionButtons />
                 </div>
 
-                <details className="coowners">
-                  <summary className="coowners-head">
+                <details className="group mt-4 border-t border-separator pt-3">
+                  <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[13px] font-semibold text-muted [&::-webkit-details-marker]:hidden">
                     Co-owners · {coOwners.length}
-                    <svg className="coowners-caret" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <svg
+                      className="transition-transform duration-150 group-open:rotate-180"
+                      width="13"
+                      height="13"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
                       <path d="M6 9l6 6 6-6" />
                     </svg>
                   </summary>
-                  <div className="coowner-list">
+                  <div className="mt-3 flex flex-col gap-2.5">
                     {coOwners.map((m) => {
                       const isYou = !!address && m.address.toLowerCase() === address.toLowerCase();
                       const pctN = sharePct(m.deposit, v.totalDeposited);
                       return (
-                        <div key={m.address} className="coowner">
-                          <span className="coowner-avatar" aria-hidden>
+                        <div key={m.address} className="flex flex-wrap items-center gap-3">
+                          <span
+                            className="grid size-7 flex-none place-items-center rounded-full bg-accent-soft text-xs font-semibold text-accent"
+                            aria-hidden
+                          >
                             {m.address.slice(2, 3).toUpperCase()}
                           </span>
-                          <span className="coowner-id">
-                            <span className="coowner-name">
+                          <span className="flex min-w-0 flex-1 flex-col">
+                            <span className="flex items-center gap-2 text-sm font-medium">
                               <AddressLabel address={m.address as `0x${string}`} />
-                              {isYou && <span className="coowner-you">you</span>}
+                              {isYou && (
+                                <Chip color="accent" variant="soft" size="sm">
+                                  you
+                                </Chip>
+                              )}
                             </span>
-                            <span className="coowner-addr mono">{m.address}</span>
+                            <span className="mono truncate text-[11px] text-muted">{m.address}</span>
                           </span>
-                          <span className="coowner-contrib mono">{fmtEth(BigInt(m.deposit), 4)} ETH</span>
-                          <span className="coowner-share">
-                            <span className="coowner-bar" aria-hidden>
-                              <span style={{ width: `${Math.min(100, pctN)}%` }} />
+                          <span className="mono text-[13px]">{fmtEth(BigInt(m.deposit), 4)} ETH</span>
+                          <span className="flex w-[130px] flex-none items-center gap-2">
+                            <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-tertiary" aria-hidden>
+                              <span
+                                className="block h-full rounded-full bg-accent"
+                                style={{ width: `${Math.min(100, pctN)}%` }}
+                              />
                             </span>
-                            <span className="mono coowner-pct">{pctN.toFixed(1)}%</span>
+                            <span className="mono text-[11.5px] text-muted">{pctN.toFixed(1)}%</span>
                           </span>
                         </div>
                       );
@@ -217,15 +241,20 @@ export default function PortfolioPage() {
                   </div>
                 </details>
 
-                <div className="row mt-16" style={{ gap: 8 }}>
-                  <Link className="btn btn-soft btn-sm" href={`/pools/${v.poolId}`}>
+                <div className="row mt-4" style={{ gap: 8 }}>
+                  <Link className={buttonVariants({ variant: "secondary", size: "sm" })} href={`/pools/${v.poolId}`}>
                     View vault →
                   </Link>
-                  <a className="btn btn-ghost btn-sm" href={`${APP_CHAIN.ensAppUrl}/${v.label}.eth`} target="_blank" rel="noreferrer">
+                  <a
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                    href={`${APP_CHAIN.ensAppUrl}/${v.label}.eth`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     View on ENS →
                   </a>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>

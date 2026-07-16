@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAccount, useChainId, usePublicClient, useReadContract, useSignTypedData, useSwitchChain, useWriteContract } from "wagmi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Alert, Button, Card, Chip, ProgressBar, Spinner, Stepper, buttonVariants } from "@thenamespace/uikit";
 import { APP_CHAIN } from "@/lib/app-chain";
 import { SAFE_TX_TYPES, safeAbi, safeTxDomain, buildCallSafeTx, packSignatures, ZERO_ADDRESS } from "@/lib/safe";
 import { txErrorMessage } from "@/lib/tx-error";
@@ -118,7 +119,7 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ poolId, secret, committedAt }),
       });
-      if (!res.ok) throw new Error("Committed on-chain, but couldn't save the shared secret. Please retry.");
+      if (!res.ok) throw new Error("Committed onchain, but couldn't save the shared secret. Please retry.");
       await refresh();
     } catch (err) {
       setError(txErrorMessage(err));
@@ -199,70 +200,83 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
 
   // ---- render ----
   const header = (
-    <div className="spread" style={{ marginBottom: 12 }}>
-      <span className="panel-title" style={{ margin: 0 }}>
-        Buy the name
-      </span>
+    <Card.Header className="w-full flex-row items-center justify-between">
+      <Card.Title>Buy the name</Card.Title>
       {registered ? (
-        <span className="tag tag-finalized">Registered</span>
+        <Chip color="success" size="sm" variant="soft">
+          Registered
+        </Chip>
       ) : sniped ? (
-        <span className="tag tag-funding">Unavailable</span>
+        <Chip color="warning" size="sm" variant="soft">
+          Unavailable
+        </Chip>
       ) : (
-        <span className="tag tag-premium">Action needed</span>
+        <Chip color="accent" size="sm" variant="soft">
+          Action needed
+        </Chip>
       )}
-    </div>
+    </Card.Header>
   );
 
   if (sniped) {
     return (
-      <div className="panel">
+      <Card>
         {header}
-        <div className="buy-grid">
-          <div className="buy-main">
-            <div className="note note-warn">
-              <span>⚠</span>
-              <span>
-                <strong>{label}.eth</strong> was registered by{" "}
-                {snipedByMe ? (
-                  <>
-                    <strong>your connected wallet</strong> (outside this vault)
-                  </>
-                ) : (
-                  <span className="mono">{data?.nameOwner?.slice(0, 6)}…{data?.nameOwner?.slice(-4)}</span>
-                )}{" "}
-                — not by this vault&rsquo;s Safe, so the vault can&rsquo;t buy it anymore. The pooled ETH is untouched
-                and stays in the Safe under its multisig control.
-              </span>
-            </div>
+        <div className="grid items-start gap-5 md:grid-cols-[1.4fr_0.9fr]">
+          <div className="min-w-0">
+            <Alert status="warning">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Description>
+                  <strong>{label}.eth</strong> was registered by{" "}
+                  {snipedByMe ? (
+                    <>
+                      <strong>your connected wallet</strong> (outside this vault)
+                    </>
+                  ) : (
+                    <span className="mono">{data?.nameOwner?.slice(0, 6)}…{data?.nameOwner?.slice(-4)}</span>
+                  )}{" "}
+                  — not by this vault&rsquo;s Safe, so the vault can&rsquo;t buy it anymore. The pooled ETH is untouched
+                  and stays in the Safe under its multisig control.
+                </Alert.Description>
+              </Alert.Content>
+            </Alert>
           </div>
 
           {label && <LivePrice label={label} boughtByOther />}
         </div>
-      </div>
+      </Card>
     );
   }
 
   if (registered) {
     return (
-      <div className="panel">
+      <Card>
         {header}
-        <div className="reg-congrats">
-          <span className="reg-congrats-check" aria-hidden>
+        <div className="flex flex-col items-center gap-2 py-6 text-center">
+          <span className="flex size-11 items-center justify-center rounded-full bg-success text-success-foreground" aria-hidden>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6L9 17l-5-5" />
             </svg>
           </span>
-          <h3>
+          <h3 className="text-xl font-semibold tracking-tight">
             Congrats on registering {label}
-            <span className="eth">.eth</span>
+            <span className="text-muted">.eth</span>
           </h3>
-          <p>The name belongs to your vault&rsquo;s Safe — its contributors control it together.</p>
-          <div className="reg-congrats-actions">
-            <a className="btn btn-primary btn-sm" href={`${APP_CHAIN.ensAppUrl}/${label}.eth`} target="_blank" rel="noreferrer">
+          <p className="max-w-md text-sm text-muted">
+            The name belongs to your vault&rsquo;s Safe — its contributors control it together.
+          </p>
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+            <a
+              className={buttonVariants({ size: "sm", variant: "primary" })}
+              href={`${APP_CHAIN.ensAppUrl}/${label}.eth`}
+              target="_blank"
+              rel="noreferrer"
+            >
               View on ENS
             </a>
             <a
-              className="btn btn-ghost btn-sm"
+              className={buttonVariants({ size: "sm", variant: "outline" })}
               href={`https://app.safe.global/home?safe=${APP_CHAIN.safePrefix}:${safe}`}
               target="_blank"
               rel="noreferrer"
@@ -271,168 +285,164 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
             </a>
           </div>
         </div>
-      </div>
+      </Card>
     );
   }
 
   const signed = signatures.length;
 
   return (
-    <div className="panel">
+    <Card>
       {header}
-      <div className="buy-grid">
-        <div className="buy-main">
-          <p className="muted" style={{ fontSize: 13.5, marginTop: -4 }}>
+      <div className="grid items-start gap-5 md:grid-cols-[1.4fr_0.9fr]">
+        <div className="min-w-0">
+          <p className="text-sm text-muted">
             Register <strong>{label}.eth</strong> to your Safe.
           </p>
 
           {mode === "commit-reveal" ? (
-            <div className="stepper" style={{ marginTop: 14 }}>
-              <div className={`sstep ${!commit ? "on" : "done"}`}>
-                <span className="sstep-dot">
-                  {!commit ? (
-                    "1"
-                  ) : (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  )}
-                </span>
-                <span>
-                  <span className="sstep-t">Commit</span>
-                  <span className="sstep-d">Any contributor reserves the claim on-chain — one small gas fee.</span>
-                </span>
-              </div>
+            <Stepper className="mt-3.5" currentStep={!commit ? 0 : !readyToSign ? 1 : 2} orientation="vertical">
+              <Stepper.Step>
+                <Stepper.Indicator />
+                <Stepper.Content>
+                  <Stepper.Title>Commit</Stepper.Title>
+                  <Stepper.Description>Any contributor reserves the claim onchain — one small gas fee.</Stepper.Description>
+                </Stepper.Content>
+                <Stepper.Separator />
+              </Stepper.Step>
 
-              <div className={`sstep ${commit && !readyToSign ? "on" : readyToSign ? "done" : ""}`}>
-                <span className="sstep-dot">
-                  {readyToSign ? (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  ) : (
-                    "2"
-                  )}
-                </span>
-                <span>
-                  <span className="sstep-t">Wait 60 seconds</span>
-                  <span className="sstep-d">ENS&rsquo;s anti-front-running delay.</span>
+              <Stepper.Step>
+                <Stepper.Indicator />
+                <Stepper.Content>
+                  <Stepper.Title>Wait 60 seconds</Stepper.Title>
+                  <Stepper.Description>ENS&rsquo;s anti-front-running delay.</Stepper.Description>
                   {commit && !readyToSign && (
-                    <span className="sstep-wait" style={{ display: "block" }}>
-                      <span className="wait-bar" style={{ display: "block" }}>
-                        <span
-                          className="wait-fill"
-                          style={{ display: "block", width: `${Math.min(100, (waited / MIN_COMMIT_WAIT) * 100)}%` }}
-                        />
-                      </span>
-                      <span className="wait-label">
+                    <span className="mt-2 block w-full">
+                      <ProgressBar
+                        aria-label="Commit wait"
+                        size="sm"
+                        value={Math.min(100, (waited / MIN_COMMIT_WAIT) * 100)}
+                      >
+                        <ProgressBar.Track>
+                          <ProgressBar.Fill />
+                        </ProgressBar.Track>
+                      </ProgressBar>
+                      <span className="mt-1 flex items-center justify-between text-xs text-muted">
                         <span>Keep this tab open · safe to refresh</span>
                         <span>{remaining}s</span>
                       </span>
                     </span>
                   )}
-                </span>
-              </div>
+                </Stepper.Content>
+                <Stepper.Separator />
+              </Stepper.Step>
 
-              <div className={`sstep ${readyToSign ? "on" : ""}`}>
-                <span className="sstep-dot">3</span>
-                <span>
-                  <span className="sstep-t">Sign &amp; register</span>
-                  <span className="sstep-d">Owners sign; then anyone submits it from the Safe.</span>
-                </span>
-              </div>
-            </div>
+              <Stepper.Step>
+                <Stepper.Indicator />
+                <Stepper.Content>
+                  <Stepper.Title>Sign &amp; register</Stepper.Title>
+                  <Stepper.Description>Owners sign; then anyone submits it from the Safe.</Stepper.Description>
+                </Stepper.Content>
+              </Stepper.Step>
+            </Stepper>
           ) : (
-            <div className="stepper" style={{ marginTop: 14 }}>
-              <div className={`sstep ${enough ? "done" : "on"}`}>
-                <span className="sstep-dot">
-                  {enough ? (
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                      <path d="M20 6L9 17l-5-5" />
-                    </svg>
-                  ) : (
-                    "1"
-                  )}
-                </span>
-                <span>
-                  <span className="sstep-t">Sign</span>
-                  <span className="sstep-d">
+            <Stepper className="mt-3.5" currentStep={enough ? 1 : 0} orientation="vertical">
+              <Stepper.Step>
+                <Stepper.Indicator />
+                <Stepper.Content>
+                  <Stepper.Title>Sign</Stepper.Title>
+                  <Stepper.Description>
                     Safe owners approve the registration — {signed} of {threshold} signed.
-                  </span>
-                </span>
-              </div>
+                  </Stepper.Description>
+                </Stepper.Content>
+                <Stepper.Separator />
+              </Stepper.Step>
 
-              <div className={`sstep ${enough ? "on" : ""}`}>
-                <span className="sstep-dot">2</span>
-                <span>
-                  <span className="sstep-t">Register</span>
-                  <span className="sstep-d">Anyone submits it from the Safe; the name mints to the Safe.</span>
-                </span>
-              </div>
-            </div>
+              <Stepper.Step>
+                <Stepper.Indicator />
+                <Stepper.Content>
+                  <Stepper.Title>Register</Stepper.Title>
+                  <Stepper.Description>Anyone submits it from the Safe; the name mints to the Safe.</Stepper.Description>
+                </Stepper.Content>
+              </Stepper.Step>
+            </Stepper>
           )}
 
           {!isConnected ? (
-            <div className="note note-info mt-16">
-              <span>ℹ</span>
-              <span>Connect your wallet to register the name.</span>
-            </div>
+            <Alert className="mt-4" status="accent">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Description>Connect your wallet to register the name.</Alert.Description>
+              </Alert.Content>
+            </Alert>
           ) : wrongChain ? (
-            <button className="btn btn-primary btn-block mt-16" onClick={() => switchChain({ chainId: APP_CHAIN.chainId })}>
+            <Button className="mt-4" fullWidth variant="primary" onPress={() => switchChain({ chainId: APP_CHAIN.chainId })}>
               Switch to {APP_CHAIN.label}
-            </button>
+            </Button>
           ) : mode === "commit-reveal" && !commit ? (
             amOwner === false ? (
-              <div className="note note-info mt-16">
-                <span>ℹ</span>
-                <span>Only contributors can register this vault&rsquo;s name.</span>
-              </div>
+              <Alert className="mt-4" status="accent">
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Description>Only contributors can register this vault&rsquo;s name.</Alert.Description>
+                </Alert.Content>
+              </Alert>
             ) : (
-              <button className="btn btn-primary btn-block btn-lg mt-16" disabled={busy !== null} onClick={doCommit}>
+              <Button className="mt-4" fullWidth size="lg" variant="primary" isDisabled={busy !== null} onPress={doCommit}>
                 {busy === "commit" ? "Committing…" : "Commit"}
-              </button>
+              </Button>
             )
           ) : mode === "commit-reveal" && !readyToSign ? (
-            <button className="btn btn-primary btn-block btn-lg mt-16" disabled>
+            <Button className="mt-4" fullWidth isDisabled size="lg" variant="primary">
               Sign &amp; register — ready in {remaining}s
-            </button>
+            </Button>
           ) : !registerTx ? (
-            <div className="note note-info mt-16">
-              <span>ℹ</span>
-              <span>Preparing the registration…</span>
-            </div>
+            <Alert className="mt-4" status="accent">
+              <Alert.Indicator>
+                <Spinner size="sm" />
+              </Alert.Indicator>
+              <Alert.Content>
+                <Alert.Description>Preparing the registration…</Alert.Description>
+              </Alert.Content>
+            </Alert>
           ) : !enough ? (
             iSigned ? (
-              <div className="note note-info mt-16">
-                <span>✓</span>
-                <span>You’ve signed. Waiting for {threshold - signatures.length} more owner(s).</span>
-              </div>
+              <Alert className="mt-4" status="accent">
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Description>You’ve signed. Waiting for {threshold - signatures.length} more owner(s).</Alert.Description>
+                </Alert.Content>
+              </Alert>
             ) : amOwner === false ? (
-              <div className="note note-info mt-16">
-                <span>ℹ</span>
-                <span>Waiting for the Safe owners to sign. You’re not an owner of this Safe.</span>
-              </div>
+              <Alert className="mt-4" status="accent">
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Description>Waiting for the Safe owners to sign. You’re not an owner of this Safe.</Alert.Description>
+                </Alert.Content>
+              </Alert>
             ) : (
-              <button className="btn btn-primary btn-block btn-lg mt-16" disabled={busy !== null} onClick={doSign}>
+              <Button className="mt-4" fullWidth size="lg" variant="primary" isDisabled={busy !== null} onPress={doSign}>
                 {busy === "sign" ? "Check your wallet…" : "Sign the registration"}
-              </button>
+              </Button>
             )
           ) : (
-            <button className="btn btn-primary btn-block btn-lg mt-16" disabled={busy !== null} onClick={doExecute}>
+            <Button className="mt-4" fullWidth size="lg" variant="primary" isDisabled={busy !== null} onPress={doExecute}>
               {busy === "execute" ? "Registering…" : "Register & claim the name"}
-            </button>
+            </Button>
           )}
 
           {error && (
-            <div className="note note-warn mt-16">
-              <span>⚠</span>
-              <span>{error}</span>
-            </div>
+            <Alert className="mt-4" status="warning">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Description>{error}</Alert.Description>
+              </Alert.Content>
+            </Alert>
           )}
         </div>
 
         {label && <LivePrice label={label} />}
       </div>
-    </div>
+    </Card>
   );
 }

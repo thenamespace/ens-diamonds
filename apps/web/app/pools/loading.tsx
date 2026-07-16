@@ -1,4 +1,4 @@
-import { SkeletonPanelList } from "@/components/skeletons";
+import { SkeletonCardGrid } from "@/components/skeletons";
 
 export default function Loading() {
   return (
@@ -7,12 +7,12 @@ export default function Loading() {
         <div>
           <h1>Vaults</h1>
           <p>
-            Public vaults plus any private vaults you belong to. Ownership is always reconstructable from on-chain
+            Public vaults plus any private vaults you belong to. Ownership is always reconstructable from onchain
             deposits.
           </p>
         </div>
       </div>
-      <SkeletonPanelList count={4} />
+      <SkeletonCardGrid count={6} />
     </div>
   );
 }

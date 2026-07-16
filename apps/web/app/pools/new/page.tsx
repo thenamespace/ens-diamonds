@@ -5,11 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { useAccount, useChainId, usePublicClient, useWriteContract } from "wagmi";
 import { getAddress, isAddress, parseEventLogs } from "viem";
+import { Alert, Button, Card, Input, InputGroup, Label, Spinner, Switch } from "@thenamespace/uikit";
+import NameAvatar from "@/components/name-avatar";
+
 import { APP_CHAIN } from "@/lib/app-chain";
 import { cofferEscrow } from "@/lib/contract";
 import { cofferEscrowAbi } from "@/lib/abi/coffer-escrow";
 import { isEscrowConfigured } from "@/lib/chain";
-import { parseEther } from "@/lib/format";
+import { parseEther, shortLabel } from "@/lib/format";
 import { useAuth } from "@/hooks/use-auth";
 import { txErrorMessage } from "@/lib/tx-error";
 
@@ -30,7 +33,7 @@ const NAME_STATUS: Record<
   { text: string; kind: "ok" | "block" | "info"; note: string }
 > = {
   premium: {
-    text: "In temporary premium",
+    text: "Temporary premium",
     kind: "ok",
     note: "In its 21-day premium auction — exactly what vaults are for. Good to go.",
   },
@@ -53,6 +56,9 @@ const NAME_STATUS: Record<
   invalid: { text: "Not a valid name", kind: "block", note: "This isn't a registrable ENS label." },
   unknown: { text: "Couldn't verify", kind: "info", note: "Couldn't check this name's status right now — double-check before funding." },
 };
+
+// note kind → Alert status
+const NOTE_STATUS = { ok: "success", block: "warning", info: "accent" } as const;
 
 function shortAddr(a: string): string {
   return `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -148,43 +154,43 @@ function InviteeRow({
   const invalid = res === "bad" || isSelf || isDupe;
 
   return (
-    <div className="mt-8">
-      <div className="row" style={{ gap: 8 }}>
-        <input
-          className="input"
+    <div className="mt-2">
+      <div className="flex items-center gap-2">
+        <Input
+          aria-label="Co-owner ENS name or address"
+          className={`flex-1 ${invalid ? "border-danger" : ok ? "border-success" : ""}`}
           placeholder="vitalik.eth or 0x… address"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          style={{ borderColor: invalid ? "var(--danger)" : ok ? "var(--good)" : undefined }}
         />
-        <button type="button" className="btn btn-ghost btn-sm" onClick={onRemove}>
+        <Button isIconOnly aria-label="Remove co-owner" size="sm" variant="ghost" onPress={onRemove}>
           ✕
-        </button>
+        </Button>
       </div>
       {res === "checking" ? (
-        <div className="invitee-status muted">Resolving…</div>
+        <div className="mt-1.5 text-xs text-muted">Resolving…</div>
       ) : isSelf ? (
-        <div className="invitee-status bad">That&rsquo;s your own wallet — invite someone else.</div>
+        <div className="mt-1.5 text-xs text-danger">That&rsquo;s your own wallet — invite someone else.</div>
       ) : isDupe ? (
-        <div className="invitee-status bad">
+        <div className="mt-1.5 text-xs text-danger">
           Already added{ok.name ? ` as ${ok.name}` : ""} — remove this duplicate.
         </div>
       ) : ok ? (
-        <div className="invitee-status ok">
+        <div className="mt-1.5 flex items-center gap-1.5 text-xs text-success">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
             <path d="M20 6L9 17l-5-5" />
           </svg>
           {ok.name ? (
             <>
               <strong>{ok.name}</strong>
-              <span className="mono invitee-addr">{shortAddr(ok.address)}</span>
+              <span className="mono text-muted">{shortAddr(ok.address)}</span>
             </>
           ) : (
             <span className="mono">{shortAddr(ok.address)}</span>
           )}
         </div>
       ) : res === "bad" ? (
-        <div className="invitee-status bad">Couldn&rsquo;t resolve — enter a valid ENS name or 0x address.</div>
+        <div className="mt-1.5 text-xs text-danger">Couldn&rsquo;t resolve — enter a valid ENS name or 0x address.</div>
       ) : null}
     </div>
   );
@@ -376,7 +382,7 @@ function NewPoolForm() {
 
       <div className="page-head">
         <div>
-          <h1>Start a vault{labelInput ? ` to buy ${labelInput}.eth` : ""}</h1>
+          <h1>Start a vault{labelInput ? ` to buy ${shortLabel(labelInput)}.eth` : ""}</h1>
           <p>
             Set your stake, then invite people by address. Everyone deposits into the open-source escrow on {APP_CHAIN.label}; on
             success it deploys a multisig you all control.
@@ -385,274 +391,366 @@ function NewPoolForm() {
       </div>
 
       {!isEscrowConfigured && (
-        <div className="note note-warn" style={{ marginBottom: 20 }}>
-          <span>⚠</span>
-          <span>Escrow address not configured — set NEXT_PUBLIC_ESCROW_ADDRESS and restart the dev server.</span>
-        </div>
+        <Alert className="mb-5" status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Description>
+              Escrow address not configured — set NEXT_PUBLIC_ESCROW_ADDRESS and restart the dev server.
+            </Alert.Description>
+          </Alert.Content>
+        </Alert>
       )}
 
       <div className="cols">
         <div className="stack">
-          <div className="panel">
-            <span className="panel-title">1 · Vault basics</span>
-
-            <div className="field">
-              <label>
-                Name <span className="hint">the one .eth name this vault will buy · min 3 chars</span>
-              </label>
-              <div className="input-group" style={{ borderColor: nameBlocked ? "var(--danger)" : undefined }}>
-                <input value={labelInput} onChange={(e) => setLabelInput(e.target.value.toLowerCase())} placeholder="defi" />
-                <span className="unit">.eth</span>
+          <Card className="card-pill-header">
+            <Card.Header>
+              <Card.Title className="pill-num" data-num="1">
+                Vault basics
+              </Card.Title>
+            </Card.Header>
+            <Card.Content className="flex flex-col">
+              <div className="flex flex-col gap-1.5 pb-5">
+                <Label>
+                  Name <span className="text-xs font-normal text-muted">the one .eth name this vault will buy · min 3 chars</span>
+                </Label>
+                <InputGroup fullWidth className={nameBlocked ? "border-danger" : undefined}>
+                  {cleanLabel.length >= 3 && (
+                    <InputGroup.Prefix>
+                      <NameAvatar className="rounded-md" label={cleanLabel} size={24} />
+                    </InputGroup.Prefix>
+                  )}
+                  <InputGroup.Input
+                    className="text-base font-semibold tracking-tight"
+                    value={labelInput}
+                    onChange={(e) => setLabelInput(e.target.value.toLowerCase())}
+                    placeholder="defi"
+                  />
+                  <InputGroup.Suffix>.eth</InputGroup.Suffix>
+                </InputGroup>
+                {(nameStatus === "checking" || statusInfo) && (
+                  <p
+                    className={`mt-1 inline-flex items-center gap-1 self-start text-xs font-medium ${
+                      nameStatus === "checking"
+                        ? "text-muted"
+                        : nameStatus === "premium"
+                          ? "text-[#7141c9]"
+                          : nameStatus === "available"
+                            ? "text-[#2e6b35]"
+                            : statusInfo!.kind === "block"
+                              ? "text-[#91414d]"
+                              : "text-muted"
+                    }`}
+                    title={statusInfo?.note}
+                  >
+                    {nameStatus === "checking" ? (
+                      <>
+                        <Spinner color="current" size="sm" /> checking…
+                      </>
+                    ) : (
+                      <>
+                        {statusInfo!.kind === "block" ? "✕" : statusInfo!.kind === "ok" ? "✓" : "·"} {statusInfo!.text}
+                      </>
+                    )}
+                  </p>
+                )}
               </div>
-              {nameStatus === "checking" ? (
-                <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
-                  Checking {cleanLabel}.eth…
+
+              <div className="flex flex-col gap-1.5 border-t border-dashed border-separator pt-5 pb-5">
+                <Label>
+                  Target amount <span className="text-xs font-normal text-muted">total the vault must raise · overpay refunded</span>
+                </Label>
+                <InputGroup fullWidth>
+                  <InputGroup.Input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} />
+                  <InputGroup.Suffix>ETH</InputGroup.Suffix>
+                </InputGroup>
+                <p className="mt-1 text-xs text-muted">
+                  {signers > 1
+                    ? `Split across ${signers} people. Aim for at least ${(signers * MIN_CONTRIB).toFixed(2)} ETH so each can clear the minimum.`
+                    : "The full amount to raise. Invite people below to split it."}
                 </p>
-              ) : statusInfo ? (
-                <div
-                  className={`note ${statusInfo.kind === "ok" ? "note-ok" : statusInfo.kind === "block" ? "note-warn" : "note-info"} mt-8`}
-                >
-                  <span>{statusInfo.kind === "ok" ? "✓" : statusInfo.kind === "block" ? "⚠" : "ℹ"}</span>
-                  <span>
-                    <strong>{cleanLabel}.eth — {statusInfo.text}.</strong> {statusInfo.note}
+              </div>
+
+              <div className="flex flex-col gap-1.5 border-t border-dashed border-separator pt-5 pb-5">
+                <Label>
+                  Your contribution <span className="text-xs font-normal text-muted">{yourPct.toFixed(1)}% ownership</span>
+                </Label>
+                <InputGroup fullWidth>
+                  <InputGroup.Input inputMode="decimal" value={yourContrib} onChange={(e) => setYourContrib(e.target.value)} />
+                  <InputGroup.Suffix>ETH</InputGroup.Suffix>
+                </InputGroup>
+                <input
+                  className="range mt-2"
+                  type="range"
+                  min={0}
+                  max={targetNum || 1}
+                  step={0.001}
+                  value={Math.min(yourNum, targetNum || 1)}
+                  onChange={(e) => setYourContrib(e.target.value)}
+                />
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <span className="text-xs text-muted">
+                    Minimum <strong className="text-foreground">{MIN_CONTRIB} ETH</strong> per person
+                  </span>
+                  <div className="flex gap-1.5">
+                    <Button
+                      size="sm"
+                      variant={yourNum === MIN_CONTRIB ? "secondary" : "outline"}
+                      onPress={() => setYourContrib(String(MIN_CONTRIB))}
+                    >
+                      Min
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      isDisabled={targetNum <= 0}
+                      onPress={() => setYourContrib((targetNum / 2).toFixed(3))}
+                    >
+                      Half
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={fundsFullTarget ? "secondary" : "outline"}
+                      isDisabled={targetNum <= 0}
+                      onPress={() => setYourContrib(target)}
+                    >
+                      Fund it all
+                    </Button>
+                  </div>
+                </div>
+                {contribTooLow && (
+                  <Alert className="mt-2" status="warning">
+                    <Alert.Indicator />
+                    <Alert.Content>
+                      <Alert.Description>
+                        That&rsquo;s below the {MIN_CONTRIB} ETH minimum. Raise it to at least {MIN_CONTRIB} ETH, or fund the
+                        full {targetNum > 0 ? targetNum.toFixed(3) : ""} ETH target yourself.
+                      </Alert.Description>
+                    </Alert.Content>
+                  </Alert>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1.5 border-t border-dashed border-separator pt-5 pb-5">
+                <Label>
+                  Funding deadline <span className="text-xs font-normal text-muted">days from now</span>
+                </Label>
+                <div className="flex items-center gap-3.5">
+                  <input className="range" type="range" min={1} max={14} value={days} onChange={(e) => setDays(+e.target.value)} />
+                  <span className="flex min-w-[118px] flex-col items-end">
+                    <span className="mono font-semibold">{days}d</span>
+                    <span className="text-[11px] whitespace-nowrap text-muted" suppressHydrationWarning>
+                      ends {new Date(Date.now() + days * 86400_000).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                    </span>
                   </span>
                 </div>
-              ) : null}
-            </div>
-
-            <div className="field">
-              <label>
-                Target amount <span className="hint">total the vault must raise · overpay refunded</span>
-              </label>
-              <div className="input-group">
-                <input inputMode="decimal" value={target} onChange={(e) => setTarget(e.target.value)} />
-                <span className="unit">ETH</span>
               </div>
-              <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>
-                {signers > 1
-                  ? `Split across ${signers} people. Aim for at least ${(signers * MIN_CONTRIB).toFixed(2)} ETH so each can clear the minimum.`
-                  : "The full amount to raise. Invite people below to split it."}
+
+              <div className="flex flex-col gap-1.5 border-t border-dashed border-separator pt-5">
+                <Switch className="w-full" isSelected={isPublic} onChange={setIsPublic}>
+                  <Switch.Content className="w-full justify-between">
+                    <span>
+                      List this vault publicly <span className="text-xs font-normal text-muted">shows in the Vaults directory</span>
+                    </span>
+                    <Switch.Control>
+                      <Switch.Thumb />
+                    </Switch.Control>
+                  </Switch.Content>
+                </Switch>
+                <p className="mt-1 text-[13px] text-muted">
+                  {isPublic
+                    ? "Anyone can find this vault in the directory. Only addresses you invite can deposit."
+                    : "Private Vault: only you and the people you invite can see it. You’ll sign a quick message to confirm you’re the creator."}
+                </p>
+              </div>
+            </Card.Content>
+          </Card>
+
+          <Card className="card-pill-header">
+            <Card.Header>
+              <Card.Title className="pill-num" data-num="2">
+                Invite co-owners
+              </Card.Title>
+            </Card.Header>
+            <Card.Content>
+              <p className="text-sm text-muted">
+                <strong>At least one co-owner is required</strong>. Add each by ENS name or wallet address.
               </p>
-            </div>
-
-            <div className="field">
-              <label>
-                Your contribution <span className="hint">{yourPct.toFixed(1)}% ownership</span>
-              </label>
-              <div className="input-group">
-                <input inputMode="decimal" value={yourContrib} onChange={(e) => setYourContrib(e.target.value)} />
-                <span className="unit">ETH</span>
-              </div>
-              <input
-                className="range mt-8"
-                type="range"
-                min={0}
-                max={targetNum || 1}
-                step={0.001}
-                value={Math.min(yourNum, targetNum || 1)}
-                onChange={(e) => setYourContrib(e.target.value)}
-              />
-              <div className="amount-bar">
-                <span className="amount-min">
-                  Minimum <strong>{MIN_CONTRIB} ETH</strong> per person
-                </span>
-                <div className="chip-row">
-                  <button
-                    type="button"
-                    className={`chip-btn${yourNum === MIN_CONTRIB ? " active" : ""}`}
-                    onClick={() => setYourContrib(String(MIN_CONTRIB))}
-                  >
-                    Min
-                  </button>
-                  <button
-                    type="button"
-                    className="chip-btn"
-                    disabled={targetNum <= 0}
-                    onClick={() => setYourContrib((targetNum / 2).toFixed(3))}
-                  >
-                    Half
-                  </button>
-                  <button
-                    type="button"
-                    className={`chip-btn${fundsFullTarget ? " active" : ""}`}
-                    disabled={targetNum <= 0}
-                    onClick={() => setYourContrib(target)}
-                  >
-                    Fund it all
-                  </button>
-                </div>
-              </div>
-              {contribTooLow && (
-                <div className="note note-warn mt-8">
-                  <span>⚠</span>
-                  <span>
-                    That&rsquo;s below the {MIN_CONTRIB} ETH minimum. Raise it to at least {MIN_CONTRIB} ETH, or fund the
-                    full {targetNum > 0 ? targetNum.toFixed(3) : ""} ETH target yourself.
-                  </span>
-                </div>
+              {invitees.map((i) => (
+                <InviteeRow
+                  key={i.id}
+                  value={i.value}
+                  selfAddress={address}
+                  duplicate={duplicateIds.has(i.id)}
+                  onChange={(val) => setInvitees((v) => v.map((x) => (x.id === i.id ? { ...x, value: val } : x)))}
+                  onRemove={() => {
+                    setInvitees((v) => v.filter((x) => x.id !== i.id));
+                    setResolved((m) => {
+                      const next = { ...m };
+                      delete next[i.id];
+                      return next;
+                    });
+                  }}
+                  onResolve={(r) => setResolved((m) => ({ ...m, [i.id]: r ?? undefined }))}
+                />
+              ))}
+              <Button
+                className="mt-4"
+                size="sm"
+                variant="secondary"
+                isDisabled={invitees.length + 1 >= MAX_SIGNERS}
+                onPress={addInvitee}
+              >
+                + Add member {invitees.length + 1 >= MAX_SIGNERS ? "(max 10)" : ""}
+              </Button>
+              {signers === 2 && (
+                <Alert className="mt-4" status="warning">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>
+                      With 2 people it&rsquo;s 2-of-2: if one loses their key, the wallet is frozen. Add a third for a safety margin.
+                    </Alert.Description>
+                  </Alert.Content>
+                </Alert>
               )}
-            </div>
-
-            <div className="field">
-              <label>
-                Funding deadline <span className="hint">days from now</span>
-              </label>
-              <div className="row" style={{ gap: 14 }}>
-                <input className="range" type="range" min={1} max={14} value={days} onChange={(e) => setDays(+e.target.value)} />
-                <span className="mono" style={{ minWidth: 60, textAlign: "right", fontWeight: 600 }}>
-                  {days}d
-                </span>
-              </div>
-            </div>
-
-            <div className="field" style={{ marginTop: 18, marginBottom: 0 }}>
-              <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                <span>
-                  List this vault publicly <span className="hint">shows in the Vaults directory</span>
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={isPublic}
-                  className={`toggle${isPublic ? " on" : ""}`}
-                  onClick={() => setIsPublic((v) => !v)}
-                >
-                  <span className="toggle-knob" />
-                </button>
-              </label>
-              <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
-                {isPublic
-                  ? "Anyone can find this vault in the directory. Only addresses you invite can deposit."
-                  : "Private — only you and the people you invite can see it. You’ll sign a quick message to confirm you’re the creator."}
-              </p>
-            </div>
-          </div>
-
-          <div className="panel">
-            <span className="panel-title">2 · Invite co-owners</span>
-            <p className="muted" style={{ fontSize: 13.5, marginTop: 0 }}>
-              <strong>At least one co-owner is required</strong> — a vault splits a name between people. Add each by ENS
-              name or wallet address.
-            </p>
-            {invitees.map((i) => (
-              <InviteeRow
-                key={i.id}
-                value={i.value}
-                selfAddress={address}
-                duplicate={duplicateIds.has(i.id)}
-                onChange={(val) => setInvitees((v) => v.map((x) => (x.id === i.id ? { ...x, value: val } : x)))}
-                onRemove={() => {
-                  setInvitees((v) => v.filter((x) => x.id !== i.id));
-                  setResolved((m) => {
-                    const next = { ...m };
-                    delete next[i.id];
-                    return next;
-                  });
-                }}
-                onResolve={(r) => setResolved((m) => ({ ...m, [i.id]: r ?? undefined }))}
-              />
-            ))}
-            <button type="button" className="btn btn-soft btn-sm mt-16" onClick={addInvitee} disabled={invitees.length + 1 >= MAX_SIGNERS}>
-              + Add member {invitees.length + 1 >= MAX_SIGNERS ? "(max 10)" : ""}
-            </button>
-            {signers === 2 && (
-              <div className="note note-warn mt-16">
-                <span>⚠</span>
-                <span>With 2 people it&rsquo;s 2-of-2: if one loses their key, the wallet is frozen. Add a third for a safety margin.</span>
-              </div>
-            )}
-          </div>
+            </Card.Content>
+          </Card>
         </div>
 
         <div className="stack">
-          <div className="howto">
-            <strong className="howto-title">How a vault works</strong>
-            <div className="howto-steps">
-              <div className="howto-step">
-                <span className="howto-num">1</span>
-                <span>
-                  You raise ETH to buy <strong>{labelInput ? `${labelInput}.eth` : "one specific name"}</strong>.
+          {/* mt matches the pill cards' overhang offset so the row tops align. */}
+          <Card className="mt-[14px] border border-separator" variant="secondary">
+            <details className="group">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
+                How a vault works
+                <svg
+                  aria-hidden
+                  className="shrink-0 text-muted transition-transform duration-150 group-open:rotate-180"
+                  fill="none"
+                  height="15"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2.2"
+                  viewBox="0 0 24 24"
+                  width="15"
+                >
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </summary>
+              <div className="mt-3 flex flex-col gap-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="flex size-5 shrink-0 items-center justify-center text-[12px] font-semibold text-muted">
+                    1
+                  </span>
+                  <span className="text-sm">
+                    You raise ETH to buy <strong>{labelInput ? `${shortLabel(labelInput)}.eth` : "one specific name"}</strong>.
+                  </span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="flex size-5 shrink-0 items-center justify-center text-[12px] font-semibold text-muted">
+                    2
+                  </span>
+                  <span className="text-sm">Everyone you invite deposits toward the target.</span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="flex size-5 shrink-0 items-center justify-center text-[12px] font-semibold text-muted">
+                    3
+                  </span>
+                  <span className="text-sm">
+                    Once it&rsquo;s met, a shared Safe wallet is deployed to buy the name with. Each person co-owns it in
+                    proportion to their deposit.
+                  </span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="flex size-5 shrink-0 items-center justify-center text-[12px] font-semibold text-muted">
+                    4
+                  </span>
+                  <span className="text-sm">
+                    Buying needs a <strong>majority</strong> of co-owners to sign, so no one can act alone.
+                  </span>
+                </div>
+                <p className="m-0 text-xs text-muted">The name is locked in once you start, so choose carefully.</p>
+              </div>
+            </details>
+          </Card>
+
+          <Card>
+            <Card.Header>
+              <Card.Title>Deploy</Card.Title>
+            </Card.Header>
+            <Card.Content>
+              <div className="kv">
+                <span className="k">Target</span>
+                <span className="v">{targetNum.toFixed(3)} ETH</span>
+              </div>
+              <div className="kv">
+                <span className="k">Your deposit</span>
+                <span className="v accent">
+                  {yourNum.toFixed(3)} ETH · {yourPct.toFixed(1)}%
                 </span>
               </div>
-              <div className="howto-step">
-                <span className="howto-num">2</span>
-                <span>Everyone you invite deposits toward the target.</span>
+              <div className="kv">
+                <span className="k">Scheme</span>
+                <span className="v">{schemeLabel}</span>
               </div>
-              <div className="howto-step">
-                <span className="howto-num">3</span>
-                <span>
-                  Once it&rsquo;s met, a shared Safe wallet is deployed to buy the name with. Each person co-owns it in
-                  proportion to their deposit.
-                </span>
-              </div>
-              <div className="howto-step">
-                <span className="howto-num">4</span>
-                <span>
-                  Buying needs a <strong>majority</strong> of co-owners to sign, so no one can act alone.
-                </span>
-              </div>
-            </div>
-            <p className="howto-foot">The name is locked in once you start, so choose carefully.</p>
-          </div>
 
-          <div className="panel">
-            <span className="panel-title">Deploy</span>
-            <div className="kv">
-              <span className="k">Target</span>
-              <span className="v">{targetNum.toFixed(3)} ETH</span>
-            </div>
-            <div className="kv">
-              <span className="k">Your deposit</span>
-              <span className="v accent">
-                {yourNum.toFixed(3)} ETH · {yourPct.toFixed(1)}%
-              </span>
-            </div>
-            <div className="kv">
-              <span className="k">Scheme</span>
-              <span className="v">{schemeLabel}</span>
-            </div>
+              {!isConnected ? (
+                <Alert className="mt-4" status="accent">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>Connect your wallet (top right) to create the vault.</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : wrongChain ? (
+                <Alert className="mt-4" status="warning">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>Switch your wallet to {APP_CHAIN.label} to continue.</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : checkingInvitees.length > 0 ? (
+                <Alert className="mt-4" status="accent">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>Resolving co-owners… hang on a moment.</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : badInvitees.length > 0 || hasDuplicate || hasSelfInvite ? (
+                <Alert className="mt-4" status="warning">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>
+                      Fix the highlighted co-owner {badInvitees.length + duplicateIds.size + (hasSelfInvite ? 1 : 0) === 1 ? "error" : "errors"} above before creating the vault.
+                    </Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : inviteeAddrs.length === 0 ? (
+                <Alert className="mt-4" status="accent">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>Invite at least one co-owner to start a vault, or buy the name solo instead.</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : null}
 
-            {!isConnected ? (
-              <div className="note note-info mt-16">
-                <span>ℹ</span>
-                <span>Connect your wallet (top right) to create the vault.</span>
-              </div>
-            ) : wrongChain ? (
-              <div className="note note-warn mt-16">
-                <span>⚠</span>
-                <span>Switch your wallet to {APP_CHAIN.label} to continue.</span>
-              </div>
-            ) : checkingInvitees.length > 0 ? (
-              <div className="note note-info mt-16">
-                <span>ℹ</span>
-                <span>Resolving co-owners… hang on a moment.</span>
-              </div>
-            ) : badInvitees.length > 0 || hasDuplicate || hasSelfInvite ? (
-              <div className="note note-warn mt-16">
-                <span>⚠</span>
-                <span>Fix the highlighted co-owner {badInvitees.length + duplicateIds.size + (hasSelfInvite ? 1 : 0) === 1 ? "error" : "errors"} above before creating the vault.</span>
-              </div>
-            ) : inviteeAddrs.length === 0 ? (
-              <div className="note note-info mt-16">
-                <span>ℹ</span>
-                <span>Invite at least one co-owner to start a vault, or buy the name solo instead.</span>
-              </div>
-            ) : null}
+              {error && (
+                <Alert className="mt-4" status="warning">
+                  <Alert.Indicator />
+                  <Alert.Content>
+                    <Alert.Description>{error}</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              )}
 
-            {error && (
-              <div className="note note-warn mt-16">
-                <span>⚠</span>
-                <span>{error}</span>
+              <Button className="mt-4" fullWidth size="lg" type="submit" variant="primary" isDisabled={!canSubmit}>
+                {step === "creating" ? "Confirm create in wallet…" : step === "depositing" ? "Confirm deposit in wallet…" : "Create vault & deposit"}
+              </Button>
+              <div className="mt-2.5 text-center text-xs text-muted">
+                {busy ? "Two transactions: createPool, then your deposit." : `A ${schemeLabel} Safe deploys at finalization.`}
               </div>
-            )}
-
-            <button className="btn btn-primary btn-block btn-lg mt-16" disabled={!canSubmit}>
-              {step === "creating" ? "Confirm create in wallet…" : step === "depositing" ? "Confirm deposit in wallet…" : "Create vault & deposit"}
-            </button>
-            <div style={{ textAlign: "center", marginTop: 10, fontSize: 12.5, color: "var(--faint)" }}>
-              {busy ? "Two transactions: createPool, then your deposit." : `A ${schemeLabel} Safe deploys at finalization.`}
-            </div>
-          </div>
+            </Card.Content>
+          </Card>
         </div>
       </div>
     </form>
@@ -661,7 +759,13 @@ function NewPoolForm() {
 
 export default function NewPoolPage() {
   return (
-    <Suspense fallback={<div className="wrap">Loading…</div>}>
+    <Suspense
+      fallback={
+        <div className="wrap">
+          <Spinner />
+        </div>
+      }
+    >
       <NewPoolForm />
     </Suspense>
   );

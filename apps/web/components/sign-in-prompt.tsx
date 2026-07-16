@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "wagmi";
 import { useConnectModal } from "@rainbow-me/rainbowkit";
+import { Button, Spinner } from "@thenamespace/uikit";
 import { useAuth } from "@/hooks/use-auth";
 
 export default function SignInPrompt() {
@@ -13,7 +14,7 @@ export default function SignInPrompt() {
   const { signIn } = useAuth();
   const [busy, setBusy] = useState(false);
 
-  const onClick = async () => {
+  const onPress = async () => {
     if (!isConnected) {
       openConnectModal?.();
       return;
@@ -30,8 +31,9 @@ export default function SignInPrompt() {
   };
 
   return (
-    <button className="btn btn-primary" onClick={onClick} disabled={busy}>
+    <Button isPending={busy} onPress={onPress}>
+      {busy ? <Spinner color="current" size="sm" /> : null}
       {isConnected ? (busy ? "Check your wallet…" : "Sign in to view") : "Connect wallet"}
-    </button>
+    </Button>
   );
 }

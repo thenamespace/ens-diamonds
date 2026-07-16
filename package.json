@@ -6,5 +6,10 @@
   "workspaces": [
     "packages/*",
     "apps/*"
-  ]
+  ],
+  "pnpm": {
+    "overrides": {
+      "react-aria-components": "1.19.0"
+    }
+  }
 }

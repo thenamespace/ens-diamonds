@@ -4,18 +4,28 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
+import { Alert, Button, Card, Chip, EmptyState, ProgressBar, buttonVariants } from "@thenamespace/uikit";
 import { cofferEscrow, statusName } from "@/lib/contract";
 import { isEscrowConfigured } from "@/lib/chain";
 import { APP_CHAIN } from "@/lib/app-chain";
 import { isPoolVisible } from "@/lib/pool-filter";
 import { fmtEth, pct } from "@/lib/format";
 import AddressLabel from "@/components/address-label";
+import { SkeletonCardGrid } from "@/components/skeletons";
 
 type PoolTuple = readonly [string, `0x${string}`, bigint, bigint, number, number, number, `0x${string}`];
 
 // Bounds how many pools get detail reads per page — independent of total pool
 // count, so a flood of spam pools can't blow up the number of contract reads.
 const PAGE = 30;
+
+// Pool status → Chip color.
+const STATUS_CHIP: Record<string, "accent" | "warning" | "success" | "default"> = {
+  funding: "accent",
+  funded: "warning",
+  finalized: "success",
+  expired: "default",
+};
 
 async function fetchPrivateIds(): Promise<number[]> {
   try {
@@ -53,7 +63,7 @@ export default function PoolsPage() {
   const { data: privateData } = useQuery({ queryKey: ["pool-visibility"], queryFn: fetchPrivateIds });
   const privateIds = useMemo(() => new Set(privateData ?? []), [privateData]);
 
-  // Only fetch on-chain details (pools/status/invited) for the bounded,
+  // Only fetch onchain details (pools/status/invited) for the bounded,
   // paginated slice of the newest ids.
   const per = viewer ? 3 : 2;
   const contracts = page
@@ -91,49 +101,58 @@ export default function PoolsPage() {
         <div>
           <h1>Vaults</h1>
           <p>
-            Public vaults plus any private vaults you belong to. Ownership is always reconstructable from on-chain
+            Public vaults plus any private vaults you belong to. Ownership is always reconstructable from onchain
             deposits.
           </p>
         </div>
-        <Link className="btn btn-primary" href="/pools/new">
+        <Link className={buttonVariants({ variant: "primary" })} href="/pools/new">
           Start a vault
         </Link>
       </div>
 
       {!isEscrowConfigured ? (
-        <div className="note note-warn">
-          <span>⚠</span>
-          <span>Escrow address not configured. Set NEXT_PUBLIC_ESCROW_ADDRESS and restart the dev server.</span>
-        </div>
+        <Alert status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Description>
+              Escrow address not configured. Set NEXT_PUBLIC_ESCROW_ADDRESS and restart the dev server.
+            </Alert.Description>
+          </Alert.Content>
+        </Alert>
       ) : failed ? (
-        <div className="empty">
-          <span className="mark" aria-hidden />
-          <h3>Couldn&rsquo;t load vaults</h3>
-          <p>The {APP_CHAIN.label} RPC didn&rsquo;t respond. Give it a moment and try again.</p>
-          <button className="btn btn-primary" onClick={() => refetchCount()}>
-            Retry
-          </button>
-        </div>
+        <EmptyState>
+          <EmptyState.Header>
+            <EmptyState.Title>Couldn&rsquo;t load vaults</EmptyState.Title>
+            <EmptyState.Description>
+              The {APP_CHAIN.label} RPC didn&rsquo;t respond. Give it a moment and try again.
+            </EmptyState.Description>
+          </EmptyState.Header>
+          <EmptyState.Content>
+            <Button variant="primary" onPress={() => refetchCount()}>
+              Retry
+            </Button>
+          </EmptyState.Content>
+        </EmptyState>
       ) : loading ? (
-        <div className="empty">
-          <span className="mark" aria-hidden />
-          <h3>Loading vaults…</h3>
-        </div>
+        <SkeletonCardGrid count={6} />
       ) : visible.length === 0 ? (
-        <div className="empty">
-          <span className="mark" aria-hidden />
-          <h3>{total === 0 ? "No vaults yet" : "No vaults to show"}</h3>
-          <p>
-            {total === 0
-              ? "Be the first — start a vault for a name and invite people."
-              : "Public vaults you can join appear here. Connect your wallet to also see private vaults you belong to."}
-          </p>
-          <Link className="btn btn-primary" href="/pools/new">
-            Start a vault
-          </Link>
-        </div>
+        <EmptyState>
+          <EmptyState.Header>
+            <EmptyState.Title>{total === 0 ? "No vaults yet" : "No vaults to show"}</EmptyState.Title>
+            <EmptyState.Description>
+              {total === 0
+                ? "Be the first — start a vault for a name and invite people."
+                : "Public vaults you can join appear here. Connect your wallet to also see private vaults you belong to."}
+            </EmptyState.Description>
+          </EmptyState.Header>
+          <EmptyState.Content>
+            <Link className={buttonVariants({ variant: "primary" })} href="/pools/new">
+              Start a vault
+            </Link>
+          </EmptyState.Content>
+        </EmptyState>
       ) : (
-        <div className="grid">
+        <div className="card-grid">
           {visible.map(({ id, i }) => {
             const pool = data![i * per]!.result as PoolTuple;
             const statusNum = data?.[i * per + 1]?.result as number | undefined;
@@ -142,29 +161,35 @@ export default function PoolsPage() {
             const funded = pct(totalDeposited, targetAmount);
             const isPrivate = privateIds.has(id);
             return (
-              <Link key={id} href={`/pools/${id}`} className="ncard">
-                <div className="ncard-top">
-                  <span className={`tag tag-${status}`}>{status}</span>
-                  <span className="mono" style={{ fontSize: 12, color: "var(--faint)" }}>
-                    {isPrivate ? "🔒 " : ""}#{id} · majority
-                  </span>
-                </div>
-                <div className="ncard-name">
-                  {label}
-                  <span className="eth">.eth</span>
-                </div>
-                <div className="ncard-sub">
-                  by <AddressLabel address={creator} />
-                </div>
-                <div className="progress mt-16">
-                  <div className="fill" style={{ width: `${funded}%` }} />
-                </div>
-                <div className="progress-label">
-                  <span>{funded.toFixed(0)}% funded</span>
-                  <span>
-                    {fmtEth(totalDeposited, 2)} / {fmtEth(targetAmount, 2)}
-                  </span>
-                </div>
+              <Link key={id} href={`/pools/${id}`} className="group block">
+                <Card className="h-full transition-colors">
+                  <div className="flex items-center justify-between">
+                    <Chip color={STATUS_CHIP[status] ?? "default"} size="sm" variant="soft">
+                      {status}
+                    </Chip>
+                    <span className="mono text-xs text-muted">
+                      {isPrivate ? "🔒 " : ""}#{id} · majority
+                    </span>
+                  </div>
+                  <div className="mt-2 text-lg font-semibold tracking-tight">
+                    {label}
+                    <span className="text-muted">.eth</span>
+                  </div>
+                  <div className="mt-0.5 text-sm text-muted">
+                    by <AddressLabel address={creator} />
+                  </div>
+                  <ProgressBar aria-label="Funding progress" className="mt-4" size="sm" value={funded}>
+                    <ProgressBar.Track>
+                      <ProgressBar.Fill />
+                    </ProgressBar.Track>
+                  </ProgressBar>
+                  <div className="mt-1.5 flex items-center justify-between text-xs text-muted">
+                    <span>{funded.toFixed(0)}% funded</span>
+                    <span>
+                      {fmtEth(totalDeposited, 2)} / {fmtEth(targetAmount, 2)}
+                    </span>
+                  </div>
+                </Card>
               </Link>
             );
           })}
@@ -172,16 +197,16 @@ export default function PoolsPage() {
       )}
 
       {isEscrowConfigured && !loading && !failed && (total ?? 0) > 0 && (
-        <div className="mt-16" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+        <div className="mt-4 flex flex-col items-center gap-2">
           {(total ?? 0) > page.length && (
-            <p className="mono" style={{ fontSize: 12, color: "var(--faint)" }}>
+            <p className="mono text-xs text-muted">
               Showing newest {page.length} of {total} vaults
             </p>
           )}
           {visibleCount < (total ?? 0) && (
-            <button className="btn btn-soft btn-sm" onClick={() => setVisibleCount((c) => c + PAGE)}>
+            <Button size="sm" variant="secondary" onPress={() => setVisibleCount((c) => c + PAGE)}>
               Load more
-            </button>
+            </Button>
           )}
         </div>
       )}
