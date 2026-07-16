@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useAccount } from "wagmi";
 import { useQuery } from "@tanstack/react-query";
-import { Button, buttonVariants, Card, Chip, EmptyState, Spinner } from "@thenamespace/uikit";
+import { buttonVariants, Card, Chip, EmptyState, Spinner } from "@thenamespace/uikit";
 import AddressLabel from "@/components/address-label";
 import NameAvatar from "@/components/name-avatar";
 import { fmtEth } from "@/lib/format";
@@ -60,22 +60,6 @@ function Stat({ label, children, mono = true }: { label: string; children: React
     <div>
       <div className="text-xs text-muted">{label}</div>
       <div className={`${mono ? "mono " : ""}text-xl font-semibold`}>{children}</div>
-    </div>
-  );
-}
-
-function ActionButtons() {
-  return (
-    <div style={{ marginLeft: "auto", alignSelf: "center", flexWrap: "wrap", justifyContent: "flex-end" }} className="row">
-      <Button variant="outline" size="sm">
-        Renew
-      </Button>
-      <Button variant="outline" size="sm">
-        Transfer name
-      </Button>
-      <Button variant="outline" size="sm">
-        Sell name
-      </Button>
     </div>
   );
 }
@@ -151,7 +135,6 @@ export default function PortfolioPage() {
                 <Stat label="Held by" mono={false}>
                   Your wallet
                 </Stat>
-                <ActionButtons />
               </div>
               <div className="row mt-4" style={{ gap: 8 }}>
                 <a
@@ -179,10 +162,9 @@ export default function PortfolioPage() {
 
                 <div className="row mt-4" style={{ gap: 28, flexWrap: "wrap" }}>
                   <Stat label="Your share">{sharePct(v.yourDeposit, v.totalDeposited).toFixed(1)}%</Stat>
-                  <Stat label="Your deposit">{fmtEth(BigInt(v.yourDeposit), 4)} ETH</Stat>
-                  <Stat label="Pooled total">{fmtEth(BigInt(v.totalDeposited), 4)} ETH</Stat>
-                  <ActionButtons />
-                </div>
+                  <Stat label="Your deposit">{fmtEth(BigInt(v.yourDeposit), 4)}</Stat>
+                  <Stat label="Pooled total">{fmtEth(BigInt(v.totalDeposited), 4)}</Stat>
+                  </div>
 
                 <details className="group mt-4 border-t border-separator pt-3">
                   <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[13px] font-semibold text-muted [&::-webkit-details-marker]:hidden">
@@ -225,7 +207,7 @@ export default function PortfolioPage() {
                             </span>
                             <span className="mono truncate text-[11px] text-muted">{m.address}</span>
                           </span>
-                          <span className="mono text-[13px]">{fmtEth(BigInt(m.deposit), 4)} ETH</span>
+                          <span className="mono text-[13px]">{fmtEth(BigInt(m.deposit), 4)}</span>
                           <span className="flex w-[130px] flex-none items-center gap-2">
                             <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-tertiary" aria-hidden>
                               <span
@@ -252,6 +234,14 @@ export default function PortfolioPage() {
                     rel="noreferrer"
                   >
                     View on ENS →
+                  </a>
+                  <a
+                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                    href={`https://app.safe.global/home?safe=${APP_CHAIN.safePrefix}:${v.safe}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    View in Safe →
                   </a>
                 </div>
               </Card>

@@ -59,15 +59,6 @@ export default function AboutPage() {
           <Lead>No one can run off with the money, with a purchased name, and no single person can act alone.</Lead>
         </section>
 
-        <section className="mt-12 border-t border-separator pt-9 text-center">
-          <Lead>
-            ens.diamonds is made by the{" "}
-            <a href="https://namespace.ninja" target="_blank" rel="noreferrer">
-              Namespace
-            </a>{" "}
-            team — an ENS-DAO-backed service provider.
-          </Lead>
-        </section>
       </div>
     </div>
   );

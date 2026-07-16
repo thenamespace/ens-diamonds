@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Navbar } from "@thenamespace/uikit";
+import { BadgeCheckIcon, HugeiconsIcon } from "@thenamespace/uikit/icons";
 import ConnectButton from "./connect-button";
 import { APP_CHAIN } from "@/lib/app-chain";
 import { ESCROW_ADDRESS, isEscrowConfigured } from "@/lib/chain";
@@ -33,7 +34,6 @@ const footerLink = "text-[13.5px] text-muted transition-colors hover:text-foregr
 // The site's final tear-off stub: dashed perforation on top, recessed ticket
 // surface, nav + protocol trust links, ghost wordmark at the very bottom.
 function SiteFooter() {
-  const escrowShort = `${ESCROW_ADDRESS.slice(0, 6)}…${ESCROW_ADDRESS.slice(-4)}`;
   return (
     <footer className="site-footer mt-16">
       <div className="mx-auto w-full max-w-[1180px] px-6 pt-12 pb-6">
@@ -49,10 +49,15 @@ function SiteFooter() {
               Pool ETH with friends to claim premium ENS names together — escrowed onchain, owned by a multisig you all
               control.
             </p>
-            <span className="eyebrow">
-              {APP_CHAIN.label}
-              {APP_CHAIN.isTestnet ? " testnet" : ""} · escrow live
-            </span>
+            <a
+              className="inline-flex items-center gap-2 rounded-full border border-separator bg-surface px-3.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors hover:text-foreground"
+              href="https://ens.domains"
+              rel="noreferrer"
+              target="_blank"
+            >
+              <HugeiconsIcon className="text-[#2f6bff]" icon={BadgeCheckIcon} size={15} strokeWidth={2} aria-hidden />
+              ENS Service Provider
+            </a>
           </div>
 
           <div className="flex flex-wrap gap-x-14 gap-y-10">
@@ -80,7 +85,7 @@ function SiteFooter() {
                   target="_blank"
                   title="Verify the escrow contract yourself"
                 >
-                  Escrow · {escrowShort} ↗
+                  Escrow contract ↗
                 </a>
               )}
               <a className={footerLink} href={APP_CHAIN.ensAppUrl} rel="noreferrer" target="_blank">

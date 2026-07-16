@@ -21,7 +21,7 @@ export default async function Discover() {
     <div className="wrap">
       <div className="page-head">
         <div>
-          <span className="eyebrow">Live auction · Ethereum mainnet</span>
+          <span className="eyebrow">Live · Ethereum mainnet</span>
           <h1 style={{ marginTop: 16 }}>Names in temporary premium</h1>
           <p>
             Recently expired ENS names, decaying through their 21-day premium auction. Pool up to grab the ones worth
