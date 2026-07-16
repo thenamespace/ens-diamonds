@@ -24,3 +24,5 @@ broadcast/**/dry-run/
 # Logs
 *.log
 npm-debug.log*
+.vercel
+.env*
