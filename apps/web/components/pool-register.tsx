@@ -246,14 +246,30 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
     return (
       <div className="panel">
         {header}
-        <div className="note note-info" style={{ background: "rgba(34,197,94,0.1)" }}>
-          <span>✓</span>
-          <span>
-            <strong>{label}.eth</strong> is registered and owned by your vault’s Safe.{" "}
-            <a href={`${APP_CHAIN.ensAppUrl}/${label}.eth`} target="_blank" rel="noreferrer" style={{ color: "var(--accent-2)" }}>
-              View on ENS →
-            </a>
+        <div className="reg-congrats">
+          <span className="reg-congrats-check" aria-hidden>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
           </span>
+          <h3>
+            Congrats on registering {label}
+            <span className="eth">.eth</span>
+          </h3>
+          <p>The name belongs to your vault&rsquo;s Safe — its contributors control it together.</p>
+          <div className="reg-congrats-actions">
+            <a className="btn btn-primary btn-sm" href={`${APP_CHAIN.ensAppUrl}/${label}.eth`} target="_blank" rel="noreferrer">
+              View on ENS
+            </a>
+            <a
+              className="btn btn-ghost btn-sm"
+              href={`https://app.safe.global/home?safe=${APP_CHAIN.safePrefix}:${safe}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              View in Safe
+            </a>
+          </div>
         </div>
       </div>
     );
