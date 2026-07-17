@@ -12,7 +12,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://ens.diamonds"),
+  metadataBase: new URL("https://www.ens.diamonds"),
   title: "ens.diamonds — Pool up to claim premium ENS names, together",
   description:
     "Premium ENS names cost thousands. ens.diamonds lets a group pool ETH to buy one together — held in an open-source escrow with unilateral refunds, then registered by a multisig you all control.",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     description:
       "Found a premium ENS name too rich to grab solo? Start a vault, invite people through their onchain records, and buy it with a multisig you all control.",
     type: "website",
-    url: "https://ens.diamonds",
+    url: "https://www.ens.diamonds",
     siteName: "ens.diamonds",
     images: [{ url: "/diamonds-preview.png", width: 2400, height: 1260, alt: "ens.diamonds" }],
   },
