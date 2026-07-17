@@ -272,6 +272,48 @@ contract EnsDiamondsEscrowTest is Test {
         escrow.deposit{value: 1 ether}(id);
     }
 
+    function test_deposit_revertsWhenFullAfterLockLapses() public {
+        // Regression (external audit, Finding 1): a pool at target whose
+        // execution window lapsed is back in Funding status but has a zero
+        // remaining gap. Before the PoolFull guard, a 1-wei deposit here was
+        // fully refunded yet still pushed the sender as a zero-stake
+        // contributor (isExactGap: 0 == 0), re-armed fundedAt, and — repeated
+        // across lapses — inserted duplicate owners that brick finalize().
+        uint256 id = _fundPool(); // alice 6 + bob 4 = 10 ETH target, Funded
+        vm.warp(block.timestamp + 1 days + 1); // lock lapsed → Funding again
+        assertEq(uint256(escrow.status(id)), uint256(EnsDiamondsEscrow.PoolStatus.Funding));
+
+        // creator is invited but has zero deposit — the attacker profile.
+        vm.deal(creator, 1 ether);
+        vm.prank(creator);
+        vm.expectRevert(EnsDiamondsEscrow.PoolFull.selector);
+        escrow.deposit{value: 1 wei}(id);
+
+        // Contributor set and fundedAt are untouched.
+        (address[] memory addrs,) = escrow.getContributors(id);
+        assertEq(addrs.length, 2, "no zero-stake contributor planted");
+        (,,,,, uint40 fundedAt,,) = escrow.pools(id);
+        assertGt(fundedAt, 0, "fundedAt not re-armed by a rejected deposit");
+    }
+
+    function test_deposit_worksAgainAfterLapsedPoolReopensGap() public {
+        // Sanity: the PoolFull guard only blocks deposits while the gap is
+        // zero. Once a withdrawal reopens it, refilling works as before.
+        uint256 id = _fundPool();
+        vm.warp(block.timestamp + 1 days + 1); // lock lapsed → Funding
+
+        vm.prank(bob);
+        escrow.withdraw(id); // gap reopens: 4 ETH
+
+        vm.deal(creator, 100 ether);
+        vm.prank(creator); // creator is auto-invited
+        escrow.deposit{value: 4 ether}(id); // refills to target
+
+        assertEq(uint256(escrow.status(id)), uint256(EnsDiamondsEscrow.PoolStatus.Funded));
+        (address[] memory addrs,) = escrow.getContributors(id);
+        assertEq(addrs.length, 2, "alice + creator");
+    }
+
     function test_withdraw_happyPathDuringFunding() public {
         uint256 id = _createDefaultPool();
         vm.deal(alice, 100 ether);

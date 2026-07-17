@@ -77,6 +77,7 @@ contract EnsDiamondsEscrow {
     error ZeroValue();
     error BelowMinimum();
     error NoDeposit();
+    error PoolFull();
     error WithdrawLocked();
     error NotContributor();
     error SafeDeployFailed();
@@ -172,6 +173,12 @@ contract EnsDiamondsEscrow {
         // gap-filling deposit. (msg.value <= remaining ⇒ cast is safe; else amount
         // = remaining which is already uint96.)
         uint96 remaining = p.targetAmount - p.totalDeposited;
+        // A pool at target can be in Funding status (execution window lapsed
+        // without finalize). Accepting a deposit then would credit 0 wei, refund
+        // everything, and still push msg.sender as a zero-stake contributor —
+        // re-arming the funding lock and (repeated) planting duplicate Safe
+        // owners that brick finalize(). Nothing to accept ⇒ reject.
+        if (remaining == 0) revert PoolFull();
         uint96 amount = msg.value > remaining ? remaining : uint96(msg.value);
         uint256 refund = msg.value - amount;
 
