@@ -24,13 +24,13 @@ export const metadata: Metadata = {
     type: "website",
     url: "https://ens.diamonds",
     siteName: "ens.diamonds",
-    images: [{ url: "/coffer-logo.png", width: 500, height: 500, alt: "ens.diamonds" }],
+    images: [{ url: "/diamonds-preview.png", width: 2400, height: 1260, alt: "ens.diamonds" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "ens.diamonds — Pool up to claim premium ENS names, together",
     description: "Pool ETH to buy a premium ENS name. Open-source escrow, unilateral refunds, a multisig you all control.",
-    images: ["/coffer-logo.png"],
+    images: ["/diamonds-preview.png"],
   },
 };
 
