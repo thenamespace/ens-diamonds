@@ -3,12 +3,16 @@ import { getEnsNameData, weiToUsd, GRACE, PREMIUM } from "@/lib/ens-name";
 import { sepoliaClient } from "@/lib/sepolia-client";
 import { ENS_BASE_REGISTRAR, baseRegistrarAbi } from "@/lib/ens-registrar";
 
+import { readLimiter, clientId } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
 // Live ENS status + mainnet price for a label. Used by the vault-creation form
 // (status gating) and the vault Buy panel (live price display).
 // GET /api/name-status?label=<label> → { status, price?, available? }
 export async function GET(req: Request) {
+  if (!(await readLimiter(clientId(req), "name-status"))) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   const raw = new URL(req.url).searchParams.get("label") ?? "";
   if (raw.length > 255) return Response.json({ status: "invalid", available: null });
   const label = raw.trim().toLowerCase().replace(/\.eth$/, "");

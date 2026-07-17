@@ -1,10 +1,11 @@
-import { isAddress, getAddress, labelhash } from "viem";
+import { isAddress, getAddress, labelhash, namehash } from "viem";
 import { sepoliaClient } from "@/lib/sepolia-client";
 import { getSoloNames } from "@/lib/portfolio";
 import { cofferEscrow } from "@/lib/contract";
 import { assertEscrowConfigured } from "@/lib/chain";
-import { ENS_BASE_REGISTRAR, baseRegistrarAbi } from "@/lib/ens-registrar";
+import { ENS_BASE_REGISTRAR, ENS_REGISTRY, baseRegistrarAbi, ensRegistryAbi } from "@/lib/ens-registrar";
 
+import { readLimiter, clientId } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
 const noStore = { "cache-control": "no-store" };
@@ -24,18 +25,35 @@ export type PortfolioVault = {
   coOwners: { address: string; deposit: string }[];
 };
 
+const ZERO = "0x0000000000000000000000000000000000000000";
+
+// Three reads per label. The REGISTRY owner is the authoritative holder — on
+// post-migration mainnet the registrar's NFT is custodied by an ENS system
+// contract, so ownerOf() alone would deny ownership the Safe/wallet has.
 function nameReads(label: string) {
   const id = BigInt(labelhash(label));
   return [
+    { address: ENS_REGISTRY, abi: ensRegistryAbi, functionName: "owner" as const, args: [namehash(`${label}.eth`)] },
     { address: ENS_BASE_REGISTRAR, abi: baseRegistrarAbi, functionName: "ownerOf" as const, args: [id] },
     { address: ENS_BASE_REGISTRAR, abi: baseRegistrarAbi, functionName: "nameExpires" as const, args: [id] },
-  ];
+  ] as const;
+}
+
+// True when either ownership layer reports `who` as the holder.
+function ownsName(reads: { status: string; result?: unknown }[], who: string): boolean {
+  const w = who.toLowerCase();
+  const registry = reads[0]?.status === "success" ? String(reads[0].result).toLowerCase() : null;
+  const registrar = reads[1]?.status === "success" ? String(reads[1].result).toLowerCase() : null;
+  return (registry !== null && registry !== ZERO && registry === w) || registrar === w;
 }
 
 // GET /api/portfolio?address=0x… → the wallet's real holdings, verified on-chain:
 //  - solo: names it registered through the app AND still owns
 //  - vaults: finalized vaults it contributed to (with shares + whether the Safe holds the name)
 export async function GET(req: Request) {
+  if (!(await readLimiter(clientId(req), "portfolio"))) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   assertEscrowConfigured();
   const raw = new URL(req.url).searchParams.get("address") ?? "";
   if (!isAddress(raw)) return Response.json({ error: "Bad address" }, { status: 400 });
@@ -47,9 +65,9 @@ export async function GET(req: Request) {
   if (soloLabels.length > 0) {
     const reads = await sepoliaClient.multicall({ contracts: soloLabels.flatMap(nameReads) });
     soloLabels.forEach((label, i) => {
-      const owner = reads[i * 2];
-      const expires = reads[i * 2 + 1];
-      if (owner.status === "success" && String(owner.result).toLowerCase() === address.toLowerCase()) {
+      const slice = reads.slice(i * 3, i * 3 + 3);
+      const expires = slice[2];
+      if (ownsName(slice, address)) {
         solo.push({ label, expiry: expires.status === "success" ? Number(expires.result) : 0 });
       }
     });
@@ -95,15 +113,13 @@ export async function GET(req: Request) {
         const reads = await sepoliaClient.multicall({ contracts: nameReads(label) });
 
         const coOwners = addrs.map((c, i) => ({ address: c, deposit: (amounts[i] ?? 0n).toString() }));
-        const ownerRead = reads[0];
-        const expiresRead = reads[1];
-        const nameOwner = ownerRead.status === "success" ? String(ownerRead.result).toLowerCase() : null;
+        const expiresRead = reads[2];
 
         vaults.push({
           poolId: id,
           label,
           safe,
-          safeOwns: nameOwner === safe.toLowerCase(),
+          safeOwns: ownsName(reads as { status: string; result?: unknown }[], safe),
           expiry: expiresRead.status === "success" ? Number(expiresRead.result) : null,
           yourDeposit: coOwners.find((c) => c.address.toLowerCase() === address.toLowerCase())?.deposit ?? "0",
           totalDeposited: pool[3].toString(),

@@ -7,7 +7,9 @@ import { Alert, Button, Card, Chip, ProgressBar, Spinner, Stepper, buttonVariant
 import { APP_CHAIN } from "@/lib/app-chain";
 import { SAFE_TX_TYPES, safeAbi, safeTxDomain, buildCallSafeTx, packSignatures, ZERO_ADDRESS } from "@/lib/safe";
 import { txErrorMessage } from "@/lib/tx-error";
-import { buildRegistration, randomSecret, v2ControllerAbi, ENS_CONTROLLER, MIN_COMMIT_WAIT, REGISTRATION_MODE } from "@/lib/ens-registrar";
+import { buildRegistration, randomSecret, v2ControllerAbi, ENS_CONTROLLER, ENS_RESOLVER, ONE_YEAR, MIN_COMMIT_WAIT, REGISTRATION_MODE } from "@/lib/ens-registrar";
+import { valueWithinBand } from "@/lib/registrar-flow";
+import { decodeFunctionData } from "viem";
 import { useAuth } from "@/hooks/use-auth";
 import LivePrice from "@/components/live-price";
 
@@ -128,11 +130,53 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
     }
   }
 
+  // Never sign what we can't independently verify: the server supplies the
+  // Safe-tx, but a compromised server must not be able to get owners to sign
+  // an arbitrary drain. Recompute/decode everything checkable client-side.
+  async function assertRegisterTxHonest(tx: RegisterTx) {
+    if (tx.to.toLowerCase() !== ENS_CONTROLLER.toLowerCase()) {
+      throw new Error("Registration transaction targets an unexpected contract. Refresh and try again.");
+    }
+    const decoded = decodeFunctionData({ abi: v2ControllerAbi, data: tx.data as `0x${string}` });
+    if (decoded.functionName !== "register") {
+      throw new Error("Registration transaction calls an unexpected function. Refresh and try again.");
+    }
+    const reg = decoded.args[0] as { label: string; owner: string; duration: bigint; resolver: string; reverseRecord: number; data: readonly unknown[] };
+    const ok =
+      reg.label === label &&
+      reg.owner.toLowerCase() === safe.toLowerCase() &&
+      reg.duration === ONE_YEAR &&
+      reg.resolver.toLowerCase() === ENS_RESOLVER.toLowerCase() &&
+      reg.reverseRecord === 0 &&
+      reg.data.length === 0;
+    if (!ok) {
+      throw new Error("Registration details don't match this vault. Refresh and try again.");
+    }
+    const value = BigInt(tx.value);
+    if (mode === "free-instant") {
+      if (value !== 0n) throw new Error("Unexpected payment on a free registration. Refresh and try again.");
+      return;
+    }
+    // Commit-reveal: the signed value must sit in the same fresh-price band the
+    // server enforces (>= price, <= 130% of price).
+    if (!publicClient) throw new Error("No RPC connection. Refresh and try again.");
+    const price = (await publicClient.readContract({
+      address: ENS_CONTROLLER,
+      abi: v2ControllerAbi,
+      functionName: "rentPrice",
+      args: [label, ONE_YEAR],
+    })) as { base: bigint; premium: bigint };
+    if (!valueWithinBand(value, price.base + price.premium)) {
+      throw new Error("Registration price moved out of range. Refresh to re-pin it and sign again.");
+    }
+  }
+
   async function doSign() {
     if (!registerTx) return;
     setError(null);
     setBusy("sign");
     try {
+      await assertRegisterTxHonest(registerTx);
       const tx = buildCallSafeTx({
         to: registerTx.to,
         value: BigInt(registerTx.value),
@@ -236,7 +280,7 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
                   ) : (
                     <span className="mono">{data?.nameOwner?.slice(0, 6)}…{data?.nameOwner?.slice(-4)}</span>
                   )}{" "}
-                  — not by this vault&rsquo;s Safe, so the vault can&rsquo;t buy it anymore. The pooled ETH is untouched
+                  and not by this vault&rsquo;s Safe, so the vault can&rsquo;t buy it anymore. The pooled ETH is untouched
                   and stays in the Safe under its multisig control.
                 </Alert.Description>
               </Alert.Content>
@@ -264,7 +308,7 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
             <span className="text-muted">.eth</span>
           </h3>
           <p className="max-w-md text-sm text-muted">
-            The name belongs to your vault&rsquo;s Safe — its contributors control it together.
+            The name belongs to your vault&rsquo;s Safe. Its contributors control it together.
           </p>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
             <a
@@ -306,7 +350,7 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
                 <Stepper.Indicator />
                 <Stepper.Content>
                   <Stepper.Title>Commit</Stepper.Title>
-                  <Stepper.Description>Any contributor reserves the claim onchain — one small gas fee.</Stepper.Description>
+                  <Stepper.Description>Any contributor reserves the claim onchain for one small gas fee.</Stepper.Description>
                 </Stepper.Content>
                 <Stepper.Separator />
               </Stepper.Step>
@@ -352,7 +396,7 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
                 <Stepper.Content>
                   <Stepper.Title>Sign</Stepper.Title>
                   <Stepper.Description>
-                    Safe owners approve the registration — {signed} of {threshold} signed.
+                    Safe owners approve the registration. {signed} of {threshold} signed.
                   </Stepper.Description>
                 </Stepper.Content>
                 <Stepper.Separator />
@@ -394,7 +438,7 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
             )
           ) : mode === "commit-reveal" && !readyToSign ? (
             <Button className="mt-4" fullWidth isDisabled size="lg" variant="primary">
-              Sign &amp; register — ready in {remaining}s
+              Sign &amp; register · ready in {remaining}s
             </Button>
           ) : !registerTx ? (
             <Alert className="mt-4" status="accent">

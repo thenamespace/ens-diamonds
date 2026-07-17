@@ -1,4 +1,4 @@
-import { encodeFunctionData, labelhash } from "viem";
+import { encodeFunctionData, labelhash, namehash } from "viem";
 import { getPool, isContributor, readCommitTimestamp, sepoliaClient } from "@/lib/sepolia-client";
 import { getSession } from "@/lib/session";
 import { getRegParams, getSignatures, clearSignatures, getCommit, saveCommit, clearCommit } from "@/lib/pool-registration";
@@ -9,6 +9,8 @@ import {
   buildRegistration,
   ENS_CONTROLLER,
   ENS_BASE_REGISTRAR,
+  ENS_REGISTRY,
+  ensRegistryAbi,
   REGISTRATION_MODE,
   ONE_YEAR,
   SECRET_RE,
@@ -16,7 +18,7 @@ import {
 import { registerValue, chainCommitFreshness, valueWithinBand } from "@/lib/registrar-flow";
 import { buildCallSafeTx, safeAbi, safeTxHash } from "@/lib/safe";
 import { CHAIN, assertEscrowConfigured } from "@/lib/chain";
-import { apiLimiter, clientId } from "@/lib/rate-limit";
+import { apiLimiter, readLimiter, clientId } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -76,6 +78,9 @@ async function buildCommitRevealTx(
 }
 
 export async function GET(req: Request) {
+  if (!(await readLimiter(clientId(req), "registration"))) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   assertEscrowConfigured();
   const poolId = Number(new URL(req.url).searchParams.get("poolId"));
   if (!Number.isInteger(poolId) || poolId < 0) return Response.json({ error: "Bad poolId" }, { status: 400 });
@@ -104,15 +109,32 @@ export async function GET(req: Request) {
 
   // Who actually holds the name right now (null while unregistered) — the
   // panel must only claim "your Safe owns it" when this equals the Safe.
+  // The REGISTRY owner is authoritative: on post-migration mainnet the base
+  // registrar's NFT sits with an ENS custodian contract, so ownerOf() would
+  // wrongly report a "sniped by <system contract>" for names the Safe owns.
   let nameOwner: string | null = null;
   if (available === false) {
     try {
-      nameOwner = (await sepoliaClient.readContract({
-        address: ENS_BASE_REGISTRAR,
-        abi: baseRegistrarAbi,
-        functionName: "ownerOf",
-        args: [BigInt(labelhash(pool.label))],
-      })) as string;
+      const [registryOwner, registrarOwner] = await Promise.all([
+        sepoliaClient
+          .readContract({
+            address: ENS_REGISTRY,
+            abi: ensRegistryAbi,
+            functionName: "owner",
+            args: [namehash(`${pool.label}.eth`)],
+          })
+          .catch(() => null),
+        sepoliaClient
+          .readContract({
+            address: ENS_BASE_REGISTRAR,
+            abi: baseRegistrarAbi,
+            functionName: "ownerOf",
+            args: [BigInt(labelhash(pool.label))],
+          })
+          .catch(() => null),
+      ]);
+      const reg = registryOwner && registryOwner !== ZERO ? (registryOwner as string) : null;
+      nameOwner = reg ?? (registrarOwner as string | null);
     } catch {
       /* leave null */
     }

@@ -172,6 +172,23 @@ export const controllerAbi: typeof v2ControllerAbi | typeof premigrationRegistra
   REGISTRATION_MODE === "commit-reveal" ? v2ControllerAbi : premigrationRegistrarAbi;
 
 // Availability comes from the BaseRegistrar (the registrar has no view for it):
+// ENS registry (same address on every chain). Its owner(node) is the
+// AUTHORITATIVE holder of a name: on post-migration mainnet the base
+// registrar's ERC-721 is custodied by an ENS system contract, so
+// registrar.ownerOf() no longer identifies the real owner (it returns the
+// custodian). Always prefer the registry owner when it's set.
+export const ENS_REGISTRY = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e" as const;
+
+export const ensRegistryAbi = [
+  {
+    type: "function",
+    name: "owner",
+    stateMutability: "view",
+    inputs: [{ name: "node", type: "bytes32" }],
+    outputs: [{ type: "address" }],
+  },
+] as const;
+
 // available(uint256(labelhash(label))). Use with viem's `labelhash`.
 export const baseRegistrarAbi = [
   {

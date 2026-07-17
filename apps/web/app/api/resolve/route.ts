@@ -2,6 +2,7 @@ import { isAddress, getAddress } from "viem";
 import { normalize } from "viem/ens";
 import { fetchAddress, fetchPrimaryName } from "@/lib/ens";
 
+import { readLimiter, clientId } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
 // Resolve an invitee entry to a checksummed address, in both directions, via
@@ -10,6 +11,9 @@ export const runtime = "nodejs";
 //  - a 0x address → reverse-resolve to its primary ENS name (preferred in the UI)
 // GET /api/resolve?q=<name-or-address> → { ok, address?, name? }
 export async function GET(req: Request) {
+  if (!(await readLimiter(clientId(req), "resolve"))) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
   const q = (new URL(req.url).searchParams.get("q") ?? "").trim();
   if (q.length > 255) return Response.json({ ok: false });
   if (!q) return Response.json({ ok: false });

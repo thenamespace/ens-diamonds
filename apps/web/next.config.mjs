@@ -1,6 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  headers: async () => [
+    {
+      source: "/(.*)",
+      headers: [
+        // The signing UI must never render in an iframe (clickjacking).
+        { key: "X-Frame-Options", value: "DENY" },
+        { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      ],
+    },
+  ],
   redirects: async () => [
     // "Watching" was renamed to "Favourites" (heart) — keep old links working.
     { source: "/watching", destination: "/favourites", permanent: true },

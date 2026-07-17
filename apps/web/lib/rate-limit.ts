@@ -31,6 +31,15 @@ export function apiLimiter(id: string, bucket: string): Promise<boolean> {
   return shared(id, bucket);
 }
 
+// Looser limiter for unauthenticated READ endpoints that fan out to RPC /
+// subgraph work. Generous on purpose: a single open vault page legitimately
+// polls ~15 req/min, and NATed offices share one IP. This only stops abuse.
+let sharedRead: ReturnType<typeof makeLimiter> | null = null;
+export function readLimiter(id: string, bucket: string): Promise<boolean> {
+  if (!sharedRead) sharedRead = makeLimiter(getKv(), { max: 150, windowSec: 60 });
+  return sharedRead(id, bucket);
+}
+
 // Client identity for rate limiting: first hop of x-forwarded-for (set by
 // Vercel/proxies), else a shared "unknown" bucket.
 export function clientId(req: Request): string {
