@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import { Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/app-shell";
 import Providers from "./providers";
@@ -8,6 +8,16 @@ const mono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-mono",
+  display: "swap",
+});
+
+// Display serif for "printed artifact" moments (the registration certificate).
+// Matches the engraved serif of the brand's share images.
+const display = Fraunces({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -36,7 +46,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`light ${mono.variable}`} data-theme="light">
+    <html lang="en" className={`light ${mono.variable} ${display.variable}`} data-theme="light">
       <body className="bg-background text-foreground">
         <Providers>
           <AppShell>{children}</AppShell>

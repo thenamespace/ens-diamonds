@@ -303,7 +303,7 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
                 </Link>
                 <Link
                   className={buttonVariants({ variant: "secondary", size: "lg", className: "flex-1" })}
-                  href={`/pools/new?label=${display}`}
+                  href={`/vaults/new?label=${display}`}
                 >
                   Start a vault to buy
                 </Link>
@@ -315,12 +315,12 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
             <Card.Header>
               <Card.Title>Vaults</Card.Title>
               <Card.Description className="mt-2">
-                Already a vault forming for {shortLabel(display)}.eth? Browse every open vault on the escrow.
+                Browse every open vault on the escrow.
               </Card.Description>
             </Card.Header>
             <Card.Content>
               <div className="row" style={{ gap: 8 }}>
-                <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/pools">
+                <Link className={buttonVariants({ variant: "outline", size: "sm" })} href="/vaults">
                   All vaults →
                 </Link>
               </div>

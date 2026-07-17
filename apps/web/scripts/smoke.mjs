@@ -3,7 +3,7 @@ const base = process.argv[2];
 if (!base) { console.error("usage: node scripts/smoke.mjs <baseUrl>"); process.exit(1); }
 const checks = [
   ["/", 200, "ens.diamonds"],
-  ["/pools", 200, "Vaults"],
+  ["/vaults", 200, "Vaults"],
   ["/about", 200, "Namespace"],
   ["/api/discover?sort=ending&offset=0", 200, '"entries"'],
   ["/api/name-status?label=vitalik", 200, '"status"'],

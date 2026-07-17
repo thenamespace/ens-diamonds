@@ -42,10 +42,7 @@ const chainlinkAbi = [
 // so anything beyond it means the feed has stalled.
 const MAX_ORACLE_AGE = 3600;
 
-// Live ETH/USD, or null if the oracle read fails, returns a non-positive
-// answer, or is stale (callers degrade to ETH-only display; nothing is ever
-// charged off this number — charging is enforced by the ENS contract itself).
-export async function getEthUsd(): Promise<number | null> {
+async function readEthUsd(): Promise<number | null> {
   try {
     const [decimals, round] = await ensClient.multicall({
       allowFailure: false,
@@ -62,4 +59,36 @@ export async function getEthUsd(): Promise<number | null> {
   } catch {
     return null;
   }
+}
+
+// Serve a cached rate for this long before re-reading the oracle. Chainlink's
+// ETH/USD feed only updates on a 0.5% deviation or 1h heartbeat, so 60s of
+// staleness is well inside the feed's own noise.
+const ETH_USD_TTL_MS = 60_000;
+// On oracle hiccups, keep serving the last good value up to this long rather
+// than dropping the USD column to "-".
+const ETH_USD_STALE_MS = 10 * 60_000;
+
+let ethUsdCache: { value: number; at: number } | null = null;
+let ethUsdInflight: Promise<number | null> | null = null;
+
+// Live ETH/USD, or null if the oracle read fails, returns a non-positive
+// answer, or is stale (callers degrade to ETH-only display; nothing is ever
+// charged off this number — charging is enforced by the ENS contract itself).
+// Cached in-process and deduped across concurrent requests so the price API
+// doesn't pay a mainnet round trip on every poll.
+export async function getEthUsd(): Promise<number | null> {
+  if (ethUsdCache && Date.now() - ethUsdCache.at < ETH_USD_TTL_MS) return ethUsdCache.value;
+  if (!ethUsdInflight) {
+    ethUsdInflight = readEthUsd().finally(() => {
+      ethUsdInflight = null;
+    });
+  }
+  const fresh = await ethUsdInflight;
+  if (fresh !== null) {
+    ethUsdCache = { value: fresh, at: Date.now() };
+    return fresh;
+  }
+  if (ethUsdCache && Date.now() - ethUsdCache.at < ETH_USD_STALE_MS) return ethUsdCache.value;
+  return null;
 }

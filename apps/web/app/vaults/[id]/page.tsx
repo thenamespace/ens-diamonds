@@ -163,7 +163,7 @@ export default function PoolDashboard() {
             <EmptyState.Description>No vault with this id exists on the deployed escrow yet.</EmptyState.Description>
           </EmptyState.Header>
           <EmptyState.Content>
-            <Link className={buttonVariants({ variant: "primary" })} href="/pools">
+            <Link className={buttonVariants({ variant: "primary" })} href="/vaults">
               All vaults
             </Link>
           </EmptyState.Content>
@@ -201,7 +201,7 @@ export default function PoolDashboard() {
     return (
       <div className="wrap">
         <div className="crumb">
-          <Link href="/pools">Vaults</Link> <span>/</span> <span>#{idStr}</span>
+          <Link href="/vaults">Vaults</Link> <span>/</span> <span>#{idStr}</span>
         </div>
         <EmptyState>
           <EmptyState.Header>
@@ -211,7 +211,7 @@ export default function PoolDashboard() {
             </EmptyState.Description>
           </EmptyState.Header>
           <EmptyState.Content>
-            <Link className={buttonVariants({ variant: "primary" })} href="/pools">
+            <Link className={buttonVariants({ variant: "primary" })} href="/vaults">
               Browse public vaults
             </Link>
           </EmptyState.Content>
@@ -223,7 +223,7 @@ export default function PoolDashboard() {
   return (
     <div className="wrap">
       <div className="crumb">
-        <Link href="/pools">Vaults</Link> <span>/</span> <span>#{idStr}</span>
+        <Link href="/vaults">Vaults</Link> <span>/</span> <span>#{idStr}</span>
       </div>
 
       <div className="page-head">
@@ -389,7 +389,7 @@ export default function PoolDashboard() {
                   const amt = contributors[1][i];
                   const bps = targetAmount > 0n ? Number((amt * 10000n) / targetAmount) : 0;
                   return (
-                    <div key={addr} className="flex items-center gap-3 border-b border-separator py-3 first:pt-0 last:border-b-0 last:pb-0">
+                    <div key={addr} className="flex items-center gap-3 border-b border-separator py-3 first:pt-2 last:border-b-0 last:pb-0">
                       <EnsAvatar
                         address={addr}
                         size={34}

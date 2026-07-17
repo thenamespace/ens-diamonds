@@ -71,11 +71,14 @@ export async function getEnsNameData(rawLabel: string): Promise<EnsNameData> {
   if (normalized.length < 3) return stub(rawLabel, normalized, "tooShort");
 
   const name = `${normalized}.eth`;
-  const [price, expiryData] = await Promise.all([
+  // ETH/USD is independent of the name reads — fetch all three concurrently
+  // (it used to run as a second sequential RPC phase, which showed up as the
+  // price card sitting on "-" for seconds).
+  const [price, expiryData, ethUsd] = await Promise.all([
     getPrice(ensClient, { nameOrNames: name, duration: ONE_YEAR }),
     getExpiry(ensClient, { name }),
+    getEthUsd(),
   ]);
-  const ethUsd = await getEthUsd();
 
   // getExpiry returns null for a never-registered name.
   const expiry = expiryData ? Number(expiryData.expiry.value) : 0;

@@ -11,7 +11,7 @@ import { ESCROW_ADDRESS, isEscrowConfigured } from "@/lib/chain";
 
 const NAV_LINKS = [
   { href: "/", label: "Discover" },
-  { href: "/pools", label: "Vaults" },
+  { href: "/vaults", label: "Vaults" },
   { href: "/favourites", label: "Favourites" },
   { href: "/portfolio", label: "Portfolio" },
   { href: "/about", label: "About" },
@@ -66,7 +66,7 @@ function SiteFooter() {
               <Link className={footerLink} href="/">
                 Discover
               </Link>
-              <Link className={footerLink} href="/pools">
+              <Link className={footerLink} href="/vaults">
                 Vaults
               </Link>
               <Link className={footerLink} href="/favourites">
@@ -104,7 +104,7 @@ function SiteFooter() {
               <Link className={footerLink} href="/about">
                 About
               </Link>
-              <Link className={footerLink} href="/pools/new">
+              <Link className={footerLink} href="/vaults/new">
                 Start a vault
               </Link>
               <a className={footerLink} href="https://namespace.ninja" rel="noreferrer" target="_blank">
@@ -116,7 +116,12 @@ function SiteFooter() {
 
         <div className="border-separator mt-12 flex flex-wrap items-center justify-between gap-3 border-t pt-5">
           <span className="text-[12.5px] text-muted">© {new Date().getFullYear()} ens.diamonds</span>
-          <span className="font-mono text-[11.5px] tracking-[0.05em] text-muted">non-custodial · open-source</span>
+          <span className="font-mono text-[11.5px] tracking-[0.05em] text-muted">
+            non-custodial · open-source ·{" "}
+            <a className="hover:text-foreground transition-colors" href="https://onedollaraudit.com" rel="noreferrer" target="_blank">
+              Audited by One Dollar Audit
+            </a>
+          </span>
           <span className="text-[12.5px] text-muted">
             Built by{" "}
             <a className="hover:text-foreground underline underline-offset-2" href="https://namespace.ninja" rel="noreferrer" target="_blank">

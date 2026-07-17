@@ -105,7 +105,7 @@ export default function PoolsPage() {
             deposits.
           </p>
         </div>
-        <Link className={buttonVariants({ variant: "primary" })} href="/pools/new">
+        <Link className={buttonVariants({ variant: "primary" })} href="/vaults/new">
           Start a vault
         </Link>
       </div>
@@ -146,7 +146,7 @@ export default function PoolsPage() {
             </EmptyState.Description>
           </EmptyState.Header>
           <EmptyState.Content>
-            <Link className={buttonVariants({ variant: "primary" })} href="/pools/new">
+            <Link className={buttonVariants({ variant: "primary" })} href="/vaults/new">
               Start a vault
             </Link>
           </EmptyState.Content>
@@ -161,7 +161,7 @@ export default function PoolsPage() {
             const funded = pct(totalDeposited, targetAmount);
             const isPrivate = privateIds.has(id);
             return (
-              <Link key={id} href={`/pools/${id}`} className="group block">
+              <Link key={id} href={`/vaults/${id}`} className="group block">
                 <Card className="h-full transition-colors">
                   <div className="flex items-center justify-between">
                     <Chip color={STATUS_CHIP[status] ?? "default"} size="sm" variant="soft">

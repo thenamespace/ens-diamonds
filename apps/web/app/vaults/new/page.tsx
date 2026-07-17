@@ -12,7 +12,7 @@ import { APP_CHAIN } from "@/lib/app-chain";
 import { cofferEscrow } from "@/lib/contract";
 import { cofferEscrowAbi } from "@/lib/abi/coffer-escrow";
 import { isEscrowConfigured } from "@/lib/chain";
-import { parseEther, shortLabel } from "@/lib/format";
+import { parseEther, shortLabel, fmtCountdown } from "@/lib/format";
 import { useAuth } from "@/hooks/use-auth";
 import { txErrorMessage } from "@/lib/tx-error";
 
@@ -222,7 +222,9 @@ function NewPoolForm() {
   // for a name they could never register.
   const cleanLabel = labelInput.trim().toLowerCase().replace(/\.eth$/, "");
   const [nameStatus, setNameStatus] = useState<NameCheck>(null);
+  const [premiumEndsAt, setPremiumEndsAt] = useState<number | null>(null);
   useEffect(() => {
+    setPremiumEndsAt(null);
     if (cleanLabel.length < 3) {
       setNameStatus(null);
       return;
@@ -232,8 +234,11 @@ function NewPoolForm() {
     const t = setTimeout(async () => {
       try {
         const res = await fetch(`/api/name-status?label=${encodeURIComponent(cleanLabel)}`);
-        const json = (await res.json()) as { status?: NameCheck };
-        if (!cancelled) setNameStatus(json.status ?? "unknown");
+        const json = (await res.json()) as { status?: NameCheck; price?: { premiumEndsAt?: number | null } | null };
+        if (!cancelled) {
+          setNameStatus(json.status ?? "unknown");
+          setPremiumEndsAt(json.price?.premiumEndsAt ?? null);
+        }
       } catch {
         if (!cancelled) setNameStatus("unknown");
       }
@@ -243,6 +248,15 @@ function NewPoolForm() {
       clearTimeout(t);
     };
   }, [cleanLabel]);
+
+  // Ticker so the "gone in Xh Ym" countdown moves without a page refresh;
+  // fmtCountdown is minute-granular, so 30s keeps it fresh enough.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!premiumEndsAt) return;
+    const t = setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, [premiumEndsAt]);
 
   // Only hard-block the states where a pool provably can't work.
   const nameBlocked = nameStatus === "active" || nameStatus === "grace" || nameStatus === "invalid";
@@ -359,7 +373,7 @@ function NewPoolForm() {
       }
 
       setStep("done");
-      router.push(`/pools/${poolId.toString()}`);
+      router.push(`/vaults/${poolId.toString()}`);
     } catch (err) {
       setStep("idle");
       setError(txErrorMessage(err));
@@ -450,6 +464,9 @@ function NewPoolForm() {
                     ) : (
                       <>
                         {statusInfo!.kind === "block" ? "✕" : statusInfo!.kind === "ok" ? "✓" : "·"} {statusInfo!.text}
+                        {nameStatus === "premium" && premiumEndsAt && premiumEndsAt * 1000 > Date.now()
+                          ? ` · gone in ${fmtCountdown(premiumEndsAt)}`
+                          : ""}
                       </>
                     )}
                   </p>

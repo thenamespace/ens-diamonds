@@ -1,6 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // The vault social-card images read these font files with fs at runtime;
+  // include them in the traced output so deployed functions can find them.
+  outputFileTracingIncludes: {
+    "/vaults/[id]/opengraph-image": ["./assets/fonts/*.ttf"],
+    "/vaults/[id]/twitter-image": ["./assets/fonts/*.ttf"],
+  },
   headers: async () => [
     {
       source: "/(.*)",
@@ -16,6 +22,10 @@ const nextConfig = {
   redirects: async () => [
     // "Watching" was renamed to "Favourites" (heart) — keep old links working.
     { source: "/watching", destination: "/favourites", permanent: true },
+    // Vault pages moved from /pools to /vaults (UI language is "vault") —
+    // keep previously shared links working. API routes stay under /api/pools.
+    { source: "/pools", destination: "/vaults", permanent: true },
+    { source: "/pools/:path*", destination: "/vaults/:path*", permanent: true },
     // Wallets flag *.vercel.app as a phishing-prone shared platform — always
     // serve from the canonical domain. (Host-matched, so the Sepolia project
     // and preview deployments are unaffected.)

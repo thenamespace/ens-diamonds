@@ -174,7 +174,7 @@ export function VaultTicket({ v, viewer }: { v: Vault; viewer?: string }) {
         </details>
 
         <div className="mt-3.5 flex flex-wrap gap-2">
-          <Link className={buttonVariants({ variant: "secondary", size: "sm" })} href={`/pools/${v.poolId}`}>
+          <Link className={buttonVariants({ variant: "secondary", size: "sm" })} href={`/vaults/${v.poolId}`}>
             View vault →
           </Link>
           <a

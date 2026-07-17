@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { toPng } from "html-to-image";
+import { Download01Icon, HugeiconsIcon } from "@thenamespace/uikit/icons";
 import { useAccount, useChainId, usePublicClient, useReadContract, useSignTypedData, useSwitchChain, useWriteContract } from "wagmi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, Button, Card, Chip, ProgressBar, Spinner, Stepper, buttonVariants } from "@thenamespace/uikit";
@@ -46,6 +48,8 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
   const [busy, setBusy] = useState<null | "commit" | "sign" | "execute">(null);
   const [error, setError] = useState<string | null>(null);
   const [nowSec, setNowSec] = useState(() => Math.floor(Date.now() / 1000));
+  const certRef = useRef<HTMLDivElement | null>(null);
+  const [savingCert, setSavingCert] = useState(false);
 
   const { data } = useQuery({
     queryKey: ["pool-register", poolId],
@@ -293,24 +297,81 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
     );
   }
 
+  // Rasterize the certificate to a PNG download (3x for retina/X quality). The
+  // save button itself is filtered out of the capture.
+  async function downloadCert() {
+    const node = certRef.current;
+    if (!node) return;
+    setSavingCert(true);
+    try {
+      const dataUrl = await toPng(node, {
+        pixelRatio: 3,
+        filter: (el) => !(el instanceof HTMLElement && el.dataset.nocapture !== undefined),
+      });
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = `${label}-eth-registered.png`;
+      a.click();
+    } catch {
+      /* capture blocked (e.g. fonts still loading); button stays usable */
+    } finally {
+      setSavingCert(false);
+    }
+  }
+
   if (registered) {
+    const shareText = `We pooled up and registered ${label}.eth together 💎 Co-owned by our vault's Safe, via ens.diamonds`;
+    const shareUrl = typeof window !== "undefined" ? window.location.href : "";
     return (
       <Card>
-        {header}
-        <div className="flex flex-col items-center gap-2 py-6 text-center">
-          <span className="flex size-11 items-center justify-center rounded-full bg-success text-success-foreground" aria-hidden>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 6L9 17l-5-5" />
-            </svg>
-          </span>
-          <h3 className="text-xl font-semibold tracking-tight">
-            Congrats on registering {label}
-            <span className="text-muted">.eth</span>
+        <div className="relative flex flex-col items-center gap-5 px-2 py-8 text-center">
+          <ConfettiBurst />
+          <h3 className="m-0 text-xl tracking-tight">
+            <span className="font-semibold">Congrats!</span>{" "}
+            <span className="font-normal">
+              Tell your friends about your purchase? <span aria-hidden>😎</span>
+            </span>
           </h3>
-          <p className="max-w-md text-sm text-muted">
-            The name belongs to your vault&rsquo;s Safe. Its contributors control it together.
-          </p>
-          <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
+          <div className="cert" ref={certRef} role="figure" aria-label={`${label}.eth is registered and held by this vault's Safe`}>
+            <button
+              type="button"
+              className="cert-save"
+              data-nocapture
+              disabled={savingCert}
+              onClick={downloadCert}
+              title="Download as image"
+              aria-label="Download the certificate as an image"
+            >
+              {savingCert ? (
+                <Spinner color="current" size="sm" />
+              ) : (
+                <HugeiconsIcon icon={Download01Icon} size={15} strokeWidth={2} aria-hidden />
+              )}
+            </button>
+            <div className="cert-frame">
+              <span className="cert-corner tl" aria-hidden>◆</span>
+              <span className="cert-corner tr" aria-hidden>◆</span>
+              <span className="cert-corner bl" aria-hidden>◆</span>
+              <span className="cert-corner br" aria-hidden>◆</span>
+              <p className="cert-eyebrow">
+                <span aria-hidden>◆</span>
+                Registration Complete
+                <span aria-hidden>◆</span>
+              </p>
+              <svg className="cert-mark" width="46" height="42" viewBox="0 0 48 44" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" aria-hidden>
+                <path d="M4 15L15 4h18l11 11-20 26z" />
+                <path d="M4 15h40M15 4l4 11M33 4l-4 11M19 15l5 26M29 15l-5 26" strokeOpacity="0.65" />
+              </svg>
+              <p className="cert-congrats">Congratulations — you now own</p>
+              <h3 className="cert-name">
+                {label}
+                <span>.eth</span>
+              </h3>
+              <div className="cert-rule" aria-hidden>◆</div>
+              <p className="cert-meta">Bought this name together with my frENS.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <a
               className={buttonVariants({ size: "sm", variant: "primary" })}
               href={`${APP_CHAIN.ensAppUrl}/${label}.eth`}
@@ -326,6 +387,17 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
               rel="noreferrer"
             >
               View in Safe
+            </a>
+            <a
+              className={buttonVariants({ size: "sm", variant: "secondary" })}
+              href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M18.9 1.6h3.5l-7.6 8.7 9 11.9h-7l-5.5-7.2-6.3 7.2H1.5l8.2-9.3L1 1.6h7.2l5 6.6zm-1.2 18.4h1.9L6.4 3.6H4.3z" />
+              </svg>
+              Share
             </a>
           </div>
         </div>
@@ -488,5 +560,63 @@ export default function PoolRegister({ poolId, safe }: { poolId: number; label: 
         {label && <LivePrice label={label} />}
       </div>
     </Card>
+  );
+}
+
+// One-shot celebratory confetti over the registered-success card. Pieces are
+// generated client-side after mount (never during SSR) so hydration stays
+// deterministic; CSS hides the whole layer under prefers-reduced-motion.
+const CONFETTI_COLORS = ["#2f6bff", "#c8a45c", "#12151c", "#2e6b35", "#9db9ff"];
+
+type ConfettiPiece = {
+  x: number;
+  w: number;
+  h: number;
+  dur: number;
+  delay: number;
+  drift: number;
+  spin: number;
+  color: string;
+};
+
+function ConfettiBurst() {
+  const [pieces, setPieces] = useState<ConfettiPiece[] | null>(null);
+
+  useEffect(() => {
+    setPieces(
+      Array.from({ length: 36 }, () => ({
+        x: Math.random() * 100,
+        w: 5 + Math.random() * 4,
+        h: 9 + Math.random() * 5,
+        dur: 2.4 + Math.random() * 1.2,
+        delay: Math.random() * 0.4,
+        drift: -80 + Math.random() * 160,
+        spin: 360 + Math.random() * 540,
+        color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      })),
+    );
+  }, []);
+
+  if (!pieces) return null;
+  return (
+    <div className="confetti" aria-hidden>
+      {pieces.map((p, i) => (
+        <i
+          key={i}
+          style={
+            {
+              "--x": `${p.x}%`,
+              "--w": `${p.w}px`,
+              "--h": `${p.h}px`,
+              "--dur": `${p.dur}s`,
+              "--delay": `${p.delay}s`,
+              "--drift": `${p.drift}px`,
+              "--spin": `${p.spin}deg`,
+              "--c": p.color,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </div>
   );
 }

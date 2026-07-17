@@ -365,3 +365,209 @@ html {
 .textarea[data-focused="true"] {
   --tw-ring-shadow: 0 0 0 calc(1px + var(--tw-ring-offset-width, 0px)) var(--tw-ring-color, var(--color-focus));
 }
+
+/* ============================================================
+   Registration certificate — the celebratory success card shown
+   once a vault's name is registered. Styled as a printed, engraved
+   deed (fixed ink/cream palette, independent of app theme) so it
+   screenshots and shares well.
+   ============================================================ */
+.cert {
+  --cert-ink: #141827;
+  --cert-cream: #f0ead9;
+  --cert-gold: #c8a45c;
+  --cert-blue: #7d9fff;
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  padding: 10px;
+  border-radius: 14px;
+  background:
+    radial-gradient(120% 90% at 50% -10%, #1d2438 0%, var(--cert-ink) 58%);
+  color: var(--cert-cream);
+  box-shadow:
+    0 24px 48px -20px rgba(18, 21, 28, 0.45),
+    0 6px 18px -8px rgba(18, 21, 28, 0.35);
+  overflow: hidden;
+}
+
+/* Engraved guilloche arcs, like the security pattern on a banknote. */
+.cert::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-radial-gradient(circle at 50% 135%, transparent 0 9px, rgba(240, 234, 217, 0.045) 9px 10px),
+    repeating-radial-gradient(circle at 50% -45%, transparent 0 11px, rgba(240, 234, 217, 0.03) 11px 12px);
+  pointer-events: none;
+}
+
+.cert-frame {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--cert-cream) 36%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--cert-cream) 13%, transparent);
+  outline-offset: 3px;
+  border-radius: 8px;
+  padding: 30px 26px 26px;
+}
+
+.cert-corner {
+  position: absolute;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--cert-gold);
+}
+.cert-corner.tl { top: -8px; left: -8px; }
+.cert-corner.tr { top: -8px; right: -8px; }
+.cert-corner.bl { bottom: -8px; left: -8px; }
+.cert-corner.br { bottom: -8px; right: -8px; }
+
+.cert-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cert-blue);
+}
+
+.cert-eyebrow span {
+  font-size: 8px;
+}
+
+.cert-congrats {
+  margin: 14px 0 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-size: 19px;
+  color: color-mix(in srgb, var(--cert-cream) 92%, transparent);
+}
+
+.cert-mark {
+  margin: 18px 0 0;
+  color: var(--cert-cream);
+}
+
+.cert-name {
+  margin: 2px 0 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 500;
+  font-size: clamp(30px, 7vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+  color: var(--cert-cream);
+}
+.cert-name span { color: var(--cert-blue); }
+
+.cert-rule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 300px;
+  margin: 20px auto 14px;
+  font-size: 8px;
+  color: var(--cert-gold);
+}
+.cert-rule::before,
+.cert-rule::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+}
+.cert-rule::before {
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--cert-cream) 38%, transparent));
+}
+.cert-rule::after {
+  background: linear-gradient(to left, transparent, color-mix(in srgb, var(--cert-cream) 38%, transparent));
+}
+
+.cert-badge {
+  margin: 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--cert-gold);
+}
+
+.cert-meta {
+  margin: 14px 0 0;
+  font-family: var(--font-display), Georgia, serif;
+  font-style: italic;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--cert-cream) 72%, transparent);
+}
+
+/* One-shot confetti burst over the success card. */
+.confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+}
+.confetti i {
+  position: absolute;
+  top: -16px;
+  left: var(--x);
+  width: var(--w);
+  height: var(--h);
+  background: var(--c);
+  border-radius: 1px;
+  opacity: 0;
+  animation: confetti-fall var(--dur) cubic-bezier(0.2, 0.5, 0.6, 1) var(--delay) forwards;
+}
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) rotateZ(0deg) rotateX(0deg);
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drift), 580px, 0) rotateZ(var(--spin)) rotateX(900deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti { display: none; }
+}
+
+/* Download-as-image button in the certificate's corner (excluded from the
+   captured PNG via data-nocapture). */
+.cert-save {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--cert-cream) 26%, transparent);
+  background: color-mix(in srgb, var(--cert-cream) 6%, transparent);
+  color: color-mix(in srgb, var(--cert-cream) 62%, transparent);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+.cert-save:hover {
+  background: color-mix(in srgb, var(--cert-cream) 14%, transparent);
+  color: var(--cert-cream);
+}
+.cert-save:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
