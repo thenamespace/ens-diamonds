@@ -14,15 +14,20 @@ dist/
 # live there as tracked git submodules.
 out/
 cache/
-broadcast/**/dry-run/
+packages/contracts/broadcast/**/dry-run/
 
 # Env / secrets
 .env
 .env.*
-!.env.example
 
 # Logs
 *.log
 npm-debug.log*
 .vercel
 .env*
+!.env.example
+!**/.env.example
+
+# raw design assets (duplicated into apps/web/public)
+/nsicons/
+/diamonds-preview-image.png
