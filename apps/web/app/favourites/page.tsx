@@ -1,5 +1,4 @@
-import { Alert } from "@thenamespace/uikit/alert";
-import { EmptyState } from "@thenamespace/uikit/empty-state";
+import { EmptyStateCard, WarningAlert } from "@/components/rsc-safe-uikit";
 import { getSession } from "@/lib/session";
 import { getWatched } from "@/lib/watchlist";
 import { getEnsNameData, weiToUsd, type EnsStatus } from "@/lib/ens-name";
@@ -65,21 +64,12 @@ export default async function FavouritesPage() {
       </div>
 
       {failed ? (
-        <Alert status="warning">
-          <Alert.Indicator />
-          <Alert.Content>
-            <Alert.Description>
-              Couldn’t load your favourites right now. Please try again in a moment.
-            </Alert.Description>
-          </Alert.Content>
-        </Alert>
+        <WarningAlert>Couldn’t load your favourites right now. Please try again in a moment.</WarningAlert>
       ) : cards.length === 0 ? (
-        <EmptyState size="lg">
-          <EmptyState.Header>
-            <EmptyState.Title>No names yet</EmptyState.Title>
-            <EmptyState.Description>Tap the ♥ on any name to add it to your favourites.</EmptyState.Description>
-          </EmptyState.Header>
-        </EmptyState>
+        <EmptyStateCard
+          title="No names yet"
+          description="Tap the ♥ on any name to add it to your favourites."
+        />
       ) : (
         <div className="card-grid">
           {cards.map((c) => (

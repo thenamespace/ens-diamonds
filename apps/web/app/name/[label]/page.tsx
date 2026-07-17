@@ -3,7 +3,7 @@ import { Alert } from "@thenamespace/uikit/alert";
 import { buttonVariants } from "@thenamespace/uikit/button";
 import { Card } from "@thenamespace/uikit/card";
 import { Chip } from "@thenamespace/uikit/chip";
-import { EmptyState } from "@thenamespace/uikit/empty-state";
+import { EmptyStateCard } from "@/components/rsc-safe-uikit";
 import WatchButton from "@/components/watch-button";
 import DecayChart from "@/components/decay-chart";
 import { usd } from "@/lib/data";
@@ -90,17 +90,11 @@ function Shell({ label, children }: { label: string; children: React.ReactNode }
 function NameEmptyState({ label, title, body }: { label: string; title: string; body: string }) {
   return (
     <Shell label={label}>
-      <EmptyState size="lg">
-        <EmptyState.Header>
-          <EmptyState.Title>{title}</EmptyState.Title>
-          <EmptyState.Description>{body}</EmptyState.Description>
-        </EmptyState.Header>
-        <EmptyState.Content>
-          <Link className={buttonVariants({ variant: "primary" })} href="/">
-            Browse names in premium
-          </Link>
-        </EmptyState.Content>
-      </EmptyState>
+      <EmptyStateCard title={title} description={body}>
+        <Link className={buttonVariants({ variant: "primary" })} href="/">
+          Browse names in premium
+        </Link>
+      </EmptyStateCard>
     </Shell>
   );
 }
