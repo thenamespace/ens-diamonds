@@ -389,7 +389,7 @@ export default function DiscoverGrid({ initial, initialSort }: Props) {
               </span>
             ) : error ? (
               <Button variant="outline" size="sm" onPress={() => void load(sort, debouncedQ, nextOffset ?? 0, entries.length === 0)}>
-                Couldn’t load more — retry
+                Couldn’t load more. Retry
               </Button>
             ) : searching && entries.length === 0 ? (
               <span className="inline-flex items-center gap-2 text-[13px] tracking-[0.01em] text-muted">

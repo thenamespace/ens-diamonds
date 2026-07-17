@@ -94,7 +94,7 @@ function BuyInstant() {
           <h1 style={{ margin: 0 }} title={`${label}.eth`}>
             Buy {shortLabel(label)}.eth <span className="font-normal text-muted">solo</span>
           </h1>
-          <p>Register it to your own wallet on Sepolia — no vault needed. One transaction and it&rsquo;s yours.</p>
+          <p>Register it to your own wallet on Sepolia, no vault needed. One transaction and it&rsquo;s yours.</p>
         </div>
         <Link className={buttonVariants({ variant: "outline" })} href={`/name/${label}`}>
           ← Back
@@ -105,7 +105,7 @@ function BuyInstant() {
         <Alert.Indicator />
         <Alert.Content>
           <Alert.Description>
-            This registers on <strong>Sepolia testnet</strong>, where ENS registration is free — you pay only gas.
+            This registers on <strong>Sepolia testnet</strong>, where ENS registration is free. You pay only gas.
             Mainnet buying (with real premium pricing) arrives with the mainnet deployment.
           </Alert.Description>
         </Alert.Content>
@@ -131,7 +131,7 @@ function BuyInstant() {
                 <span className="v big accent">Free</span>
               </div>
               <p className="mt-2 mb-0 text-[12.5px] text-muted">
-                Sepolia&rsquo;s ENS registrar charges nothing and refunds any ETH sent — the only cost is gas.
+                Sepolia&rsquo;s ENS registrar charges nothing and refunds any ETH sent. The only cost is gas.
               </p>
             </Card.Content>
           </Card>
@@ -330,7 +330,7 @@ function BuyCommitReveal() {
     setCommittedAt(null);
     setCommittedOwner(null);
     setStep("idle");
-    setError("Your commit expired (24h) — start again.");
+    setError("Your commit expired (24h). Start again.");
   }, [step, freshness, lsKey]);
 
   async function doCommit() {
@@ -418,7 +418,7 @@ function BuyCommitReveal() {
           <h1 style={{ margin: 0 }} title={`${label}.eth`}>
             Buy {shortLabel(label)}.eth <span className="font-normal text-muted">solo</span>
           </h1>
-          <p>Register it to your own wallet — no vault needed. ENS uses a two-step commit → wait → register.</p>
+          <p>Register it to your own wallet, no vault needed. ENS uses a two-step commit → wait → register.</p>
         </div>
         <Link className={buttonVariants({ variant: "outline" })} href={`/name/${label}`}>
           ← Back
@@ -598,7 +598,7 @@ function BuyCommitReveal() {
                           ? "Confirm register in wallet…"
                           : canRegister
                             ? "Register & claim"
-                            : `Register — ready in ${remaining}s`}
+                            : `Register · ready in ${remaining}s`}
                       </Button>
                       {ownerMismatch && (
                         <Alert status="warning" className="mt-4">

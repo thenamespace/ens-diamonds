@@ -46,7 +46,7 @@ function SiteFooter() {
               <span className="text-[17px]">ens.diamonds</span>
             </Link>
             <p className="m-0 text-[13.5px] leading-relaxed text-muted">
-              Pool ETH with friends to claim premium ENS names together — escrowed onchain, owned by a multisig you all
+              Pool ETH with friends to claim premium ENS names together. Escrowed onchain, owned by a multisig you all
               control.
             </p>
             <a

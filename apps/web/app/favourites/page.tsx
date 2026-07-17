@@ -47,7 +47,7 @@ export default async function FavouritesPage() {
           const priceText = usd !== null ? fmtUsd(usd) : fmtEth(d.totalWei);
           return { label, statusText: STATUS_TEXT[d.status], priceText } as WatchingCardData;
         } catch {
-          return { label, statusText: "—", priceText: "—" } as WatchingCardData;
+          return { label, statusText: "-", priceText: "-" } as WatchingCardData;
         }
       }),
     );

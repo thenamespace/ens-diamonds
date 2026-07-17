@@ -562,6 +562,11 @@ export const cofferEscrowAbi = [
   },
   {
     "type": "error",
+    "name": "PoolFull",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "Reentrancy",
     "inputs": []
   },

@@ -45,7 +45,7 @@ export const revalidate = 60;
 
 function fmtUsdWei(wei: bigint, ethUsd: number | null): string {
   const v = weiToUsd(wei, ethUsd);
-  return v === null ? "—" : usd(v);
+  return v === null ? "-" : usd(v);
 }
 
 function fmtDate(unix: number): string {
@@ -151,7 +151,7 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
     const until = d.status === "active" ? d.expiry : d.expiry + GRACE;
     const body =
       d.status === "active"
-        ? `This name is registered until ${fmtDate(until)}. It isn’t available to buy — it would need to expire and pass its 90-day grace period first.`
+        ? `This name is registered until ${fmtDate(until)}. It isn’t available to buy. It would need to expire and pass its 90-day grace period first.`
         : `This name expired and is in its 90-day grace period until ${fmtDate(until)}. The current owner can still renew it, so it can’t be pooled yet. If it isn’t renewed, it enters the 21-day premium auction after that.`;
     return (
       <Shell label={display}>

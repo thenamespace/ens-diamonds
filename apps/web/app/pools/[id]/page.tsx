@@ -96,10 +96,31 @@ export default function PoolDashboard() {
       return (await res.json()) as { available: boolean | null };
     },
     enabled: !!poolLabel && notFinalized,
-    refetchInterval: 60_000,
+    // Fast poll so a snipe surfaces within seconds, without a refresh.
+    refetchInterval: 12_000,
+    refetchOnWindowFocus: true,
   });
   // Strictly `false` — null/unknown must never scare people or lock deposits.
   const nameTaken = notFinalized && registrarCheck?.available === false;
+
+  // Finalized vaults: did this vault actually win the name? Shares the
+  // registration panel's query key, so react-query dedupes the fetch.
+  const { data: regState } = useQuery({
+    queryKey: ["pool-register", Number(idStr)],
+    queryFn: async () => {
+      const res = await fetch(`/api/pools/registration?poolId=${Number(idStr)}`);
+      if (!res.ok) throw new Error("Failed to load registration state");
+      return (await res.json()) as { available: boolean | null; nameOwner: string | null; safe: string | null };
+    },
+    enabled: idOk && statusNum !== undefined && !notFinalized,
+    refetchInterval: 30_000,
+  });
+  const wonName =
+    !notFinalized &&
+    regState?.available === false &&
+    !!regState.nameOwner &&
+    !!regState.safe &&
+    regState.nameOwner.toLowerCase() === regState.safe.toLowerCase();
 
   async function act(fn: "deposit" | "withdraw" | "finalize", value?: bigint) {
     if (!publicClient) return;
@@ -166,6 +187,10 @@ export default function PoolDashboard() {
   const lockEnds = fundedAt > 0 ? fundedAt + EXECUTION_WINDOW_SECONDS : 0;
   const contributorCount = contributors ? contributors[0].length : 0;
   const remaining = targetAmount > totalDeposited ? targetAmount - totalDeposited : 0n;
+  // At target but back in "funding": the 24h execution window lapsed without a
+  // finalize. The contract rejects deposits here (PoolFull); recovery is a
+  // withdraw + re-deposit by any contributor, which restarts the window.
+  const windowLapsed = status === "funding" && remaining === 0n;
   const effThreshold = status === "finalized" ? threshold : Math.floor(contributorCount / 2) + 1;
 
   // Private pools are viewable only by the creator or an onchain-invited member.
@@ -208,6 +233,11 @@ export default function PoolDashboard() {
             <Chip color={STATUS_CHIP[status] ?? "default"} size="sm" variant="soft">
               {status}
             </Chip>
+            {wonName && (
+              <Chip color="success" size="sm" variant="soft">
+                winner 🥳
+              </Chip>
+            )}
           </div>
           <p>
             {effThreshold}-of-{contributorCount || "N"} Safe · created by <AddressLabel address={creator} />
@@ -239,11 +269,11 @@ export default function PoolDashboard() {
           <Alert.Content>
             <Alert.Title>{label}.eth has already been registered by someone else</Alert.Title>
             <Alert.Description>
-              This vault can no longer buy the name, so there&rsquo;s no reason to keep fundraising — deposits and
+              This vault can no longer buy the name, so there&rsquo;s no reason to keep fundraising. Deposits and
               finalizing are disabled. Withdraw your deposit instead
               {status === "funded"
                 ? " (withdrawals reopen the moment the 24-hour execution window ends)"
-                : " — you can withdraw in full at any time"}
+                : " (you can withdraw in full at any time)"}
               .
             </Alert.Description>
           </Alert.Content>
@@ -255,16 +285,16 @@ export default function PoolDashboard() {
         <Alert className="mb-5" status="success">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Target reached — execution window open</Alert.Title>
+            <Alert.Title>Target reached! Execution window open</Alert.Title>
             <Alert.Description>
-              Funds locked until {new Date(lockEnds * 1000).toLocaleString()}. Any contributor can finalize — it
+              Funds locked until {new Date(lockEnds * 1000).toLocaleString()}. Any contributor can finalize. It
               deploys a {effThreshold}-of-{contributorCount} Safe.
             </Alert.Description>
           </Alert.Content>
           {isConnected && yourDeposit === 0n ? (
             <span className="block max-w-60 text-right text-[13px] text-muted">
               {invitedYou
-                ? "Only contributors can finalize — deposit into this vault to help finalize it."
+                ? "Only contributors can finalize. Deposit into this vault to help finalize it."
                 : "Only this vault's contributors can finalize it."}
             </span>
           ) : (
@@ -278,12 +308,25 @@ export default function PoolDashboard() {
           )}
         </Alert>
       )}
-      {status === "funding" && !nameTaken && (
+      {status === "funding" && !nameTaken && !windowLapsed && (
         <Alert className="mb-5" status="accent">
           <Alert.Indicator />
           <Alert.Content>
-            <Alert.Title>Funding — {fmtCountdown(fundingDeadline)} left</Alert.Title>
+            <Alert.Title>Funding · {fmtCountdown(fundingDeadline)} left</Alert.Title>
             <Alert.Description>Deposit to reach the target. Withdraw in full any time before the execution lock.</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      )}
+      {windowLapsed && !nameTaken && (
+        <Alert className="mb-5" status="warning">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>Execution window lapsed</Alert.Title>
+            <Alert.Description>
+              The vault hit its target but 24 hours passed without finalizing, so deposits are closed and
+              withdrawals are open again. Any contributor can withdraw and re-deposit to restart the window,
+              then finalize.
+            </Alert.Description>
           </Alert.Content>
         </Alert>
       )}
@@ -419,7 +462,7 @@ export default function PoolDashboard() {
                 <Button
                   fullWidth
                   variant="primary"
-                  isDisabled={!isConnected || wrongChain || pending !== null || status !== "funding" || !invitedYou || nameTaken}
+                  isDisabled={!isConnected || wrongChain || pending !== null || status !== "funding" || windowLapsed || !invitedYou || nameTaken}
                   onPress={() => act("deposit", parseEther(amount || "0"))}
                 >
                   {pending === "deposit" ? "Depositing…" : "Deposit"}
@@ -494,12 +537,9 @@ export default function PoolDashboard() {
                   </a>
                 </>
               ) : (
-                <Alert status="accent">
-                  <Alert.Indicator />
-                  <Alert.Content>
-                    <Alert.Description>Not yet deployed — deploys at finalization with all contributors as owners.</Alert.Description>
-                  </Alert.Content>
-                </Alert>
+                <p className="m-0 text-sm text-muted">
+                  Not yet deployed. Deploys at finalization with all contributors as owners.
+                </p>
               )}
             </Card.Content>
           </Card>

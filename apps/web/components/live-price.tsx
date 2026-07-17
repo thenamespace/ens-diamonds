@@ -88,7 +88,7 @@ export default function LivePrice({ label, boughtByOther }: { label: string; bou
   const banner = boughtByOther === true || justBought;
   if (!p && !banner) return null;
 
-  const fmt = (v: number | null) => (v === null ? "—" : usd(v));
+  const fmt = (v: number | null) => (v === null ? "-" : usd(v));
 
   return (
     <Card variant="secondary">
@@ -104,7 +104,7 @@ export default function LivePrice({ label, boughtByOther }: { label: string; bou
             <Alert.Content>
               <Alert.Title>This name has just been bought.</Alert.Title>
               <Alert.Description>
-                Someone registered it before the vault could — the pooled ETH is untouched in the Safe.
+                Someone registered it before the vault could. The pooled ETH is untouched in the Safe.
               </Alert.Description>
             </Alert.Content>
           </Alert>

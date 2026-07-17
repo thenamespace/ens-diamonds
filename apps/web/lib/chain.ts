@@ -34,7 +34,7 @@ export const ZERO = "0x0000000000000000000000000000000000000000" as const;
 // Sepolia so the live testnet site works without env config; a mainnet build
 // MUST get its escrow address from NEXT_PUBLIC_ESCROW_ADDRESS — never fall
 // back to the Sepolia deployment.
-const DEFAULT_ESCROW = "0x5229b09a1f1EC16E69545bAE19E3b2A453a3Ae39";
+const DEFAULT_ESCROW = "0x37d1A0Fc5BD9735147cbEe7630C63690C6FDfD6d";
 
 const rawEscrowAddress: string =
   process.env.NEXT_PUBLIC_ESCROW_ADDRESS || (APP_CHAIN.key === "sepolia" ? DEFAULT_ESCROW : "");
@@ -45,7 +45,7 @@ export const ESCROW_ADDRESS = rawEscrowAddress as `0x${string}`;
 // the directory so it never re-reads the whole chain. Update on redeploy.
 // Sepolia-only value; currently unconsumed (dead) — make chain-aware or delete
 // when first used (Task E1).
-export const ESCROW_DEPLOY_BLOCK = 11258818n;
+export const ESCROW_DEPLOY_BLOCK = 11293050n;
 
 export const isEscrowConfigured = rawEscrowAddress !== "" && ESCROW_ADDRESS !== ZERO;
 

@@ -35,17 +35,17 @@ const NAME_STATUS: Record<
   premium: {
     text: "Temporary premium",
     kind: "ok",
-    note: "In its 21-day premium auction — exactly what vaults are for. Good to go.",
+    note: "In its 21-day premium auction, exactly what vaults are for. Good to go.",
   },
   available: {
     text: "Available",
     kind: "ok",
-    note: "Expired and available at base price — good to start a vault for.",
+    note: "Expired and available at base price. Good to start a vault for.",
   },
   active: {
     text: "Registered",
     kind: "block",
-    note: "This name is currently registered to someone else — you can't register it, so a vault for it can never succeed.",
+    note: "This name is currently registered to someone else. You can't register it, so a vault for it can never succeed.",
   },
   grace: {
     text: "In grace period",
@@ -54,7 +54,7 @@ const NAME_STATUS: Record<
   },
   tooShort: { text: "Too short", kind: "info", note: "ENS names need at least 3 characters." },
   invalid: { text: "Not a valid name", kind: "block", note: "This isn't a registrable ENS label." },
-  unknown: { text: "Couldn't verify", kind: "info", note: "Couldn't check this name's status right now — double-check before funding." },
+  unknown: { text: "Couldn't verify", kind: "info", note: "Couldn't check this name's status right now. Double-check before funding." },
 };
 
 // note kind → Alert status
@@ -170,10 +170,10 @@ function InviteeRow({
       {res === "checking" ? (
         <div className="mt-1.5 text-xs text-muted">Resolving…</div>
       ) : isSelf ? (
-        <div className="mt-1.5 text-xs text-danger">That&rsquo;s your own wallet — invite someone else.</div>
+        <div className="mt-1.5 text-xs text-danger">That&rsquo;s your own wallet. Invite someone else.</div>
       ) : isDupe ? (
         <div className="mt-1.5 text-xs text-danger">
-          Already added{ok.name ? ` as ${ok.name}` : ""} — remove this duplicate.
+          Already added{ok.name ? ` as ${ok.name}` : ""}. Remove this duplicate.
         </div>
       ) : ok ? (
         <div className="mt-1.5 flex items-center gap-1.5 text-xs text-success">
@@ -190,7 +190,7 @@ function InviteeRow({
           )}
         </div>
       ) : res === "bad" ? (
-        <div className="mt-1.5 text-xs text-danger">Couldn&rsquo;t resolve — enter a valid ENS name or 0x address.</div>
+        <div className="mt-1.5 text-xs text-danger">Couldn&rsquo;t resolve. Enter a valid ENS name or 0x address.</div>
       ) : null}
     </div>
   );
@@ -395,7 +395,7 @@ function NewPoolForm() {
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Description>
-              Escrow address not configured — set NEXT_PUBLIC_ESCROW_ADDRESS and restart the dev server.
+              Escrow address not configured. Set NEXT_PUBLIC_ESCROW_ADDRESS and restart the dev server.
             </Alert.Description>
           </Alert.Content>
         </Alert>

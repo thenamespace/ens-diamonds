@@ -13,12 +13,12 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.ens.diamonds"),
-  title: "ens.diamonds — Pool up to claim premium ENS names, together",
+  title: "ens.diamonds: Pool up to claim premium ENS names, together",
   description:
-    "Premium ENS names cost thousands. ens.diamonds lets a group pool ETH to buy one together — held in an open-source escrow with unilateral refunds, then registered by a multisig you all control.",
+    "Premium ENS names cost thousands. ens.diamonds lets a group pool ETH to buy one together. Funds sit in an open-source escrow with unilateral refunds, and a multisig you all control registers the name.",
   keywords: ["ENS", "premium names", "Dutch auction", "multisig", "Safe", "pooling", "ethereum"],
   openGraph: {
-    title: "ens.diamonds — Pool up to claim premium ENS names, together",
+    title: "ens.diamonds: Pool up to claim premium ENS names, together",
     description:
       "Found a premium ENS name too rich to grab solo? Start a vault, invite people through their onchain records, and buy it with a multisig you all control.",
     type: "website",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ens.diamonds — Pool up to claim premium ENS names, together",
+    title: "ens.diamonds: Pool up to claim premium ENS names, together",
     description: "Pool ETH to buy a premium ENS name. Open-source escrow, unilateral refunds, a multisig you all control.",
     images: ["/diamonds-preview.png"],
   },

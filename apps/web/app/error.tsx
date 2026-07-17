@@ -17,7 +17,7 @@ export default function RouteError({ error, reset }: { error: Error & { digest?:
         <EmptyState.Header>
           <EmptyState.Title>Something went wrong</EmptyState.Title>
           <EmptyState.Description>
-            The page hit an unexpected error. Your funds and vaults are unaffected — this is a display problem only.
+            The page hit an unexpected error. Your funds and vaults are unaffected. This is a display problem only.
           </EmptyState.Description>
         </EmptyState.Header>
         <EmptyState.Content>

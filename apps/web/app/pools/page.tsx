@@ -141,7 +141,7 @@ export default function PoolsPage() {
             <EmptyState.Title>{total === 0 ? "No vaults yet" : "No vaults to show"}</EmptyState.Title>
             <EmptyState.Description>
               {total === 0
-                ? "Be the first — start a vault for a name and invite people."
+                ? "Be the first. Start a vault for a name and invite people."
                 : "Public vaults you can join appear here. Connect your wallet to also see private vaults you belong to."}
             </EmptyState.Description>
           </EmptyState.Header>

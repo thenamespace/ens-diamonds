@@ -20,7 +20,7 @@ export type Vault = {
 };
 
 function fmtExpiry(unix: number | null): string {
-  if (!unix) return "—";
+  if (!unix) return "-";
   const months = Math.round((unix * 1000 - Date.now()) / (30.44 * 24 * 3600 * 1000));
   if (months <= 0) return "expired";
   return `expires in ~${months} month${months === 1 ? "" : "s"}`;
