@@ -44,7 +44,7 @@ export default async function FavouritesPage() {
         try {
           const d = await getEnsNameData(label);
           const usd = weiToUsd(d.totalWei, d.ethUsd);
-          const priceText = usd !== null ? fmtUsd(usd) : `${fmtEth(d.totalWei)} ETH`;
+          const priceText = usd !== null ? fmtUsd(usd) : fmtEth(d.totalWei);
           return { label, statusText: STATUS_TEXT[d.status], priceText } as WatchingCardData;
         } catch {
           return { label, statusText: "—", priceText: "—" } as WatchingCardData;

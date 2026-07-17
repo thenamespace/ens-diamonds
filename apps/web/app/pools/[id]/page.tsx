@@ -82,6 +82,25 @@ export default function PoolDashboard() {
   const yourDeposit = (data?.[3]?.result as bigint | undefined) ?? 0n;
   const yourBps = (data?.[4]?.result as bigint | undefined) ?? 0n;
 
+  // Live registrar check for NOT-yet-finalized vaults: if someone registers
+  // the name out from under the vault, fundraising is pointless — surface it
+  // and shut deposits/finalize down so people withdraw instead. (Finalized
+  // vaults get the equivalent "sniped" banner from the registration panel.)
+  const poolLabel = pool?.[0];
+  const notFinalized = statusNum !== undefined && statusName(statusNum) !== "finalized";
+  const { data: registrarCheck } = useQuery({
+    queryKey: ["name-taken", poolLabel],
+    queryFn: async () => {
+      const res = await fetch(`/api/name-status?label=${encodeURIComponent(poolLabel!)}`);
+      if (!res.ok) throw new Error("status check failed");
+      return (await res.json()) as { available: boolean | null };
+    },
+    enabled: !!poolLabel && notFinalized,
+    refetchInterval: 60_000,
+  });
+  // Strictly `false` — null/unknown must never scare people or lock deposits.
+  const nameTaken = notFinalized && registrarCheck?.available === false;
+
   async function act(fn: "deposit" | "withdraw" | "finalize", value?: bigint) {
     if (!publicClient) return;
     setError(null);
@@ -213,8 +232,26 @@ export default function PoolDashboard() {
         </div>
       </div>
 
+      {/* Name sniped while the vault was still raising: stop the fundraise. */}
+      {nameTaken && (
+        <Alert className="mb-5" status="danger">
+          <Alert.Indicator />
+          <Alert.Content>
+            <Alert.Title>{label}.eth has already been registered by someone else</Alert.Title>
+            <Alert.Description>
+              This vault can no longer buy the name, so there&rsquo;s no reason to keep fundraising — deposits and
+              finalizing are disabled. Withdraw your deposit instead
+              {status === "funded"
+                ? " (withdrawals reopen the moment the 24-hour execution window ends)"
+                : " — you can withdraw in full at any time"}
+              .
+            </Alert.Description>
+          </Alert.Content>
+        </Alert>
+      )}
+
       {/* state banner */}
-      {status === "funded" && (
+      {status === "funded" && !nameTaken && (
         <Alert className="mb-5" status="success">
           <Alert.Indicator />
           <Alert.Content>
@@ -241,7 +278,7 @@ export default function PoolDashboard() {
           )}
         </Alert>
       )}
-      {status === "funding" && (
+      {status === "funding" && !nameTaken && (
         <Alert className="mb-5" status="accent">
           <Alert.Indicator />
           <Alert.Content>
@@ -363,7 +400,7 @@ export default function PoolDashboard() {
 
               {status === "funding" && remaining > 0n && (
                 <div className="mt-4 flex items-baseline justify-between">
-                  <span className="text-xs text-muted">{fmtEth(remaining, 4)} ETH left to fill</span>
+                  <span className="text-xs text-muted">{fmtEth(remaining, 4)} left to fill</span>
                   <Button size="sm" variant="ghost" onPress={() => setAmount(formatEther(remaining))}>
                     Max · fill pool
                   </Button>
@@ -382,7 +419,7 @@ export default function PoolDashboard() {
                 <Button
                   fullWidth
                   variant="primary"
-                  isDisabled={!isConnected || wrongChain || pending !== null || status !== "funding" || !invitedYou}
+                  isDisabled={!isConnected || wrongChain || pending !== null || status !== "funding" || !invitedYou || nameTaken}
                   onPress={() => act("deposit", parseEther(amount || "0"))}
                 >
                   {pending === "deposit" ? "Depositing…" : "Deposit"}
