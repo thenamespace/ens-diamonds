@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Navbar } from "@thenamespace/uikit";
 import { BadgeCheckIcon, HugeiconsIcon } from "@thenamespace/uikit/icons";
 import ConnectButton from "./connect-button";
+import SessionGuard from "./session-guard";
 import { APP_CHAIN } from "@/lib/app-chain";
 import { ESCROW_ADDRESS, isEscrowConfigured } from "@/lib/chain";
 
@@ -139,6 +140,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-col">
+      <SessionGuard />
       <Navbar className="border-separator border-b">
         {/* max-w matches .wrap (1180px + 24px padding) so the brand and the
             connect button line up with the page content below. */}
