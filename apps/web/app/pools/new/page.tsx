@@ -619,9 +619,13 @@ function NewPoolForm() {
 
         <div className="stack">
           {/* mt matches the pill cards' overhang offset so the row tops align. */}
-          <Card className="mt-[14px] border border-separator" variant="secondary">
+          <Card
+            className="mt-[14px] border border-separator p-0 transition-all duration-150 hover:border-foreground/25 hover:bg-foreground/[0.03]"
+            variant="secondary"
+          >
             <details className="group">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
+              {/* Padding lives on the summary so the ENTIRE bar is the click target. */}
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-[inherit] p-4 text-sm font-medium text-foreground select-none [&::-webkit-details-marker]:hidden">
                 How a vault works
                 <svg
                   aria-hidden
@@ -638,7 +642,7 @@ function NewPoolForm() {
                   <path d="M6 9l6 6 6-6" />
                 </svg>
               </summary>
-              <div className="mt-3 flex flex-col gap-3">
+              <div className="flex flex-col gap-3 px-4 pb-4">
                 <div className="flex items-start gap-2.5">
                   <span className="flex size-5 shrink-0 items-center justify-center text-[12px] font-semibold text-muted">
                     1
