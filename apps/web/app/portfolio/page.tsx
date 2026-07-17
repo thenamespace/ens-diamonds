@@ -69,7 +69,7 @@ export default function PortfolioPage() {
           </EmptyState.Content>
         </EmptyState>
       ) : (
-        <div className="stack">
+        <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
           {solo.map((n) => (
             <SoloTicket key={n.label} n={n} />
           ))}

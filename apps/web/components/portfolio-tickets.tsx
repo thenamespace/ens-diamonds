@@ -66,13 +66,13 @@ function TicketStat({ label, children, mono = true }: { label: string; children:
 }
 
 const ticketCardClass =
-  "gap-0 bg-transparent p-0 shadow-none transition-all duration-200 [filter:drop-shadow(0_2px_6px_rgba(18,21,28,0.08))] hover:[filter:drop-shadow(0_8px_12px_rgba(18,21,28,0.12))]";
+  "h-full gap-0 bg-transparent p-0 shadow-none transition-all duration-200 [filter:drop-shadow(0_2px_6px_rgba(18,21,28,0.08))] hover:[filter:drop-shadow(0_8px_12px_rgba(18,21,28,0.12))]";
 
 // One fully-owned name, as a claim ticket.
 export function SoloTicket({ n }: { n: Solo }) {
   return (
     <Card className={`reveal ${ticketCardClass}`}>
-      <div className="ticket-top p-4">
+      <div className="ticket-top flex-1 p-4">
         <TicketHead chip="Owned" label={n.label} sub={`in your wallet · ${fmtExpiry(n.expiry)}`} />
       </div>
       <div className="ticket-stub px-4 pt-3.5 pb-4">
@@ -103,7 +103,7 @@ export function VaultTicket({ v, viewer }: { v: Vault; viewer?: string }) {
   const yourPct = sharePct(v.yourDeposit, v.totalDeposited);
   return (
     <Card className={`reveal ${ticketCardClass}`}>
-      <div className="ticket-top p-4">
+      <div className="ticket-top flex-1 p-4">
         <TicketHead chip="Co-owned" label={v.label} sub={`held by your vault's Safe · ${fmtExpiry(v.expiry)}`} />
       </div>
 
