@@ -4,6 +4,15 @@ const nextConfig = {
   redirects: async () => [
     // "Watching" was renamed to "Favourites" (heart) — keep old links working.
     { source: "/watching", destination: "/favourites", permanent: true },
+    // Wallets flag *.vercel.app as a phishing-prone shared platform — always
+    // serve from the canonical domain. (Host-matched, so the Sepolia project
+    // and preview deployments are unaffected.)
+    {
+      source: "/:path*",
+      has: [{ type: "host", value: "ens-diamonds.vercel.app" }],
+      destination: "https://www.ens.diamonds/:path*",
+      permanent: true,
+    },
   ],
   ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   webpack: (config) => {
