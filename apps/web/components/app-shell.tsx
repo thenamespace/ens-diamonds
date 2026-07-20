@@ -104,6 +104,9 @@ function SiteFooter() {
               <Link className={footerLink} href="/about">
                 About
               </Link>
+              <Link className={footerLink} href="/faq">
+                FAQ
+              </Link>
               <Link className={footerLink} href="/vaults/new">
                 Start a vault
               </Link>
