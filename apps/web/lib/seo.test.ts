@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { nameMeta, premiumSitemapEntries, staticSitemapEntries, SITE_URL } from "./seo";
-import { DAY, GRACE, PREMIUM, type EnsNameData } from "./ens-name";
+import { nameMeta, staticSitemapEntries, SITE_URL } from "./seo";
+import { DAY, GRACE, type EnsNameData } from "./ens-name";
 
 const NOW = 1_800_000_000; // fixed unix seconds
 
@@ -65,16 +65,5 @@ describe("sitemap entries", () => {
     for (const p of ["/", "/about", "/faq", "/vaults", "/legal/terms", "/legal/privacy", "/legal/risks"]) {
       expect(urls).toContain(`${SITE_URL}${p === "/" ? "" : p}`);
     }
-  });
-
-  it("premium entries keep only in-window names and encode labels", () => {
-    const rows = [
-      { label: "inwindow", expiryDate: NOW - GRACE - 3 * DAY },
-      { label: "stillgrace", expiryDate: NOW - GRACE + DAY },
-      { label: "done", expiryDate: NOW - GRACE - PREMIUM - DAY },
-      { label: "café", expiryDate: NOW - GRACE - 3 * DAY },
-    ];
-    const urls = premiumSitemapEntries(rows, NOW).map((e) => e.url);
-    expect(urls).toEqual([`${SITE_URL}/name/inwindow`, `${SITE_URL}/name/caf%C3%A9`]);
   });
 });

@@ -1,6 +1,5 @@
 import type { MetadataRoute } from "next";
-import { deriveStatus, weiToUsd, DAY, GRACE, type EnsNameData } from "./ens-name";
-import type { WindowRow } from "./ens-premium";
+import { weiToUsd, DAY, GRACE, type EnsNameData } from "./ens-name";
 
 // Canonical origin for the indexable (mainnet) deployment. The Sepolia build
 // is never indexed, so a single constant is correct for canonicals/sitemaps.
@@ -81,17 +80,4 @@ export function staticSitemapEntries(): MetadataRoute.Sitemap {
     weekly("/legal/privacy", 0.3),
     weekly("/legal/risks", 0.3),
   ];
-}
-
-// Every name currently inside the 21-day premium window gets its own sitemap
-// entry while it is actually buyable. Membership churns daily; the sitemap
-// route revalidates hourly.
-export function premiumSitemapEntries(rows: WindowRow[], nowSec: number): MetadataRoute.Sitemap {
-  return rows
-    .filter((r) => deriveStatus(r.expiryDate, nowSec) === "premium")
-    .map((r) => ({
-      url: `${SITE_URL}/name/${encodeURIComponent(r.label)}`,
-      changeFrequency: "hourly" as const,
-      priority: 0.7,
-    }));
 }
