@@ -14,6 +14,7 @@ const NAV_LINKS = [
   { href: "/vaults", label: "Vaults" },
   { href: "/favourites", label: "Favourites" },
   { href: "/portfolio", label: "Portfolio" },
+  { href: "/faq", label: "FAQ" },
   { href: "/about", label: "About" },
 ];
 
