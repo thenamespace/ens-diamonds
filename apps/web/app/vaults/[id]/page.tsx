@@ -476,6 +476,17 @@ export default function PoolDashboard() {
                   {pending === "withdraw" ? "Withdrawing…" : "Withdraw"}
                 </Button>
               </div>
+              <div className="mt-2 text-center text-xs text-muted">
+                By continuing you agree to the{" "}
+                <Link className="font-medium underline underline-offset-2 hover:text-foreground" href="/legal/terms">
+                  Terms
+                </Link>{" "}
+                and acknowledge the{" "}
+                <Link className="font-medium underline underline-offset-2 hover:text-foreground" href="/legal/risks">
+                  Risks
+                </Link>
+                .
+              </div>
               {status === "funded" && (
                 <Alert className="mt-2" status="warning">
                   <Alert.Indicator />

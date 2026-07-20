@@ -768,6 +768,17 @@ function NewPoolForm() {
                 {step === "creating" ? "Confirm create in wallet…" : step === "depositing" ? "Confirm deposit in wallet…" : "Create vault & deposit"}
               </Button>
               <div className="mt-2.5 text-center text-xs text-muted">
+                By continuing you agree to the{" "}
+                <Link className="font-medium underline underline-offset-2 hover:text-foreground" href="/legal/terms">
+                  Terms
+                </Link>{" "}
+                and acknowledge the{" "}
+                <Link className="font-medium underline underline-offset-2 hover:text-foreground" href="/legal/risks">
+                  Risks
+                </Link>
+                .
+              </div>
+              <div className="mt-2.5 text-center text-xs text-muted">
                 {busy ? "Two transactions: createPool, then your deposit." : `A ${schemeLabel} Safe deploys at finalization.`}
               </div>
             </Card.Content>

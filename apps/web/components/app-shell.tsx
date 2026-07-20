@@ -110,6 +110,15 @@ function SiteFooter() {
               <a className={footerLink} href="https://namespace.ninja" rel="noreferrer" target="_blank">
                 Namespace ↗
               </a>
+              <Link className={footerLink} href="/legal/terms">
+                Terms
+              </Link>
+              <Link className={footerLink} href="/legal/privacy">
+                Privacy
+              </Link>
+              <Link className={footerLink} href="/legal/risks">
+                Risks
+              </Link>
             </FooterColumn>
           </div>
         </div>

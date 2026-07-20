@@ -31,3 +31,6 @@ npm-debug.log*
 # raw design assets (duplicated into apps/web/public)
 /nsicons/
 /diamonds-preview-image.png
+
+# Internal ops/planning docs that must never be published (keep private notes here)
+docs/private/
