@@ -1,3 +1,5 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Alert } from "@thenamespace/uikit/alert";
 import { buttonVariants } from "@thenamespace/uikit/button";
@@ -10,6 +12,9 @@ import { usd } from "@/lib/data";
 import { fmtEth, fmtCountdown, shortLabel } from "@/lib/format";
 import { getEnsNameData, weiToUsd, type EnsNameData, DAY, GRACE, PREMIUM } from "@/lib/ens-name";
 import { getNameSignals } from "@/lib/discover-feed";
+import { nameMeta, SITE_URL } from "@/lib/seo";
+import { breadcrumbJsonLd, nameProductJsonLd } from "@/lib/json-ld";
+import JsonLd from "@/components/json-ld";
 
 // Favourites + vaults for a name — the same signals that rank the Trending tab.
 function NameSignalsLine({ watchers, pools }: { watchers: number; pools: number }) {
@@ -42,6 +47,30 @@ function NameSignalsLine({ watchers, pools }: { watchers: number; pools: number 
 // staleness. HTML-level caching avoids the bigint-serialization problem that
 // unstable_cache would hit on the wei fields.
 export const revalidate = 60;
+
+// Dedupe the RPC reads between generateMetadata and the page render.
+const getNameData = cache(getEnsNameData);
+
+export async function generateMetadata({ params }: { params: Promise<{ label: string }> }): Promise<Metadata> {
+  const { label } = await params;
+  const raw = decodeURIComponent(label);
+  let d: EnsNameData;
+  try {
+    d = await getNameData(raw);
+  } catch {
+    return { title: `${raw.replace(/\.eth$/i, "")}.eth` };
+  }
+  const m = nameMeta(d, Math.floor(Date.now() / 1000));
+  const display = d.normalized || raw.replace(/\.eth$/i, "");
+  return {
+    title: m.title,
+    description: m.description,
+    alternates: { canonical: `/name/${encodeURIComponent(display)}` },
+    ...(m.index ? {} : { robots: { index: false, follow: false } }),
+    openGraph: { title: m.title, description: m.description },
+    twitter: { title: m.title, description: m.description },
+  };
+}
 
 function fmtUsdWei(wei: bigint, ethUsd: number | null): string {
   const v = weiToUsd(wei, ethUsd);
@@ -105,7 +134,7 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
 
   let d: EnsNameData;
   try {
-    d = await getEnsNameData(raw);
+    d = await getNameData(raw);
   } catch {
     return (
       <NameEmptyState
@@ -186,8 +215,21 @@ export default async function NamePage({ params }: { params: Promise<{ label: st
   const premiumEndsAt = d.expiry + GRACE + PREMIUM;
   const dayIntoPremium = d.status === "premium" ? Math.min(21, Math.max(0, Math.floor((nowSec - (d.expiry + GRACE)) / DAY))) : 0;
 
+  const productJsonLd = nameProductJsonLd({
+    label: display,
+    priceUsd: weiToUsd(d.totalWei, d.ethUsd),
+    premiumEndsAt: d.status === "premium" ? premiumEndsAt : null,
+  });
+
   return (
     <Shell label={display}>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Discover", url: SITE_URL },
+          { name: `${display}.eth`, url: `${SITE_URL}/name/${encodeURIComponent(display)}` },
+        ])}
+      />
+      {productJsonLd && <JsonLd data={productJsonLd} />}
       <div className="page-head">
         <div>
           <div className="row" style={{ gap: 14 }}>
