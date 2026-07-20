@@ -28,7 +28,9 @@ export function nameMeta(d: EnsNameData, nowSec: number): NameMeta {
 
   if (d.status === "invalid" || d.status === "tooShort") {
     return {
-      title: `${name} on ens.diamonds`,
+      // The root title template appends the brand; a bare name avoids
+      // "on ens.diamonds · ens.diamonds".
+      title: name,
       description: "Look up live ENS premium auction prices and pool ETH with others to register names together.",
       index: false,
     };
