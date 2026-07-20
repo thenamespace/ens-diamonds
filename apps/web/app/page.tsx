@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getDiscoverPage, type DiscoverPage } from "@/lib/discover-feed";
 import DiscoverGrid from "@/components/discover-grid";
 import FeedErrorNote from "@/components/feed-error-note";
@@ -8,6 +9,8 @@ const INITIAL_SORT = "ending" as const;
 
 // Cache the live premium list ~60s (bounds subgraph/RPC usage).
 export const revalidate = 60;
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default async function Discover() {
   let initial: DiscoverPage | null = null;

@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { LegalTitle, P, Section, UL } from "../legal-ui";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy · ens.diamonds",
+  title: "Privacy Policy",
   description: "What data ens.diamonds processes, and what it never collects.",
+  alternates: { canonical: "/legal/privacy" },
 };
 
 export default function PrivacyPage() {

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "About · ens.diamonds",
+  title: "About",
   description:
     "ens.diamonds lets a group pool ETH into a shared vault to claim premium ENS names no one wants to buy alone. Built by the Namespace team.",
+  alternates: { canonical: "/about" },
 };
 
 function Lead({ children }: { children: React.ReactNode }) {

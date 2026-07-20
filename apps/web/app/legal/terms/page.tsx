@@ -3,8 +3,9 @@ import Link from "next/link";
 import { LegalTitle, P, Section, UL } from "../legal-ui";
 
 export const metadata: Metadata = {
-  title: "Terms of Service · ens.diamonds",
+  title: "Terms of Service",
   description: "The terms that apply when you use the ens.diamonds interface.",
+  alternates: { canonical: "/legal/terms" },
 };
 
 export default function TermsPage() {

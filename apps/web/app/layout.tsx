@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Fraunces, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import AppShell from "@/components/app-shell";
+import JsonLd from "@/components/json-ld";
+import { orgJsonLd, webSiteJsonLd } from "@/lib/json-ld";
 import Providers from "./providers";
 
 const mono = JetBrains_Mono({
@@ -23,7 +25,11 @@ const display = Fraunces({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.ens.diamonds"),
-  title: "ens.diamonds: Pool up to claim premium ENS names, together",
+  applicationName: "ens.diamonds",
+  title: {
+    default: "ens.diamonds: Pool up to claim premium ENS names, together",
+    template: "%s · ens.diamonds",
+  },
   description:
     "Premium ENS names cost thousands. ens.diamonds lets a group pool ETH to buy one together. Funds sit in an open-source escrow with unilateral refunds, and a multisig you all control registers the name.",
   keywords: ["ENS", "premium names", "Dutch auction", "multisig", "Safe", "pooling", "ethereum"],
@@ -32,6 +38,7 @@ export const metadata: Metadata = {
     description:
       "Found a premium ENS name too rich to grab solo? Start a vault, invite people through their onchain records, and buy it with a multisig you all control.",
     type: "website",
+    locale: "en_US",
     url: "https://www.ens.diamonds",
     siteName: "ens.diamonds",
     images: [{ url: "/diamonds-preview.png", width: 2400, height: 1260, alt: "ens.diamonds" }],
@@ -48,6 +55,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`light ${mono.variable} ${display.variable}`} data-theme="light">
       <body className="bg-background text-foreground">
+        <JsonLd data={orgJsonLd()} />
+        <JsonLd data={webSiteJsonLd()} />
         <Providers>
           <AppShell>{children}</AppShell>
         </Providers>

@@ -4,8 +4,9 @@ import { ESCROW_ADDRESS, isEscrowConfigured } from "@/lib/chain";
 import { LegalTitle, P, Section, UL } from "../legal-ui";
 
 export const metadata: Metadata = {
-  title: "Risk Disclosure · ens.diamonds",
+  title: "Risk Disclosure",
   description: "The risks of pooling ETH to register ENS names. Read this before depositing.",
+  alternates: { canonical: "/legal/risks" },
 };
 
 export default function RisksPage() {
