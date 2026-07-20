@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { EmptyStateCard, WarningAlert } from "@/components/rsc-safe-uikit";
 import { getSession } from "@/lib/session";
 import { getWatched } from "@/lib/watchlist";
@@ -7,6 +8,13 @@ import SignInPrompt from "@/components/sign-in-prompt";
 import WatchingCard, { type WatchingCardData } from "@/components/watching-card";
 
 export const dynamic = "force-dynamic";
+
+// Session-private page.
+export const metadata: Metadata = {
+  title: "Favourites",
+  robots: { index: false, follow: false },
+  alternates: { canonical: "/favourites" },
+};
 
 const STATUS_TEXT: Record<EnsStatus, string> = {
   active: "Registered",
