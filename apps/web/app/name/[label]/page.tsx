@@ -67,8 +67,10 @@ export async function generateMetadata({ params }: { params: Promise<{ label: st
     description: m.description,
     alternates: { canonical: `/name/${encodeURIComponent(display)}` },
     ...(m.index ? {} : { robots: { index: false, follow: false } }),
-    openGraph: { title: m.title, description: m.description },
-    twitter: { title: m.title, description: m.description },
+    // Re-declare the images: setting openGraph here replaces the root
+    // layout's object entirely, which silently dropped the og:image.
+    openGraph: { title: m.title, description: m.description, images: ["/diamonds-preview.png"] },
+    twitter: { card: "summary_large_image", title: m.title, description: m.description, images: ["/diamonds-preview.png"] },
   };
 }
 
