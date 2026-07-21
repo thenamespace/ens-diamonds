@@ -130,6 +130,7 @@ function SiteFooter() {
               href="https://github.com/thenamespace/ens-diamonds"
               rel="noreferrer"
               target="_blank"
+              aria-label="ens.diamonds source code on GitHub"
             >
               open-source
             </a>
