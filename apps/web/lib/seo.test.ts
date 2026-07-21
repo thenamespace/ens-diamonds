@@ -62,7 +62,7 @@ describe("nameMeta", () => {
 describe("sitemap entries", () => {
   it("static entries cover the public pages", () => {
     const urls = staticSitemapEntries().map((e) => e.url);
-    for (const p of ["/", "/about", "/faq", "/vaults", "/legal/terms", "/legal/privacy", "/legal/risks"]) {
+    for (const p of ["/", "/about", "/vaults", "/legal/terms", "/legal/privacy", "/legal/risks"]) {
       expect(urls).toContain(`${SITE_URL}${p === "/" ? "" : p}`);
     }
   });

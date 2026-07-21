@@ -1,5 +1,6 @@
-// FAQ copy. Rendered verbatim on /faq and serialized into FAQPage JSON-LD, so
-// keep answers plain text. House style: no em dashes, "vault" not "pool".
+// FAQ copy. Rendered verbatim in the /about FAQ section and serialized into
+// FAQPage JSON-LD there, so keep answers plain text. House style: no em
+// dashes, "vault" not "pool".
 export type FaqItem = { q: string; a: string };
 
 export const FAQ_ITEMS: FaqItem[] = [

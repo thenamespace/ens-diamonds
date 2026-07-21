@@ -76,7 +76,6 @@ export function staticSitemapEntries(): MetadataRoute.Sitemap {
   return [
     { url: SITE_URL, changeFrequency: "daily", priority: 1 },
     weekly("/about", 0.8),
-    weekly("/faq", 0.8),
     weekly("/vaults", 0.7),
     weekly("/legal/terms", 0.3),
     weekly("/legal/privacy", 0.3),

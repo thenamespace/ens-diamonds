@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Navbar } from "@thenamespace/uikit";
-import { BadgeCheckIcon, HugeiconsIcon } from "@thenamespace/uikit/icons";
+import { HugeiconsIcon, SecurityCheckIcon } from "@thenamespace/uikit/icons";
 import ConnectButton from "./connect-button";
 import SessionGuard from "./session-guard";
 import { APP_CHAIN } from "@/lib/app-chain";
@@ -14,7 +14,6 @@ const NAV_LINKS = [
   { href: "/vaults", label: "Vaults" },
   { href: "/favourites", label: "Favourites" },
   { href: "/portfolio", label: "Portfolio" },
-  { href: "/faq", label: "FAQ" },
   { href: "/about", label: "About" },
 ];
 
@@ -53,12 +52,12 @@ function SiteFooter() {
             </p>
             <a
               className="inline-flex items-center gap-2 rounded-full border border-separator bg-surface px-3.5 py-1.5 text-[12.5px] font-medium text-muted transition-colors hover:text-foreground"
-              href="https://ens.domains"
+              href="https://onedollaraudit.com"
               rel="noreferrer"
               target="_blank"
             >
-              <HugeiconsIcon className="text-[#2f6bff]" icon={BadgeCheckIcon} size={15} strokeWidth={2} aria-hidden />
-              ENS Service Provider
+              <HugeiconsIcon className="text-[#16a34a]" icon={SecurityCheckIcon} size={15} strokeWidth={2} aria-hidden />
+              Audited by OneDollarAudit
             </a>
           </div>
 
@@ -105,17 +104,9 @@ function SiteFooter() {
               <Link className={footerLink} href="/about">
                 About
               </Link>
-              <Link className={footerLink} href="/faq">
-                FAQ
-              </Link>
-              <Link className={footerLink} href="/vaults/new">
-                Start a vault
-              </Link>
-              <Link className={footerLink} href="/feedback">
-                Feedback
-              </Link>
-              <a className={footerLink} href="https://namespace.ninja" rel="noreferrer" target="_blank">
-                Namespace ↗
+              {/* TODO: swap for the dedicated feedback TG group when it exists */}
+              <a className={footerLink} href="https://t.me/+2xzOUH_laAZhYTA6" rel="noreferrer" target="_blank">
+                Feedback ↗
               </a>
               <Link className={footerLink} href="/legal/terms">
                 Terms
@@ -130,22 +121,27 @@ function SiteFooter() {
           </div>
         </div>
 
-        <div className="border-separator mt-12 flex flex-wrap items-center justify-between gap-3 border-t pt-5">
-          <span className="text-[12.5px] text-muted">© {new Date().getFullYear()} ens.diamonds</span>
-          <span className="font-mono text-[11.5px] tracking-[0.05em] text-muted">
-            non-custodial · open-source ·{" "}
-            <a className="hover:text-foreground transition-colors" href="https://onedollaraudit.com" rel="noreferrer" target="_blank">
-              Audited by One Dollar Audit
-            </a>
-          </span>
+        {/* Below the line: © + tagline on the left, built-by + logo on the right. */}
+        <div className="border-separator mt-14 flex flex-wrap items-center justify-between gap-x-6 gap-y-4 border-t pt-5">
           <span className="text-[12.5px] text-muted">
-            Built by{" "}
-            <a className="hover:text-foreground underline underline-offset-2" href="https://namespace.ninja" rel="noreferrer" target="_blank">
-              Namespace
-            </a>{" "}
-            Ninjas <span aria-hidden>🥷</span>
+            © {new Date().getFullYear()} ens.diamonds · open-source
           </span>
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-[11px] font-medium tracking-[0.18em] text-muted uppercase">
+              Built by Namespace Ninjas
+            </span>
+            <a
+              className="opacity-80 transition-opacity hover:opacity-100"
+              href="https://namespace.ninja"
+              rel="noreferrer"
+              target="_blank"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img alt="Namespace" className="h-5 w-auto" height={20} src="/namespace-logo-dark.svg" width={130} />
+            </a>
+          </div>
         </div>
+
       </div>
 
       {/* Ghost wordmark — cropped oversized brand at the page's very end. */}

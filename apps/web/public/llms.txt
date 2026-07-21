@@ -15,8 +15,7 @@
 - https://www.ens.diamonds/ : live list of ENS names in their premium auction
 - https://www.ens.diamonds/name/{label} : live price, decay curve, and buy/pool actions for any .eth name
 - https://www.ens.diamonds/vaults : all open vaults
-- https://www.ens.diamonds/faq : frequently asked questions
-- https://www.ens.diamonds/about : what ens.diamonds is
+- https://www.ens.diamonds/about : what ens.diamonds is, plus frequently asked questions
 
 ## Facts
 

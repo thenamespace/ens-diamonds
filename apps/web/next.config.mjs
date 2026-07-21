@@ -31,6 +31,8 @@ const nextConfig = {
     // keep previously shared links working. API routes stay under /api/pools.
     { source: "/pools", destination: "/vaults", permanent: true },
     { source: "/pools/:path*", destination: "/vaults/:path*", permanent: true },
+    // FAQ became a section on /about — keep old links and search results working.
+    { source: "/faq", destination: "/about", permanent: true },
     // Wallets flag *.vercel.app as a phishing-prone shared platform — always
     // serve from the canonical domain. (Host-matched, so the Sepolia project
     // and preview deployments are unaffected.)
