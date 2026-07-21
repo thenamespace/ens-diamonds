@@ -11,7 +11,9 @@ export function normalizeLabel(raw: string): string | null {
   } catch {
     return null;
   }
-  if (n.length < 3) return null;
+  // A .eth label maxes out at 63 chars; reject longer so an oversized string
+  // can't become a giant Redis key (watchers:<label>) and bloat the store.
+  if (n.length < 3 || n.length > 63) return null;
   return n;
 }
 
