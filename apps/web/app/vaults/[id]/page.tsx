@@ -240,7 +240,7 @@ export default function PoolDashboard() {
             )}
           </div>
           <p>
-            {effThreshold}-of-{contributorCount || "N"} Safe · created by <AddressLabel address={creator} />
+            {effThreshold}-of-{contributorCount || "N"} Safe
             {safe !== "0x0000000000000000000000000000000000000000" ? (
               <>
                 {" "}
@@ -287,18 +287,23 @@ export default function PoolDashboard() {
           <Alert.Content>
             <Alert.Title>Target reached! Execution window open</Alert.Title>
             <Alert.Description>
-              Funds locked until {new Date(lockEnds * 1000).toLocaleString()}. Any contributor can finalize. It
-              deploys a {effThreshold}-of-{contributorCount} Safe.
+              Withdrawals from this vault are locked until {new Date(lockEnds * 1000).toLocaleString()}.
+              <br />
+              Finalizing deploys a {effThreshold}-of-{contributorCount} Safe and moves the funds into it, ready
+              to buy {label}.eth.
+              <br />
+              Any contributor can finalize.
             </Alert.Description>
           </Alert.Content>
           {isConnected && yourDeposit === 0n ? (
-            <span className="block max-w-60 text-right text-[13px] text-muted">
+            <span className="block max-w-60 self-center text-right text-[13px] text-muted">
               {invitedYou
                 ? "Only contributors can finalize. Deposit into this vault to help finalize it."
                 : "Only this vault's contributors can finalize it."}
             </span>
           ) : (
             <Button
+              className="self-center"
               variant="primary"
               isDisabled={!isConnected || wrongChain || pending !== null || yourDeposit === 0n}
               onPress={() => act("finalize")}
@@ -313,7 +318,7 @@ export default function PoolDashboard() {
           <Alert.Indicator />
           <Alert.Content>
             <Alert.Title>Funding · {fmtCountdown(fundingDeadline)} left</Alert.Title>
-            <Alert.Description>Deposit to reach the target. Withdraw in full any time before the execution lock.</Alert.Description>
+            <Alert.Description>Deposit to reach the target. Withdraw in full any time before the execution window.</Alert.Description>
           </Alert.Content>
         </Alert>
       )}
@@ -381,7 +386,9 @@ export default function PoolDashboard() {
 
           <Card>
             <Card.Header>
-              <Card.Title>Contributors · ownership from onchain deposits</Card.Title>
+              <Card.Title>
+                Contributors <span className="text-sm font-normal text-muted">· ownership from onchain deposits</span>
+              </Card.Title>
             </Card.Header>
             <Card.Content>
               {contributors && contributors[0].length > 0 ? (
@@ -478,11 +485,11 @@ export default function PoolDashboard() {
               </div>
               <div className="mt-2 text-center text-xs text-muted">
                 By continuing you agree to the{" "}
-                <Link className="font-medium underline underline-offset-2 hover:text-foreground" href="/legal/terms">
+                <Link className="font-semibold hover:text-foreground" href="/legal/terms">
                   Terms
                 </Link>{" "}
                 and acknowledge the{" "}
-                <Link className="font-medium underline underline-offset-2 hover:text-foreground" href="/legal/risks">
+                <Link className="font-semibold hover:text-foreground" href="/legal/risks">
                   Risks
                 </Link>
                 .

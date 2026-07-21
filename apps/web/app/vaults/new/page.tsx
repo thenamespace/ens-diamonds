@@ -625,7 +625,7 @@ function NewPoolForm() {
                   <Alert.Indicator />
                   <Alert.Content>
                     <Alert.Description>
-                      With 2 people it&rsquo;s 2-of-2: if one loses their key, the wallet is frozen. Add a third for a safety margin.
+                      With 2 people it&rsquo;s 2-of-2: if one loses their key, the wallet is frozen. Consider adding a third for a safety margin.
                     </Alert.Description>
                   </Alert.Content>
                 </Alert>
@@ -636,13 +636,10 @@ function NewPoolForm() {
 
         <div className="stack">
           {/* mt matches the pill cards' overhang offset so the row tops align. */}
-          <Card
-            className="mt-[14px] border border-separator p-0 transition-all duration-150 hover:border-foreground/25 hover:bg-foreground/[0.03]"
-            variant="secondary"
-          >
+          <Card className="mt-[14px] overflow-hidden p-0">
             <details className="group">
               {/* Padding lives on the summary so the ENTIRE bar is the click target. */}
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-[inherit] p-4 text-sm font-medium text-foreground select-none [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-[inherit] p-4 text-sm font-semibold text-foreground transition-colors duration-150 select-none hover:bg-foreground/[0.04] group-open:hover:bg-transparent [&::-webkit-details-marker]:hidden">
                 How a vault works
                 <svg
                   aria-hidden
@@ -769,11 +766,11 @@ function NewPoolForm() {
               </Button>
               <div className="mt-2.5 text-center text-xs text-muted">
                 By continuing you agree to the{" "}
-                <Link className="font-medium underline underline-offset-2 hover:text-foreground" href="/legal/terms">
+                <Link className="font-semibold hover:text-foreground" href="/legal/terms">
                   Terms
                 </Link>{" "}
                 and acknowledge the{" "}
-                <Link className="font-medium underline underline-offset-2 hover:text-foreground" href="/legal/risks">
+                <Link className="font-semibold hover:text-foreground" href="/legal/risks">
                   Risks
                 </Link>
                 .

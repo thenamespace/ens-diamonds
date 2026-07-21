@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { APP_CHAIN } from "@/lib/app-chain";
-import { ESCROW_ADDRESS } from "@/lib/chain";
 
 export const metadata: Metadata = {
   title: "About",
@@ -60,32 +58,6 @@ export default function AboutPage() {
             all control.
           </Lead>
           <Lead>No one can run off with the money, with a purchased name, and no single person can act alone.</Lead>
-        </section>
-
-        <section className="mt-12 space-y-3.5 text-center">
-          <h2 className="mb-4 text-[26px] tracking-[-0.02em]">The facts</h2>
-          <Lead>
-            ens.diamonds is built by the{" "}
-            <a href="https://namespace.ninja" rel="noreferrer" target="_blank">
-              Namespace
-            </a>{" "}
-            team. The interface is licensed MIT.
-          </Lead>
-          <Lead>
-            Funds are held by the EnsDiamondsEscrow contract at{" "}
-            <a href={`${APP_CHAIN.explorerUrl}/address/${ESCROW_ADDRESS}`} rel="noreferrer" target="_blank">
-              <span className="font-mono text-[14px]">{ESCROW_ADDRESS}</span>
-            </a>
-            , verified on Etherscan and externally audited.
-          </Lead>
-          <Lead>
-            Purchased names are registered to a{" "}
-            <a href="https://app.safe.global" rel="noreferrer" target="_blank">
-              Safe multisig
-            </a>{" "}
-            controlled by the vault&apos;s contributors. ens.diamonds holds no admin keys over user funds and charges
-            no protocol fee.
-          </Lead>
         </section>
 
       </div>

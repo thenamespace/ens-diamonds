@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useAccount, useReadContract, useReadContracts } from "wagmi";
-import { useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { Alert, Button, Card, Chip, EmptyState, ProgressBar, buttonVariants } from "@thenamespace/uikit";
 import { cofferEscrow, statusName } from "@/lib/contract";
 import { isEscrowConfigured } from "@/lib/chain";
@@ -92,6 +92,35 @@ export default function PoolsPage() {
       return isPoolVisible({ isPrivate: privateIds.has(id), viewer, creator, invited });
     });
 
+  // Winner check for finalized vaults on this page: same query key as the
+  // detail page's registration panel, so react-query shares the cache. Bounded
+  // by PAGE, and in practice by the (few) finalized vaults among them.
+  const finalizedIds = visible
+    .filter(({ i }) => {
+      const s = data?.[i * per + 1]?.result as number | undefined;
+      return s !== undefined && statusName(s) === "finalized";
+    })
+    .map(({ id }) => id);
+  const regQueries = useQueries({
+    queries: finalizedIds.map((id) => ({
+      queryKey: ["pool-register", id],
+      queryFn: async () => {
+        const res = await fetch(`/api/pools/registration?poolId=${id}`);
+        if (!res.ok) throw new Error("Failed to load registration state");
+        return (await res.json()) as { available: boolean | null; nameOwner: string | null; safe: string | null };
+      },
+      refetchInterval: 30_000,
+    })),
+  });
+  const winners = new Set(
+    finalizedIds.filter((_, qi) => {
+      const r = regQueries[qi]?.data;
+      return (
+        r?.available === false && !!r.nameOwner && !!r.safe && r.nameOwner.toLowerCase() === r.safe.toLowerCase()
+      );
+    }),
+  );
+
   const loading = isEscrowConfigured && !countError && (total === undefined || (page.length > 0 && data === undefined));
   const failed = countError || (page.length > 0 && detailsError && data === undefined);
 
@@ -164,9 +193,16 @@ export default function PoolsPage() {
               <Link key={id} href={`/vaults/${id}`} className="group block">
                 <Card className="h-full transition-colors">
                   <div className="flex items-center justify-between">
-                    <Chip color={STATUS_CHIP[status] ?? "default"} size="sm" variant="soft">
-                      {status}
-                    </Chip>
+                    <div className="flex items-center gap-1.5">
+                      <Chip color={STATUS_CHIP[status] ?? "default"} size="sm" variant="soft">
+                        {status}
+                      </Chip>
+                      {winners.has(id) && (
+                        <Chip color="success" size="sm" variant="soft">
+                          winner 🥳
+                        </Chip>
+                      )}
+                    </div>
                     <span className="mono text-xs text-muted">
                       {isPrivate ? "🔒 " : ""}#{id} · majority
                     </span>

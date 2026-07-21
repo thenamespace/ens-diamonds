@@ -27,6 +27,13 @@ export default function PortfolioPage() {
   const vaults = (data?.vaults ?? []).filter((v) => v.safeOwns);
   const empty = solo.length === 0 && vaults.length === 0;
 
+  // Newest purchase first. Registration time isn't recorded onchain, so expiry
+  // (registration + term) is the closest proxy; vault ties break by newest pool.
+  const tickets = [
+    ...solo.map((n) => ({ key: `s:${n.label}`, expiry: n.expiry ?? 0, poolId: -1, solo: n, vault: null })),
+    ...vaults.map((v) => ({ key: `v:${v.poolId}`, expiry: v.expiry ?? 0, poolId: v.poolId, solo: null, vault: v })),
+  ].sort((a, b) => b.expiry - a.expiry || b.poolId - a.poolId);
+
   return (
     <div className="wrap">
       <div className="page-head">
@@ -70,12 +77,9 @@ export default function PortfolioPage() {
         </EmptyState>
       ) : (
         <div className="grid grid-cols-1 gap-[18px] lg:grid-cols-2">
-          {solo.map((n) => (
-            <SoloTicket key={n.label} n={n} />
-          ))}
-          {vaults.map((v) => (
-            <VaultTicket key={v.poolId} v={v} viewer={address} />
-          ))}
+          {tickets.map((t) =>
+            t.solo ? <SoloTicket key={t.key} n={t.solo} /> : <VaultTicket key={t.key} v={t.vault!} viewer={address} />,
+          )}
         </div>
       )}
     </div>
