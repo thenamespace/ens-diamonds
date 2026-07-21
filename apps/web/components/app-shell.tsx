@@ -124,7 +124,15 @@ function SiteFooter() {
         {/* Below the line: © + tagline on the left, built-by + logo on the right. */}
         <div className="border-separator mt-14 flex flex-wrap items-center justify-between gap-x-6 gap-y-4 border-t pt-5">
           <span className="text-[12.5px] text-muted">
-            © {new Date().getFullYear()} ens.diamonds · open-source
+            © {new Date().getFullYear()} ens.diamonds ·{" "}
+            <a
+              className="font-medium transition-colors hover:text-foreground"
+              href="https://github.com/thenamespace/ens-diamonds"
+              rel="noreferrer"
+              target="_blank"
+            >
+              open-source
+            </a>
           </span>
           <div className="flex flex-wrap items-center gap-3">
             <span className="text-[11px] font-medium tracking-[0.18em] text-muted uppercase">
