@@ -111,6 +111,9 @@ function SiteFooter() {
               <Link className={footerLink} href="/vaults/new">
                 Start a vault
               </Link>
+              <Link className={footerLink} href="/feedback">
+                Feedback
+              </Link>
               <a className={footerLink} href="https://namespace.ninja" rel="noreferrer" target="_blank">
                 Namespace ↗
               </a>
