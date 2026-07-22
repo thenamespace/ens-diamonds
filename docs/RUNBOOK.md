@@ -1,7 +1,7 @@
 # ens.diamonds — Deployment Runbook
 
 Operational guide for deploying ens.diamonds to **Sepolia** and **mainnet**. Pairs
-with `docs/STATUS.md` (state/handoff) and `apps/web/.env.example` (env template).
+with `apps/web/.env.example` (env template) and the audit trail in `docs/security/`.
 
 > **Golden rule — one build per chain.** `NEXT_PUBLIC_APP_CHAIN` and every
 > `NEXT_PUBLIC_*` address are inlined into the JS bundle at build time. You
@@ -128,7 +128,8 @@ Steps (in `packages/contracts`, with a funded `DEPLOYER_PRIVATE_KEY`):
    in the environment (not currently in `.env.example`); otherwise omit
    `--verify` and verify the contract manually afterward.
 5. Record the deployed address → set `NEXT_PUBLIC_ESCROW_ADDRESS` on the mainnet
-   Vercel project and update `docs/STATUS.md`. If the directory ever uses a
+   Vercel project and update the escrow address in README.md's Contracts table.
+   If the directory ever uses a
    deploy-block bound again, set the mainnet value (`ESCROW_DEPLOY_BLOCK` in
    `lib/chain.ts` is currently a dead Sepolia-only constant).
 

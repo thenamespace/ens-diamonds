@@ -40,11 +40,17 @@ export default function RisksPage() {
               )
             </>
           ) : null}{" "}
-          is open source and has been{" "}
-          <a href="https://onedollaraudit.com" rel="noreferrer" target="_blank">
-            externally audited
+          is open source. It has had an internal security review with all findings fixed, plus automated AI-driven
+          scans from external tools; their reports are public in{" "}
+          <a
+            href="https://github.com/thenamespace/ens-diamonds/tree/main/docs/security"
+            rel="noreferrer"
+            target="_blank"
+          >
+            docs/security
           </a>
-          . An audit reduces risk; it does not eliminate it. Smart contracts can contain undiscovered defects, and this
+          . None of this is a substitute for a formal manual audit, which has not yet been performed. Smart contracts
+          can contain undiscovered defects, and this
           one is <strong>immutable by design</strong>: no administrator, no pause switch, no upgrade path. If a defect
           is ever found, there is no one who can freeze the contract or recover funds. The same applies to the ENS and
           Safe contracts the flow depends on.

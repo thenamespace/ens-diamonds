@@ -56,7 +56,7 @@ Deployment details, environment matrix, and chain configuration: [`docs/RUNBOOK.
 
 ## Security
 
-- The escrow went through a detailed internal security review with all findings fixed: [`docs/security/2026-07-12-cofferescrow-audit.md`](docs/security/2026-07-12-cofferescrow-audit.md). That review also recommends a professional third-party audit; one has not been performed yet. Judge your deposits accordingly — the contract is deliberately small, escape hatches (unilateral withdraw) are always available outside the 24-hour execution lock, and the code is fully public.
+- The escrow went through a detailed internal security review with all findings fixed, plus a round of external AI-driven review with a public response: [`docs/security/2026-07-17-external-audit-response.md`](docs/security/2026-07-17-external-audit-response.md). Two more automated scans are in [`docs/security/`](docs/security/) (`2026-07-22-1dollar-audit-report.md`, `2026-07-22-nethermind-audit-agent-report.pdf`); their findings are under triage. No formal manual third-party audit has been performed yet. Judge your deposits accordingly — the contract is deliberately small, escape hatches (unilateral withdraw) are always available outside the 24-hour execution lock, and the code is fully public.
 - The app is non-custodial: the server coordinates signatures and metadata but never holds funds, and clients independently verify the transaction they are asked to sign.
 - Found a vulnerability? Please report it privately to the Namespace team rather than opening a public issue.
 
