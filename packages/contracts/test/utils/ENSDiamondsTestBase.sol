@@ -11,29 +11,39 @@ import {DeployENS} from "test/utils/DeployENS.sol";
 import {DeploySafe} from "test/utils/DeploySafe.sol";
 
 abstract contract ENSDiamondsTestBase is Test, DeployENS, DeploySafe {
+    struct Accounts {
+        Vm.Wallet deployer;
+        Vm.Wallet alice;
+        Vm.Wallet bob;
+        Vm.Wallet charlie;
+        Vm.Wallet dave;
+        Vm.Wallet eve;
+    }
+
     uint256 internal constant INITIAL_TIMESTAMP = 1_800_000_000;
     uint256 internal constant INITIAL_BALANCE = 100 ether;
 
-    Vm.Wallet internal creator;
-    Vm.Wallet internal member;
-    Vm.Wallet internal thirdMember;
-    Vm.Wallet internal executor;
-
+    Accounts internal accounts;
     ENSDiamonds internal diamonds;
 
     function setUp() public virtual {
         vm.warp(INITIAL_TIMESTAMP);
 
-        creator = vm.createWallet("creator");
-        member = vm.createWallet("member");
-        thirdMember = vm.createWallet("thirdMember");
-        executor = vm.createWallet("executor");
+        accounts.deployer = vm.createWallet("deployer");
+        accounts.alice = vm.createWallet("alice");
+        accounts.bob = vm.createWallet("bob");
+        accounts.charlie = vm.createWallet("charlie");
+        accounts.dave = vm.createWallet("dave");
+        accounts.eve = vm.createWallet("eve");
 
-        vm.deal(creator.addr, INITIAL_BALANCE);
-        vm.deal(member.addr, INITIAL_BALANCE);
-        vm.deal(thirdMember.addr, INITIAL_BALANCE);
-        vm.deal(executor.addr, INITIAL_BALANCE);
+        vm.deal(accounts.deployer.addr, INITIAL_BALANCE);
+        vm.deal(accounts.alice.addr, INITIAL_BALANCE);
+        vm.deal(accounts.bob.addr, INITIAL_BALANCE);
+        vm.deal(accounts.charlie.addr, INITIAL_BALANCE);
+        vm.deal(accounts.dave.addr, INITIAL_BALANCE);
+        vm.deal(accounts.eve.addr, INITIAL_BALANCE);
 
+        vm.startPrank(accounts.deployer.addr);
         deployEns();
         deploySafe();
 
@@ -44,5 +54,6 @@ abstract contract ENSDiamondsTestBase is Test, DeployENS, DeploySafe {
             safeProxyFactory,
             address(safeFallbackHandler)
         );
+        vm.stopPrank();
     }
 }
