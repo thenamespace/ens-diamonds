@@ -1,0 +1,41 @@
+{
+  "name": "@ens-diamonds/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm build",
+    "dev": "vite dev",
+    "format": "oxfmt --write .",
+    "format:check": "oxfmt --check .",
+    "generate-routes": "tsr generate",
+    "lint": "oxlint --deny-warnings .",
+    "lint:fix": "oxlint --fix .",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "4.3.3",
+    "@tanstack/react-router": "1.170.18",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "tailwindcss": "4.3.3"
+  },
+  "devDependencies": {
+    "@tanstack/router-cli": "1.167.21",
+    "@tanstack/router-plugin": "1.168.23",
+    "@types/node": "^26.1.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "klarity": "catalog:",
+    "typescript": "^6.0.3",
+    "vite": "^8.2.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "lightningcss"
+    ]
+  }
+}

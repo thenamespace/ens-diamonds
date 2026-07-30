@@ -13,3 +13,9 @@ catalog:
   "oxfmt": ^0.61.0
   "oxlint": ^1.76.0
   "turbo": ^2.10.7
+
+minimumReleaseAgeExclude:
+  - "@types/react-dom@19.2.4"
+  - "@types/react@19.2.18"
+  - "@vitejs/plugin-react@6.0.5"
+  - vite@8.2.0
