@@ -9,4 +9,4 @@
 	url = https://github.com/ensdomains/ens-contracts
 [submodule "packages/contracts/lib/safe-smart-account"]
 	path = packages/contracts/lib/safe-smart-account
-	url = https://github.com/safe-global/safe-smart-account
+	url = https://github.com/safe-fndn/safe-smart-account
