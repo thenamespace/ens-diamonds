@@ -103,10 +103,12 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         if (msg.value > maxSpend) revert FundingLimitExceeded();
 
         _validateOwners(msg.sender, owners);
+        // The creator and public salt produce the same vault ID before and after creation.
         vaultId = _deriveVaultId(msg.sender, vaultSalt);
         if (vaults[vaultId].creator != address(0)) revert VaultAlreadyExists();
 
         SafeConfig memory config = _safeConfig(vaultId, owners);
+        // A Safe cannot be one of its own initial owners.
         if (_containsOwner(owners, config.predicted)) revert InvalidOwners();
 
         vaults[vaultId] = Vault({
@@ -121,6 +123,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         });
         ownersOf[vaultId] = owners;
 
+        // ETH sent during creation is the creator's first deposit.
         if (msg.value != 0) {
             balanceOf[vaultId][msg.sender] = msg.value;
             totalLiabilities += msg.value;
@@ -169,6 +172,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         uint256 balance = balanceOf[vaultId][msg.sender];
         if (amount > balance) revert InsufficientBalance();
 
+        // Update accounting before transferring ETH.
         balanceOf[vaultId][msg.sender] = balance - amount;
         vault.escrowed = (uint256(vault.escrowed) - amount).toUint96();
         totalLiabilities -= amount;
@@ -202,13 +206,16 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         uint256 currentTime = block.timestamp;
 
         if (timestamp == 0) {
+            // No commitment exists, so start a new ENS waiting period.
             CONTROLLER.commit(commitment);
             timestamp = currentTime;
         } else {
             uint256 expiresAt = timestamp + MAX_COMMITMENT_AGE;
 
+            // At equality ENS permits neither registration nor recommitment.
             if (currentTime == expiresAt) revert CommitmentAtBoundary();
 
+            // Keep an unexpired commitment; replace it only after full expiry.
             if (currentTime > expiresAt) {
                 CONTROLLER.commit(commitment);
                 timestamp = currentTime;
@@ -232,6 +239,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         Vault storage vault = _vault(vaultId);
         _requireState(vault, State.Committed);
 
+        // Reveal the label and prove it matches the target fixed at creation.
         bytes32 labelhash = EfficientHashLib.hash(bytes(normalizedLabel));
         bytes32 expectedIntent = EfficientHashLib.hash(
             uint256(TARGET_INTENT_TYPEHASH),
@@ -246,6 +254,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         if (expectedIntent != vault.targetIntent) revert TargetMismatch();
 
         SafeConfig memory config = _safeConfig(vaultId, ownersOf[vaultId]);
+        // Rebuild the exact ENS request, with the deterministic Safe as owner.
         IETHRegistrarController.Registration memory registration =
             IETHRegistrarController.Registration({
                 label: normalizedLabel,
@@ -266,15 +275,18 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         uint256 storedTimestamp = vault.committedAt;
 
         if (controllerTimestamp == storedTimestamp) {
+            // The original commitment is still active: perform the normal purchase.
             _purchaseCommitted(vaultId, vault, labelhash, registration, config);
             return;
         }
 
         if (controllerTimestamp == 0) {
+            // ENS deletes a used commitment: verify whether someone copied the purchase.
             _recoverCopiedPurchase(vaultId, vault, labelhash, config);
             return;
         }
 
+        // A different nonzero timestamp means the commitment was unexpectedly replaced.
         revert CommitmentChanged();
     }
 
@@ -295,6 +307,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         if (recipient == address(0)) revert InvalidAddress();
 
         if (vault.state == State.Committed) {
+            // The first claimant can finalize an expired acquisition as Failed.
             uint256 expiresAt = uint256(vault.committedAt) + MAX_COMMITMENT_AGE;
             // forge-lint: disable-next-line(block-timestamp)
             if (block.timestamp < expiresAt) revert InvalidState(State.Committed);
@@ -363,9 +376,11 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         uint256 funding = vault.escrowed;
         if (price > funding) revert InsufficientFunding(price, funding);
 
+        // Deploy only after all time and funding checks pass.
         _ensureSafe(config);
         CONTROLLER.register{value: price}(registration);
 
+        // Do not trust a successful controller call without checking the final owner.
         if (_ownerOf(uint256(labelhash)) != config.predicted) {
             revert ENSVerificationFailed();
         }
@@ -385,9 +400,11 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         // forge-lint: disable-next-line(block-timestamp)
         if (block.timestamp >= expiresAt) revert CommitmentExpired(expiresAt);
 
+        // A copied registration is valid only if it delivered the name to this vault's Safe.
         uint256 tokenId = uint256(labelhash);
         if (_ownerOf(tokenId) != config.predicted) revert ENSVerificationFailed();
 
+        // The expiry must fit a registration made during this commitment's valid window.
         uint256 nameExpiry = BASE_REGISTRAR.nameExpires(tokenId);
         uint256 minimumExpiry = committedAt + MIN_COMMITMENT_AGE + vault.registrationDuration;
         uint256 maximumExpiry = committedAt + MAX_COMMITMENT_AGE + vault.registrationDuration;
@@ -400,6 +417,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
             revert ENSVerificationFailed();
         }
 
+        // The copied registration may have sent the NFT to a counterfactual Safe.
         _ensureSafe(config);
         vault.state = State.Acquired;
 
@@ -417,6 +435,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         uint256 allocated;
         address lastContributor;
 
+        // Replace each contribution with its proportional share of the unused ETH.
         for (uint256 i; i < ownerCount;) {
             address owner = owners[i];
             uint256 contribution = balanceOf[vaultId][owner];
