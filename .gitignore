@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+.output/
+.turbo/
+build/
+coverage/
+dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+debug.log*
+pnpm-debug.log*
+
+# Editors and operating systems
+.DS_Store
+*.swp
+
+# TypeScript
+*.tsbuildinfo
+
+# Test and tooling caches
+.cache/
+.nyc_output/
