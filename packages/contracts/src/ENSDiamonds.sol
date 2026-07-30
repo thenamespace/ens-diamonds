@@ -271,23 +271,12 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
             revert CommitmentMismatch();
         }
 
-        uint256 controllerTimestamp = CONTROLLER.commitments(vault.ensCommitment);
-        uint256 storedTimestamp = vault.committedAt;
-
-        if (controllerTimestamp == storedTimestamp) {
-            // The original commitment is still active: perform the normal purchase.
-            _purchaseCommitted(vaultId, vault, labelhash, registration, config);
-            return;
+        // Only the exact commitment adopted by this vault may authorize its purchase.
+        if (CONTROLLER.commitments(vault.ensCommitment) != vault.committedAt) {
+            revert CommitmentChanged();
         }
 
-        if (controllerTimestamp == 0 || controllerTimestamp > storedTimestamp) {
-            // ENS deletes a used commitment, which may then be recommitted.
-            _recoverCopiedPurchase(vaultId, vault, labelhash, config);
-            return;
-        }
-
-        // Canonical ENS timestamps cannot move backwards.
-        revert CommitmentChanged();
+        _purchaseCommitted(vaultId, vault, labelhash, registration, config);
     }
 
     function expireAcquisition(bytes32 vaultId) external override nonReentrant {
@@ -386,40 +375,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         }
 
         uint256 surplus = _settlePurchase(vaultId, vault, funding, price);
-        emit NameAcquired(vaultId, labelhash, config.predicted, price, surplus, false);
-    }
-
-    function _recoverCopiedPurchase(
-        bytes32 vaultId,
-        Vault storage vault,
-        bytes32 labelhash,
-        SafeConfig memory config
-    ) internal {
-        uint256 committedAt = vault.committedAt;
-        uint256 expiresAt = committedAt + MAX_COMMITMENT_AGE;
-        // forge-lint: disable-next-line(block-timestamp)
-        if (block.timestamp >= expiresAt) revert CommitmentExpired(expiresAt);
-
-        // A copied registration is valid only if it delivered the name to this vault's Safe.
-        uint256 tokenId = uint256(labelhash);
-        if (_ownerOf(tokenId) != config.predicted) revert ENSVerificationFailed();
-
-        // A live expiry cannot precede the earliest valid registration.
-        uint256 nameExpiry = BASE_REGISTRAR.nameExpires(tokenId);
-        uint256 minimumExpiry = committedAt + MIN_COMMITMENT_AGE + vault.registrationDuration;
-
-        if (
-            // forge-lint: disable-next-line(block-timestamp)
-            nameExpiry <= block.timestamp || nameExpiry < minimumExpiry
-        ) {
-            revert ENSVerificationFailed();
-        }
-
-        // The copied registration may have sent the NFT to a counterfactual Safe.
-        _ensureSafe(config);
-        vault.state = State.Acquired;
-
-        emit NameAcquired(vaultId, labelhash, config.predicted, 0, vault.escrowed, true);
+        emit NameAcquired(vaultId, labelhash, config.predicted, price, surplus);
     }
 
     function _settlePurchase(bytes32 vaultId, Vault storage vault, uint256 funding, uint256 price)

@@ -55,8 +55,7 @@ interface IENSDiamonds {
         bytes32 indexed labelhash,
         address indexed safe,
         uint256 protocolPrice,
-        uint256 refundableBalance,
-        bool copiedPurchase
+        uint256 refundableBalance
     );
     event AcquisitionExpired(bytes32 indexed vaultId);
     event Claimed(

@@ -10,7 +10,7 @@ Each vault fixes:
 - one ENS commitment;
 - one deterministic Safe address.
 
-The group funds the vault, the creator locks funding and starts the ENS commitment window, and then anyone may execute the purchase. The Safe is deployed only when the name is about to be registered or when a copied registration must be recovered. ENS Diamonds never owns the ENS name.
+The group funds the vault, the creator locks funding and starts the ENS commitment window, and then anyone may execute the purchase. The Safe is deployed only when the name is about to be registered. ENS Diamonds never owns the ENS name.
 
 The implementation is one immutable singleton. It has no administrator, upgrade path,
 fees, protocol token, or discretionary ETH transfer.
@@ -24,7 +24,7 @@ fees, protocol token, or discretionary ETH transfer.
 | Executor           | Any address that calls permissionless purchase or expiry functions                                  |
 | ENS Diamonds       | Holds escrow, validates commitments, deploys the Safe, registers the name, and accounts for refunds |
 | ENS Controller     | Stores commitments, quotes rent, and registers the `.eth` name                                      |
-| ENS Base Registrar | Reports the `.eth` NFT owner and registration expiry                                                |
+| ENS Base Registrar | Reports the `.eth` NFT owner                                                                         |
 | Safe Proxy Factory | Deploys the deterministic Safe proxy                                                                |
 | Safe singleton     | Provides the Safe implementation used by every vault                                                |
 
@@ -526,13 +526,12 @@ flowchart TD
     C -->|"Yes"| D{"Registration matches ensCommitment?"}
     D -->|"No"| DR["Revert CommitmentMismatch"]
     D -->|"Yes"| E["Read Controller commitment timestamp"]
-    E --> F{"Controller timestamp"}
-    F -->|"Equals committedAt"| G["Normal purchase"]
-    F -->|"Zero or greater than committedAt"| H["Copied-purchase recovery"]
-    F -->|"Lower nonzero value"| I["Revert CommitmentChanged"]
+    E --> F{"Equals committedAt?"}
+    F -->|"No"| H["Revert CommitmentChanged"]
+    F -->|"Yes"| G["Normal purchase"]
 ```
 
-The Controller timestamp does not become zero when a commitment merely expires. In the canonical Controller it becomes zero when a successful registration consumes and deletes that commitment. Anyone may recommit the deleted hash, producing a timestamp greater than `committedAt`, so both zero and greater timestamps enter verified copied-purchase recovery.
+The stored timestamp identifies the exact commitment generation adopted by `beginAcquisition`. `purchase` accepts only an equal Controller timestamp. Zero can mean the commitment was consumed, and another nonmatching value can mean the hash was recommitted. ENS Diamonds does not infer ownership or acquisition success from either case.
 
 ### Normal purchase
 
@@ -590,54 +589,19 @@ event NameAcquired(
     bytes32 indexed labelhash,
     address indexed safe,
     uint256 protocolPrice,
-    uint256 refundableBalance,
-    bool copiedPurchase
+    uint256 refundableBalance
 );
 ```
 
-For a normal purchase, `protocolPrice` is the amount paid to ENS and `copiedPurchase` is `false`.
-
-### Copied-purchase recovery
-
-A zero Controller timestamp indicates that the exact commitment was consumed. A timestamp greater than `committedAt` can indicate that the consumed hash was recommitted. Neither value is enough to mark the vault acquired, so the function independently verifies the original vault window, current name owner, and registration expiry.
-
-```mermaid
-flowchart TD
-    A["Controller timestamp is zero or greater than committedAt"] --> B{"Before original maximum-age boundary?"}
-    B -->|"No"| BR["Revert CommitmentExpired"]
-    B -->|"Yes"| C{"Base Registrar owner is predicted Safe?"}
-    C -->|"No"| CR["Revert ENSVerificationFailed"]
-    C -->|"Yes"| D["Read name expiry"]
-    D --> E{"Name is live and not earlier than the first valid registration?"}
-    E -->|"No"| ER["Revert ENSVerificationFailed"]
-    E -->|"Yes"| F["Deploy Safe if needed"]
-    F --> G["Set state to Acquired"]
-    G --> H["Keep all escrow refundable"]
-    H --> I["Emit NameAcquired with copiedPurchase true"]
-```
-
-The accepted expiry range is:
-
-```text
-nameExpiry > block.timestamp
-nameExpiry >= committedAt + minCommitmentAge + registrationDuration
-```
-
-There is no maximum accepted `nameExpiry`. ENS renewal is permissionless and can legitimately increase the expiry after the copied registration. The Controller can consume the exact commitment only during its valid window, while the owner and minimum-expiry checks prove that the intended Safe received a live registration.
-
-An exact copied registration must still name the deterministic Safe as owner because that owner is part of the commitment. The copier pays ENS, so ENS Diamonds spends none of the vault escrow. Every contribution remains fully claimable, `vault.escrowed` and `totalLiabilities` remain unchanged, and the event reports `protocolPrice = 0` and `copiedPurchase = true`.
-
-The copied transaction may register the name to a counterfactual Safe address before the Safe has code. Recovery deploys the Safe after verifying ownership.
-
-If the copier transfers the name away before recovery, the owner check fails. The vault remains `Committed` and may be recovered only if the name returns to the predicted Safe and all time and expiry checks still pass. Otherwise the vault eventually expires and contributors recover their ETH.
+`protocolPrice` is the amount paid to ENS and `refundableBalance` is the unused escrow allocated among contributors.
 
 ### A different commitment buys the name
 
-An attacker may register the same label with a different commitment and a different owner. This does not consume the vault's commitment, so the Controller timestamp still equals `committedAt` and `purchase` enters the normal branch. The Controller then rejects registration because the name is unavailable. The transaction reverts, the vault remains `Committed`, and contributors can recover their ETH after the original commitment expires.
+Another account may register the same label through a different commitment, either to the predicted Safe or to another owner. This does not consume the vault's commitment, so the Controller timestamp can still equal `committedAt` and `purchase` enters the normal branch. The Controller rejects registration because the name is unavailable. The complete transaction reverts, the vault remains `Committed`, and contributors can recover their ETH after the original commitment expires.
 
 ### The commitment timestamp changes
 
-A greater Controller timestamp enters copied-purchase recovery. Before the original maximum-age boundary, canonical ENS cannot replace an active commitment unless registration first consumed it, and recovery still requires the predicted Safe to own the live name. A lower nonzero timestamp cannot occur under canonical ENS behavior and reverts with `CommitmentChanged`.
+Any Controller timestamp other than the stored `committedAt` reverts with `CommitmentChanged`. The protocol intentionally does not query the Universal Resolver, NameWrapper, CCIP gateways, or another ownership source to decide whether an external transaction acquired the name. The vault remains `Committed` until the configured Controller maximum age passes, then it becomes `Failed` and every contribution is refundable.
 
 ## Expire an acquisition
 
@@ -661,7 +625,7 @@ Expiry does not mean that another account acquired the name. It only means this 
 
 An available name can be attempted again only through a new vault with a new `vaultSalt`, `vaultId`, commitment, and deterministic Safe. A vault cannot return from `Failed` to `Funding`.
 
-Copied-purchase recovery must also complete before the original maximum-age boundary. If the exact commitment was consumed but nobody finalizes recovery in time, the vault expires and refunds its contributors even if the deterministic Safe owns the name.
+If an external transaction consumed the commitment or acquired the target name, ENS Diamonds does not finalize that result. The vault expires and refunds its contributors even when an external ownership system reports the predicted Safe as owner.
 
 ## Claim remaining ETH
 
@@ -695,7 +659,6 @@ The amount depends on how the vault ended:
 | Final state | Claimable amount |
 | ----------- | ---------------- |
 | `Acquired` after a normal purchase | Proportional share of unused escrow |
-| `Acquired` after copied-purchase recovery | Full contribution |
 | `Cancelled` | Full remaining contribution |
 | `Failed` | Full remaining contribution |
 
@@ -744,7 +707,6 @@ The accounting transitions are:
 | `deposit` | `+msg.value` | `+msg.value` | `+msg.value` |
 | `withdraw` | `-amount` | `-amount` | `-amount` |
 | Normal `purchase` | Replaced by surplus shares | Set to surplus | `-protocolPrice` |
-| Copied-purchase recovery | Unchanged | Unchanged | Unchanged |
 | `cancel` or `expireAcquisition` | Unchanged | Unchanged | Unchanged |
 | `claim` | Caller balance cleared | `-amount` | `-amount` |
 
@@ -767,12 +729,11 @@ The contract rejects direct ETH through `receive` and `fallback`. ETH forced int
 | Purchase is called at or after expiry | It reverts; the vault can be marked `Failed` |
 | ENS price is greater than escrow | Purchase reverts and the vault remains `Committed` |
 | ENS price equals escrow | Purchase succeeds and every refund is zero |
-| Exact commitment is copied and consumed | Recovery succeeds only if the Safe owns a live registration with a valid minimum expiry |
-| Consumed commitment is recommitted | A greater timestamp enters the same verified recovery path |
-| Copied registration is renewed | Recovery accepts the increased expiry because ENS renewal is permissionless |
-| Copied name is transferred away before recovery | Recovery fails; the vault later expires unless ownership returns in time |
-| Different commitment acquires the label | Normal registration reverts as unavailable; the vault later expires |
-| Controller reports a lower nonzero timestamp | Purchase reverts with `CommitmentChanged` because canonical timestamps cannot move backwards |
+| Exact commitment is externally consumed | Purchase reverts with `CommitmentChanged`; the vault later expires with full refunds |
+| Consumed commitment is recommitted | The new timestamp does not match; the vault later expires with full refunds |
+| Different commitment acquires the label | Normal registration reverts as unavailable; the vault later expires with full refunds |
+| Name is wrapped or represented through CCIP or an L2 system | The external state is not recognized; v1 relies only on its direct Controller registration |
+| Controller reports any nonmatching timestamp | Purchase reverts with `CommitmentChanged`; the vault later expires with full refunds |
 | Commitment expires while the label remains available | Vault becomes `Failed`; retry requires a new vault |
 | Safe already exists at the predicted address | Deployment is skipped |
 | Safe deployment returns an unexpected address or no code | Purchase reverts |
@@ -793,7 +754,7 @@ The implementation is designed to preserve these properties:
 - the creator cannot cancel after acquisition begins
 - contributors cannot withdraw while committed
 - a normal purchase cannot spend more than the vault's escrow or immutable `maxSpend`
-- copied-purchase recovery cannot finalize only from a deleted or recommitted commitment
+- a purchase requires the Controller to retain the exact commitment timestamp adopted by the vault
 - only the deterministic Safe can satisfy final ownership verification
 - successful claims and withdrawals reduce balances before external ETH transfer
 - all functions that transfer ETH or interact with acquisition dependencies are protected by transient reentrancy guards
@@ -823,11 +784,11 @@ The strict-majority threshold is deterministic and avoids a second governance pa
 
 ### Deterministic Safe with delayed deployment
 
-ENS needs the final owner address inside the commitment, but deploying every Safe during vault creation wastes gas for cancelled or failed vaults. CREATE2 provides the address before deployment. The Safe is deployed only immediately before normal registration or after copied ownership has been verified.
+ENS needs the final owner address inside the commitment, but deploying every Safe during vault creation wastes gas for cancelled or failed vaults. CREATE2 provides the address before deployment. The Safe is deployed only immediately before normal registration.
 
 ### One acquisition attempt per vault
 
-A vault has one target, commitment timestamp, Safe, and accounting lifecycle. Allowing recommitment after `Committed` would complicate expiry, copied-purchase detection, secret handling, and refund rights. A failed attempt becomes terminal and a retry uses a new vault.
+A vault has one target, commitment timestamp, Safe, and accounting lifecycle. Allowing recommitment after `Committed` would complicate expiry, external-acquisition handling, secret handling, and refund rights. A failed attempt becomes terminal and a retry uses a new vault.
 
 This means a still-available name does not automatically restart after expiry. The explicit new vault produces a new identity and commitment with an auditable boundary between attempts.
 
@@ -849,9 +810,11 @@ Using both prevents cross-vault target reuse and ensures the on-chain registrati
 
 Anyone can submit a public commitment hash to the ENS Controller. Reverting whenever the commitment already exists would allow cheap denial of service. The protocol adopts an unexpired timestamp because the hash still fixes the same registration.
 
-### Copied-purchase recovery
+### No external-acquisition recovery
 
-Once the reveal is public, another account can execute the exact ENS registration first. The commitment forces delivery to the deterministic Safe, so treating every copied execution as failure would strand a successful group purchase. Recovery accepts a deleted commitment or a later recommitment, then requires the Safe to be the current registrar owner and the name to be live with at least the earliest valid expiry. It intentionally has no maximum expiry check because anyone may renew an ENS name.
+V1 targets labels that the configured Controller can register: never-registered available names, expired names that are available, and available names in premium. It intentionally does not discover or reconcile purchases performed outside its own `purchase` transaction.
+
+Querying the Universal Resolver, NameWrapper, CCIP gateways, or L2 representations would add mutable dependencies and chain-specific ownership semantics without proving that the vault's intended acquisition completed. If the stored commitment changes or the target becomes unavailable, the vault remains `Committed` until the Controller-defined maximum age passes and then refunds every contribution. This accepts a bounded liveness delay in exchange for a smaller runtime, gas, and audit surface. It does not allow an external buyer to take escrow.
 
 ### Pull-based refunds
 
@@ -869,7 +832,7 @@ If the external Controller were replaced or its behavior changed at the same add
 
 ### Narrow external interfaces
 
-The contract imports the official ENS registration types and Safe contracts while defining only the missing Controller getters and the two Base Registrar reads it uses. This keeps the compiled dependency surface and audit scope aligned with actual runtime calls.
+The contract imports the official ENS registration types and Safe contracts while defining only the missing Controller getters and the Base Registrar owner read it uses. This keeps the compiled dependency surface and audit scope aligned with actual runtime calls.
 
 ### No administration or rescue path
 
@@ -898,5 +861,5 @@ After creation:
 - keep reveal values private until the group is ready to execute
 - after `beginAcquisition`, use the emitted `committedAt` rather than assuming the current block timestamp
 - execute normal purchase only inside the Controller's valid window
-- monitor for a consumed or recommitted commitment and finalize copied-purchase recovery before the original maximum-age boundary
+- if the commitment changes or the target becomes unavailable, let the vault expire and contributors claim
 - after `Acquired`, `Cancelled`, or `Failed`, let each contributor call `claim`
