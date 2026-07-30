@@ -11,6 +11,15 @@ optimizer = true
 optimizer_runs = 200
 via_ir = false
 deny = "warnings"
+ignored_error_codes = [
+  "license",
+  "code-size",
+  "init-code-size",
+  "transient-storage",
+  "transfer-deprecated",
+  "natspec-memory-safe-assembly-deprecated",
+  "too-many-warnings",
+]
 ignored_warnings_from = ["lib"]
 no_match_coverage = "^(test|script)/"
 
