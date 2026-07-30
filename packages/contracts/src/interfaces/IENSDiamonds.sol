@@ -87,7 +87,7 @@ interface IENSDiamonds {
     error SafeVerificationFailed();
     error ENSVerificationFailed();
     error NothingToClaim();
-    error TransferFailed();
+    error ETHTransferFailed();
     error DirectETHNotAccepted();
 
     function createVault(

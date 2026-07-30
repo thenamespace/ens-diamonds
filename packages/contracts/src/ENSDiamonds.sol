@@ -2,16 +2,19 @@
 pragma solidity 0.8.36;
 
 import {IENSDiamonds} from "./interfaces/IENSDiamonds.sol";
+import {IENSDiamondsBaseRegistrar} from "./interfaces/IENSDiamondsBaseRegistrar.sol";
 import {IENSDiamondsRegistrarController} from "./interfaces/IENSDiamondsRegistrarController.sol";
-import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
-import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {ISafe} from "@safe-global/safe-smart-account/contracts/interfaces/ISafe.sol";
 import {
     SafeProxyFactory
 } from "@safe-global/safe-smart-account/contracts/proxies/SafeProxyFactory.sol";
-import {IBaseRegistrar} from "ens-contracts/ethregistrar/IBaseRegistrar.sol";
 import {IETHRegistrarController} from "ens-contracts/ethregistrar/IETHRegistrarController.sol";
 import {IPriceOracle} from "ens-contracts/ethregistrar/IPriceOracle.sol";
+import {EfficientHashLib} from "solady/utils/EfficientHashLib.sol";
+import {LibClone} from "solady/utils/LibClone.sol";
+import {ReentrancyGuardTransient} from "solady/utils/ReentrancyGuardTransient.sol";
+import {SafeCastLib} from "solady/utils/SafeCastLib.sol";
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
 /// @title ENS Diamonds
 /// @notice Pools ETH from a fixed group to register one .eth name directly to a
@@ -19,7 +22,7 @@ import {IPriceOracle} from "ens-contracts/ethregistrar/IPriceOracle.sol";
 /// @dev This contract is immutable, has no administrator, and targets networks
 /// supporting EIP-1153 transient storage.
 contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
-    using SafeCast for uint256;
+    using SafeCastLib for uint256;
 
     // -------------------------------------------------------------------------
     // Constants
@@ -42,7 +45,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     // -------------------------------------------------------------------------
 
     IENSDiamondsRegistrarController public immutable CONTROLLER;
-    IBaseRegistrar public immutable BASE_REGISTRAR;
+    IENSDiamondsBaseRegistrar public immutable BASE_REGISTRAR;
     ISafe public immutable SAFE_SINGLETON;
     SafeProxyFactory public immutable SAFE_PROXY_FACTORY;
     address public immutable SAFE_FALLBACK_HANDLER;
@@ -75,7 +78,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     /// @param safeFallbackHandler_ Canonical Safe Compatibility Fallback Handler.
     constructor(
         IENSDiamondsRegistrarController controller_,
-        IBaseRegistrar baseRegistrar_,
+        IENSDiamondsBaseRegistrar baseRegistrar_,
         ISafe safeSingleton_,
         SafeProxyFactory safeProxyFactory_,
         address safeFallbackHandler_
@@ -205,7 +208,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         totalLiabilities -= amount;
 
         emit Withdrawn(vaultId, msg.sender, recipient, amount);
-        _sendEth(recipient, amount);
+        SafeTransferLib.safeTransferETH(recipient, amount);
     }
 
     /// @notice Cancels a Funding vault.
@@ -280,21 +283,16 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
             revert InvalidConfiguration();
         }
 
-        // Keep commitment hashing explicit and easy to compare with client code.
-        // forge-lint: disable-next-line(asm-keccak256)
-        bytes32 labelhash = keccak256(bytes(normalizedLabel));
-        // forge-lint: disable-next-line(asm-keccak256)
-        bytes32 expectedIntent = keccak256(
-            abi.encode(
-                TARGET_INTENT_TYPEHASH,
-                block.chainid,
-                address(this),
-                vaultId,
-                vault.creator,
-                labelhash,
-                vault.registrationDuration,
-                targetSalt
-            )
+        bytes32 labelhash = EfficientHashLib.hash(bytes(normalizedLabel));
+        bytes32 expectedIntent = EfficientHashLib.hash(
+            uint256(TARGET_INTENT_TYPEHASH),
+            block.chainid,
+            uint256(uint160(address(this))),
+            uint256(vaultId),
+            uint256(uint160(vault.creator)),
+            uint256(labelhash),
+            vault.registrationDuration,
+            uint256(targetSalt)
         );
         if (expectedIntent != vault.targetIntent) revert TargetMismatch();
 
@@ -365,7 +363,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         totalLiabilities -= amount;
 
         emit Claimed(vaultId, msg.sender, recipient, amount);
-        _sendEth(recipient, amount);
+        SafeTransferLib.safeTransferETH(recipient, amount);
     }
 
     // -------------------------------------------------------------------------
@@ -513,8 +511,14 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         returns (SafeConfig memory config)
     {
         uint256 threshold = owners.length / 2 + 1;
-        uint256 saltNonce =
-            uint256(keccak256(abi.encode(SAFE_SALT_DOMAIN, block.chainid, address(this), vaultId)));
+        uint256 saltNonce = uint256(
+            EfficientHashLib.hash(
+                uint256(SAFE_SALT_DOMAIN),
+                block.chainid,
+                uint256(uint160(address(this))),
+                uint256(vaultId)
+            )
+        );
 
         bytes memory initializer = abi.encodeCall(
             ISafe.setup,
@@ -530,19 +534,10 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
             )
         );
 
-        // Preserve the canonical Safe factory formula verbatim for auditability.
-        // forge-lint: disable-next-line(asm-keccak256)
-        bytes32 salt = keccak256(abi.encodePacked(keccak256(initializer), saltNonce));
-        // forge-lint: disable-next-line(asm-keccak256)
-        bytes32 digest = keccak256(
-            abi.encodePacked(
-                bytes1(0xff), address(SAFE_PROXY_FACTORY), salt, SAFE_PROXY_INIT_CODE_HASH
-            )
+        bytes32 salt = EfficientHashLib.hash(uint256(EfficientHashLib.hash(initializer)), saltNonce);
+        address predicted = LibClone.predictDeterministicAddress(
+            SAFE_PROXY_INIT_CODE_HASH, salt, address(SAFE_PROXY_FACTORY)
         );
-
-        // CREATE2 addresses intentionally use the low 160 bits of the digest.
-        // forge-lint: disable-next-line(unsafe-typecast)
-        address predicted = address(uint160(uint256(digest)));
 
         config = SafeConfig({
             predicted: predicted,
@@ -598,8 +593,13 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     }
 
     function _deriveVaultId(address creator, bytes32 vaultSalt) internal view returns (bytes32) {
-        return
-            keccak256(abi.encode(VAULT_ID_DOMAIN, block.chainid, address(this), creator, vaultSalt));
+        return EfficientHashLib.hash(
+            uint256(VAULT_ID_DOMAIN),
+            block.chainid,
+            uint256(uint160(address(this))),
+            uint256(uint160(creator)),
+            uint256(vaultSalt)
+        );
     }
 
     function _validateOwners(address creator, address[] calldata owners) internal view {
@@ -675,9 +675,9 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         }
     }
 
-    function _sendEth(address payable recipient, uint256 amount) internal {
-        (bool success,) = recipient.call{value: amount}("");
-        if (!success) revert TransferFailed();
+    /// @dev ENS Diamonds targets EIP-1153 chains, including Sepolia.
+    function _useTransientReentrancyGuardOnlyOnMainnet() internal pure override returns (bool) {
+        return false;
     }
 
     /// @dev Rejects unaccounted direct ETH transfers.
