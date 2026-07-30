@@ -116,17 +116,16 @@ pnpm --filter @ens-diamonds/contracts test:fork:sepolia
 
 Each manifest contains the chain identity, fork block, official ENS and Safe deployment
 addresses, expected protocol parameters, Safe bytecode hashes, and semantic label
-fixtures. Empty label values are explicit placeholders. Only the corresponding
-fixture-dependent tests are skipped; deployment and snapshot validation always run.
+fixtures:
 
-Populate each label without the `.eth` suffix:
-
-- `neverRegistered`
-- `premium`
-- `postPremium`
-- `gracePeriod`
-- `registered`
-- `wrapped`
+| State             | Mainnet                          | Sepolia                                  |
+| ----------------- | -------------------------------- | ---------------------------------------- |
+| Never registered  | `ens-diamonds-fork-25647730.eth` | `ens-diamonds-sepolia-fork-10900000.eth` |
+| Premium active    | `way.eth`                        | `querty.eth`                             |
+| Premium ended     | `agentquantum.eth`               | `jrasser.eth`                            |
+| Grace period      | `dmitrybrain.eth`                | `omar.eth`                               |
+| Active, unwrapped | `vitalik.eth`                    | `mainnet.eth`                            |
+| Active, wrapped   | `aaaanna.eth`                    | `dog.eth`                                |
 
 The concrete `MainnetForkTest` and `SepoliaForkTest` contracts inherit the same tests.
 Adding or changing a network requires a snapshot manifest and a small `configPath`

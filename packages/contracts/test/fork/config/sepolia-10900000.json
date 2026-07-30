@@ -30,11 +30,11 @@
     "safeFallbackHandlerCodeHash": "0x3c6a85bcf7b563daa624b884b4e9a1b9fa5371edde7be945d998071a48f28bbc"
   },
   "labels": {
-    "neverRegistered": "",
-    "premium": "",
-    "postPremium": "",
-    "gracePeriod": "",
-    "registered": "",
-    "wrapped": ""
+    "neverRegistered": "ens-diamonds-sepolia-fork-10900000",
+    "premium": "querty",
+    "postPremium": "jrasser",
+    "gracePeriod": "omar",
+    "registered": "mainnet",
+    "wrapped": "dog"
   }
 }
