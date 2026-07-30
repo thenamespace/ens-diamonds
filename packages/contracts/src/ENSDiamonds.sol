@@ -47,9 +47,9 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     SafeProxyFactory public immutable SAFE_PROXY_FACTORY;
     address public immutable SAFE_FALLBACK_HANDLER;
 
-    uint256 public immutable MIN_COMMITMENT_AGE;
-    uint256 public immutable MAX_COMMITMENT_AGE;
-    uint256 public immutable MIN_REGISTRATION_DURATION;
+    uint256 internal immutable MIN_COMMITMENT_AGE;
+    uint256 internal immutable MAX_COMMITMENT_AGE;
+    uint256 internal immutable MIN_REGISTRATION_DURATION;
     bytes32 public immutable SAFE_PROXY_INIT_CODE_HASH;
 
     // -------------------------------------------------------------------------
