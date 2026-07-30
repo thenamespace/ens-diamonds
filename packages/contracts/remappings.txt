@@ -1,12 +1,9 @@
-@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/
 @openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+@safe-global/safe-smart-account/=lib/safe-smart-account/
 ens-contracts/=lib/ens-contracts/contracts/
-erc4626-tests/=lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests/
 forge-std/=lib/forge-std/src/
-halmos-cheatcodes/=lib/openzeppelin-contracts-upgradeable/lib/halmos-cheatcodes/src/
-openzeppelin-contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/
 openzeppelin-contracts/=lib/openzeppelin-contracts/
-openzeppelin-foundry-upgrades/=lib/openzeppelin-foundry-upgrades/src/
+safe-smart-account/=lib/safe-smart-account/
 
 @ensdomains/ens-contracts/=lib/ens-contracts/contracts/
 src/=src/
