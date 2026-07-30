@@ -29,3 +29,23 @@ pnpm-debug.log*
 # Test and tooling caches
 .cache/
 .nyc_output/
+
+
+## Foundry Specific
+dependencies/
+out/
+cache/
+
+test_*.json
+*.dbg.json
+
+/*.keystore
+
+coverage/
+gas-report.*
+
+*.log
+*.tmp
+*.temp
+
+broadcast/**/31337

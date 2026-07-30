@@ -1,0 +1,26 @@
+# Default Profile – local dev & CI
+[profile.default]
+solc_version = "0.8.35"
+evm_version = "prague"
+optimizer = true
+optimizer_runs = 1000000
+ffi = true
+src = "src"
+out = "out"
+dynamic_test_linking = true
+gas_reports = ["*"]
+ignored_warnings_from = ["lib"]
+no_match_coverage = "^(test|script)/"
+
+# Fuzz testing
+[fuzz]
+runs = 200
+
+# Invariant testing
+[invariant]
+runs = 200
+
+# Linting
+[lint]
+severity = ["high", "med", "low", "info", "gas", "code-size"]
+ignore = ["lib/**/*"]
