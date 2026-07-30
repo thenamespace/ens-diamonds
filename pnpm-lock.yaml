@@ -54,6 +54,8 @@ importers:
         specifier: 'catalog:'
         version: 2.10.7
 
+  packages/contracts: {}
+
 packages:
 
   '@babel/code-frame@7.29.7':

@@ -5,9 +5,12 @@ node_modules/
 .next/
 .output/
 .turbo/
+broadcast/
 build/
+cache/
 coverage/
 dist/
+out/
 
 # Environment files
 .env

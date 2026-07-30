@@ -3,4 +3,5 @@ import { defineConfig } from "oxlint";
 
 export default defineConfig({
   extends: [config],
+  ignorePatterns: ["packages/contracts/lib/**"],
 });
