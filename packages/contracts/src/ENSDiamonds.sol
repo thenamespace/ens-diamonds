@@ -198,24 +198,22 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
 
         bytes32 commitment = vault.ensCommitment;
         uint256 timestamp = CONTROLLER.commitments(commitment);
+        // forge-lint: disable-next-line(block-timestamp)
+        uint256 currentTime = block.timestamp;
 
         if (timestamp == 0) {
             CONTROLLER.commit(commitment);
-            timestamp = CONTROLLER.commitments(commitment);
+            timestamp = currentTime;
         } else {
             uint256 expiresAt = timestamp + MAX_COMMITMENT_AGE;
 
-            // forge-lint: disable-next-line(block-timestamp)
-            if (block.timestamp == expiresAt) revert CommitmentAtBoundary();
+            if (currentTime == expiresAt) revert CommitmentAtBoundary();
 
-            // forge-lint: disable-next-line(block-timestamp)
-            if (block.timestamp > expiresAt) {
+            if (currentTime > expiresAt) {
                 CONTROLLER.commit(commitment);
-                timestamp = CONTROLLER.commitments(commitment);
+                timestamp = currentTime;
             }
         }
-
-        if (timestamp == 0) revert CommitmentChanged();
 
         vault.committedAt = timestamp.toUint40();
 
