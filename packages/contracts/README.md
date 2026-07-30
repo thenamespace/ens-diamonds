@@ -45,7 +45,8 @@ Run these from the repository root:
 | `pnpm --filter @ens-diamonds/contracts build`            | Compile contracts                        |
 | `pnpm --filter @ens-diamonds/contracts lint`             | Check Forge formatting and lint rules    |
 | `pnpm --filter @ens-diamonds/contracts format`           | Format Solidity                          |
-| `pnpm --filter @ens-diamonds/contracts test`             | Run every test suite                     |
+| `pnpm --filter @ens-diamonds/contracts test`             | Run all local test suites                |
+| `pnpm --filter @ens-diamonds/contracts test:fork`        | Run pinned mainnet fork tests            |
 | `pnpm --filter @ens-diamonds/contracts test:unit`        | Run focused unit tests                   |
 | `pnpm --filter @ens-diamonds/contracts test:integration` | Run local ENS and Safe integration tests |
 | `pnpm --filter @ens-diamonds/contracts test:fuzz`        | Run stateless fuzz tests                 |
@@ -59,9 +60,9 @@ Direct Foundry commands can also be run from `packages/contracts`:
 ```bash
 forge build
 forge lint
-forge test
-forge coverage -D never --report summary
-forge snapshot
+forge test --no-match-path 'test/fork/*.t.sol'
+forge coverage -D never --no-match-path 'test/fork/*.t.sol' --report summary
+forge snapshot --no-match-path 'test/fork/*.t.sol'
 ```
 
 Coverage instrumentation disables the normal optimizer settings and causes warnings in
@@ -76,12 +77,34 @@ test/
 ├── integration/  # Full local ENS registration and Safe execution flows
 ├── fuzz/         # Accounting, timing, and deterministic-address properties
 ├── invariant/    # Stateful handler and protocol-wide invariants
+├── fork/         # Pinned mainnet ENS and Safe integration tests
 └── utils/        # Deployments, vault builders, actions, and state-specific bases
 ```
 
 Tests use locally deployed ENS and Safe contracts rather than protocol mocks for normal
-flows. Mocks are limited to explicit dependency-failure tests. No RPC or fork is
-required.
+flows. Mocks are limited to explicit dependency-failure tests. The default suite does
+not require an RPC.
+
+## Mainnet fork tests
+
+Fork tests use block `25,647,730` and require an archive-capable
+`ETHEREUM_MAINNET_RPC_URL`. Set it in `packages/contracts/.env`, then run:
+
+```bash
+pnpm --filter @ens-diamonds/contracts test:fork
+```
+
+The pinned snapshot covers:
+
+| Label                            | State at block `25,647,730` |
+| -------------------------------- | --------------------------- |
+| `way.eth`                        | Available, premium active   |
+| `ens-diamonds-fork-25647730.eth` | Never registered, available |
+| `vitalik.eth`                    | Registered, unavailable     |
+
+Fork tests use the latest authorized ENS controller at
+`0x59E16fcCd424Cc24e280Be16E11Bcd56fb0CE547` and the deterministic Safe v1.5.0
+deployments.
 
 ## Source layout
 
