@@ -215,7 +215,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     /// @dev Contributions remain available through pull-based claims.
     function cancel(bytes32 vaultId) external override {
         Vault storage vault = _vault(vaultId);
-        _requireCreator(vault);
+        if (msg.sender != vault.creator) revert Unauthorized();
         _requireState(vault, State.Funding);
 
         vault.state = State.Cancelled;
@@ -229,7 +229,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     /// @notice Locks funding and submits or adopts the fixed ENS commitment.
     function beginAcquisition(bytes32 vaultId) external override nonReentrant {
         Vault storage vault = _vault(vaultId);
-        _requireCreator(vault);
+        if (msg.sender != vault.creator) revert Unauthorized();
         _requireState(vault, State.Funding);
 
         if (vault.escrowed == 0) revert InvalidAmount();
@@ -298,7 +298,16 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
 
         SafeConfig memory config = _safeConfig(vaultId, ownersOf[vaultId]);
         IETHRegistrarController.Registration memory registration =
-            _registration(vault, normalizedLabel, ensSecret, config.predicted);
+            IETHRegistrarController.Registration({
+                label: normalizedLabel,
+                owner: config.predicted,
+                duration: vault.registrationDuration,
+                secret: ensSecret,
+                resolver: address(0),
+                data: new bytes[](0),
+                reverseRecord: 0,
+                referrer: bytes32(0)
+            });
 
         if (CONTROLLER.makeCommitment(registration) != vault.ensCommitment) {
             revert CommitmentMismatch();
@@ -566,24 +575,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     // Internal validation and utility helpers
     // -------------------------------------------------------------------------
 
-    function _registration(
-        Vault storage vault,
-        string calldata normalizedLabel,
-        bytes32 ensSecret,
-        address predictedSafe
-    ) internal view returns (IETHRegistrarController.Registration memory) {
-        return IETHRegistrarController.Registration({
-                label: normalizedLabel,
-                owner: predictedSafe,
-                duration: vault.registrationDuration,
-                secret: ensSecret,
-                resolver: address(0),
-                data: new bytes[](0),
-                reverseRecord: 0,
-                referrer: bytes32(0)
-            });
-    }
-
     function _ownerOf(uint256 tokenId) internal view returns (address owner) {
         try BASE_REGISTRAR.ownerOf(tokenId) returns (address currentOwner) {
             return currentOwner;
@@ -659,10 +650,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     function _vault(bytes32 vaultId) internal view returns (Vault storage vault) {
         vault = vaults[vaultId];
         if (vault.creator == address(0)) revert VaultNotFound();
-    }
-
-    function _requireCreator(Vault storage vault) internal view {
-        if (msg.sender != vault.creator) revert Unauthorized();
     }
 
     function _requireState(Vault storage vault, State expected) internal view {
