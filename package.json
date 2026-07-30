@@ -11,11 +11,21 @@
     "format:check": "oxfmt --check .",
     "lint": "turbo run lint",
     "lint:fix": "oxlint --fix .",
+    "prepare": "lefthook install",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck"
   },
   "engines": {
     "node": ">=22.18"
   },
-  "packageManager": "pnpm@11.18.0"
+  "packageManager": "pnpm@11.18.0",
+  "devDependencies": {
+    "@commitlint/cli": "catalog:",
+    "@commitlint/config-conventional": "catalog:",
+    "klarity": "catalog:",
+    "lefthook": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
+    "turbo": "catalog:"
+  }
 }
