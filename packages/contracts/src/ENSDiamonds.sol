@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.36;
 
+import {IENSDiamonds} from "./interfaces/IENSDiamonds.sol";
 import {IENSDiamondsRegistrarController} from "./interfaces/IENSDiamondsRegistrarController.sol";
 import {ReentrancyGuardTransient} from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
@@ -17,46 +18,8 @@ import {IPriceOracle} from "ens-contracts/ethregistrar/IPriceOracle.sol";
 /// deterministic Safe.
 /// @dev This contract is immutable, has no administrator, and targets networks
 /// supporting EIP-1153 transient storage.
-contract ENSDiamonds is ReentrancyGuardTransient {
+contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     using SafeCast for uint256;
-
-    // -------------------------------------------------------------------------
-    // Types
-    // -------------------------------------------------------------------------
-
-    /// @notice Lifecycle of an acquisition vault.
-    enum State {
-        Draft,
-        Funding,
-        Committed,
-        Acquired,
-        Cancelled,
-        Failed
-    }
-
-    /// @notice Persistent state for one acquisition.
-    /// @dev Deliberately packed into four storage slots.
-    struct Vault {
-        // Slot 0
-        address creator;
-        uint96 escrowed;
-        // Slot 1
-        uint96 maxSpend;
-        uint40 committedAt;
-        uint32 registrationDuration;
-        State state;
-        // Slots 2 and 3
-        bytes32 targetIntent;
-        bytes32 ensCommitment;
-    }
-
-    /// @dev Ephemeral Safe deployment data shared by prediction and creation.
-    struct SafeConfig {
-        address predicted;
-        uint256 threshold;
-        uint256 saltNonce;
-        bytes initializer;
-    }
 
     // -------------------------------------------------------------------------
     // Constants
@@ -65,10 +28,12 @@ contract ENSDiamonds is ReentrancyGuardTransient {
     uint256 public constant MIN_MEMBERS = 2;
     uint256 public constant MAX_MEMBERS = 10;
 
+    // 0x4e8c046f5ec8c741774b4e1fb3ee358c216ed0b4d5e29b96b276391ab9304118
     bytes32 public constant TARGET_INTENT_TYPEHASH = keccak256(
-        "ENSDiamondsTargetIntentV1(uint256 chainId,address protocol,uint256 vaultId,address creator,bytes32 labelhash,uint32 registrationDuration,bytes32 targetSalt)"
+        "ENSDiamondsTargetIntentV1(uint256 chainId,address protocol,bytes32 vaultId,address creator,bytes32 labelhash,uint32 registrationDuration,bytes32 targetSalt)"
     );
 
+    bytes32 internal constant VAULT_ID_DOMAIN = keccak256("ENS_DIAMONDS_VAULT_V1");
     bytes32 internal constant SAFE_SALT_DOMAIN = keccak256("ENS_DIAMONDS_SAFE_V1");
     address internal constant SAFE_SENTINEL = address(0x1);
 
@@ -91,100 +56,13 @@ contract ENSDiamonds is ReentrancyGuardTransient {
     // Storage
     // -------------------------------------------------------------------------
 
-    mapping(uint256 vaultId => Vault vault) public vaults;
-    mapping(uint256 vaultId => address[] owners) internal ownersOf;
-    mapping(uint256 vaultId => mapping(address member => uint256 balance)) public balanceOf;
+    mapping(bytes32 vaultId => Vault vault) public override vaults;
+    mapping(bytes32 vaultId => address[] owners) internal ownersOf;
+    mapping(bytes32 vaultId => mapping(address member => uint256 balance))
+        public
+        override balanceOf;
 
-    uint256 public vaultCount;
-    uint256 public totalLiabilities;
-
-    // -------------------------------------------------------------------------
-    // Events
-    // -------------------------------------------------------------------------
-
-    event VaultCreated(
-        uint256 indexed vaultId,
-        address indexed creator,
-        uint96 maxSpend,
-        uint32 registrationDuration,
-        address[] owners
-    );
-
-    event FundingOpened(
-        uint256 indexed vaultId, bytes32 targetIntent, bytes32 ensCommitment, uint256 creatorDeposit
-    );
-
-    event Deposited(uint256 indexed vaultId, address indexed member, uint256 amount);
-
-    event Withdrawn(
-        uint256 indexed vaultId, address indexed member, address indexed recipient, uint256 amount
-    );
-
-    event VaultCancelled(uint256 indexed vaultId);
-
-    event AcquisitionCommitted(
-        uint256 indexed vaultId,
-        bytes32 ensCommitment,
-        address indexed predictedSafe,
-        uint256 committedAt,
-        uint256 threshold
-    );
-
-    event NameAcquired(
-        uint256 indexed vaultId,
-        bytes32 indexed labelhash,
-        address indexed safe,
-        uint256 protocolPrice,
-        uint256 refundableBalance,
-        bool copiedPurchase
-    );
-
-    event AcquisitionExpired(uint256 indexed vaultId);
-
-    event Claimed(
-        uint256 indexed vaultId, address indexed member, address indexed recipient, uint256 amount
-    );
-
-    // -------------------------------------------------------------------------
-    // Errors
-    // -------------------------------------------------------------------------
-
-    error InvalidDependency(address dependency);
-    error InvalidDependencyConfiguration();
-    error VaultNotFound(uint256 vaultId);
-    error Unauthorized();
-    error InvalidState(State current);
-    error InvalidMaxSpend();
-    error InvalidDuration();
-    error InvalidOwnerCount();
-    error InvalidOwner(address owner);
-    error DuplicateOwner(address owner);
-    error PredictedSafeIsOwner(address safe);
-    error ZeroTargetIntent();
-    error ZeroENSCommitment();
-    error ZeroTargetSalt();
-    error ZeroENSSecret();
-    error ZeroAmount();
-    error InvalidRecipient();
-    error NotMember(address account);
-    error FundingCapExceeded();
-    error NoFunding();
-    error InsufficientBalance();
-    error TargetIntentMismatch();
-    error ENSCommitmentMismatch();
-    error CommitmentAtBoundary();
-    error CommitmentTooYoung(uint256 validAt);
-    error CommitmentExpired(uint256 expiredAt);
-    error CommitmentNotExpired(uint256 expiresAt);
-    error CommitmentChanged();
-    error InsufficientFunding(uint256 price, uint256 escrowed);
-    error SafeDeploymentFailed();
-    error SafePredictionMismatch(address expected, address actual);
-    error ENSOwnershipMismatch();
-    error ENSExpiryMismatch(uint256 expiry);
-    error NothingToClaim();
-    error ETHTransferFailed();
-    error DirectETHNotAccepted();
+    uint256 public override totalLiabilities;
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -219,7 +97,7 @@ contract ENSDiamonds is ReentrancyGuardTransient {
         uint256 minimumDuration = controller_.MIN_REGISTRATION_DURATION();
 
         if (maximumAge <= minimumAge || minimumDuration > type(uint32).max) {
-            revert InvalidDependencyConfiguration();
+            revert InvalidConfiguration();
         }
 
         MIN_COMMITMENT_AGE = minimumAge;
@@ -237,98 +115,68 @@ contract ENSDiamonds is ReentrancyGuardTransient {
     // Vault creation and funding
     // -------------------------------------------------------------------------
 
-    /// @notice Creates a vault with an immutable ordered Safe owner roster.
-    /// @param maxSpend Maximum ETH the vault may collect and spend.
-    /// @param registrationDuration ENS registration duration in seconds.
-    /// @param owners Complete ordered Safe owner roster; the creator must be first.
-    /// @return vaultId Newly assigned sequential vault identifier.
-    function createVault(uint96 maxSpend, uint32 registrationDuration, address[] calldata owners)
-        external
-        returns (uint256 vaultId)
-    {
-        if (maxSpend == 0) revert InvalidMaxSpend();
-        if (registrationDuration < MIN_REGISTRATION_DURATION) revert InvalidDuration();
+    /// @inheritdoc IENSDiamonds
+    function createVault(
+        bytes32 vaultSalt,
+        uint96 maxSpend,
+        uint32 registrationDuration,
+        address[] calldata owners,
+        bytes32 targetIntent,
+        bytes32 ensCommitment
+    ) external payable override returns (bytes32 vaultId) {
+        if (
+            vaultSalt == bytes32(0) || maxSpend == 0
+                || registrationDuration < MIN_REGISTRATION_DURATION || targetIntent == bytes32(0)
+                || ensCommitment == bytes32(0)
+        ) revert InvalidConfiguration();
+        if (msg.value > maxSpend) revert FundingLimitExceeded();
 
-        uint256 ownerCount = owners.length;
-        if (ownerCount < MIN_MEMBERS || ownerCount > MAX_MEMBERS) {
-            revert InvalidOwnerCount();
-        }
-        if (owners[0] != msg.sender) revert InvalidOwner(owners[0]);
+        _validateOwners(msg.sender, owners);
+        vaultId = _deriveVaultId(msg.sender, vaultSalt);
+        if (vaults[vaultId].creator != address(0)) revert VaultAlreadyExists();
 
-        for (uint256 i; i < ownerCount;) {
-            address owner = owners[i];
-            if (owner == address(0) || owner == SAFE_SENTINEL || owner == address(this)) {
-                revert InvalidOwner(owner);
-            }
+        SafeConfig memory config = _safeConfig(vaultId, owners);
+        if (_containsOwner(owners, config.predicted)) revert InvalidOwners();
 
-            for (uint256 j; j < i;) {
-                if (owners[j] == owner) revert DuplicateOwner(owner);
-                unchecked {
-                    ++j;
-                }
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        vaultId = vaultCount;
-        vaultCount = vaultId + 1;
-
-        Vault storage vault = vaults[vaultId];
-        vault.creator = msg.sender;
-        vault.maxSpend = maxSpend;
-        vault.registrationDuration = registrationDuration;
-        vault.state = State.Draft;
-
+        vaults[vaultId] = Vault({
+            creator: msg.sender,
+            escrowed: msg.value.toUint96(),
+            maxSpend: maxSpend,
+            committedAt: 0,
+            registrationDuration: registrationDuration,
+            state: State.Funding,
+            targetIntent: targetIntent,
+            ensCommitment: ensCommitment
+        });
         ownersOf[vaultId] = owners;
-
-        emit VaultCreated(vaultId, msg.sender, maxSpend, registrationDuration, owners);
-    }
-
-    /// @notice Fixes the target commitments and opens member funding.
-    /// @dev Optional ETH is credited as the creator's initial contribution.
-    function openFunding(uint256 vaultId, bytes32 targetIntent, bytes32 ensCommitment)
-        external
-        payable
-    {
-        Vault storage vault = _vault(vaultId);
-        _requireCreator(vault);
-        _requireState(vault, State.Draft);
-
-        if (targetIntent == bytes32(0)) revert ZeroTargetIntent();
-        if (ensCommitment == bytes32(0)) revert ZeroENSCommitment();
-        if (msg.value > vault.maxSpend) revert FundingCapExceeded();
-
-        SafeConfig memory config = _safeConfig(vaultId);
-        if (_isMember(vaultId, config.predicted)) {
-            revert PredictedSafeIsOwner(config.predicted);
-        }
-
-        vault.targetIntent = targetIntent;
-        vault.ensCommitment = ensCommitment;
-        vault.state = State.Funding;
 
         if (msg.value != 0) {
             balanceOf[vaultId][msg.sender] = msg.value;
-            vault.escrowed = msg.value.toUint96();
             totalLiabilities += msg.value;
         }
 
-        emit FundingOpened(vaultId, targetIntent, ensCommitment, msg.value);
+        emit VaultCreated(
+            vaultId,
+            msg.sender,
+            maxSpend,
+            registrationDuration,
+            owners,
+            targetIntent,
+            ensCommitment,
+            msg.value
+        );
     }
 
     /// @notice Adds ETH to a funding vault.
-    function deposit(uint256 vaultId) external payable {
+    function deposit(bytes32 vaultId) external payable override {
         Vault storage vault = _vault(vaultId);
         _requireState(vault, State.Funding);
 
-        if (msg.value == 0) revert ZeroAmount();
-        if (!_isMember(vaultId, msg.sender)) revert NotMember(msg.sender);
+        if (msg.value == 0) revert InvalidAmount();
+        if (!_isMember(vaultId, msg.sender)) revert NotMember();
 
         uint256 updatedEscrow = uint256(vault.escrowed) + msg.value;
-        if (updatedEscrow > vault.maxSpend) revert FundingCapExceeded();
+        if (updatedEscrow > vault.maxSpend) revert FundingLimitExceeded();
 
         balanceOf[vaultId][msg.sender] += msg.value;
         vault.escrowed = updatedEscrow.toUint96();
@@ -338,15 +186,16 @@ contract ENSDiamonds is ReentrancyGuardTransient {
     }
 
     /// @notice Withdraws part or all of the caller's contribution during funding.
-    function withdraw(uint256 vaultId, uint256 amount, address payable recipient)
+    function withdraw(bytes32 vaultId, uint256 amount, address payable recipient)
         external
+        override
         nonReentrant
     {
         Vault storage vault = _vault(vaultId);
         _requireState(vault, State.Funding);
 
-        if (amount == 0) revert ZeroAmount();
-        if (recipient == address(0)) revert InvalidRecipient();
+        if (amount == 0) revert InvalidAmount();
+        if (recipient == address(0)) revert InvalidAddress();
 
         uint256 balance = balanceOf[vaultId][msg.sender];
         if (amount > balance) revert InsufficientBalance();
@@ -359,16 +208,12 @@ contract ENSDiamonds is ReentrancyGuardTransient {
         _sendEth(recipient, amount);
     }
 
-    /// @notice Cancels a Draft or Funding vault.
+    /// @notice Cancels a Funding vault.
     /// @dev Contributions remain available through pull-based claims.
-    function cancel(uint256 vaultId) external {
+    function cancel(bytes32 vaultId) external override {
         Vault storage vault = _vault(vaultId);
         _requireCreator(vault);
-
-        State state = vault.state;
-        if (state != State.Draft && state != State.Funding) {
-            revert InvalidState(state);
-        }
+        _requireState(vault, State.Funding);
 
         vault.state = State.Cancelled;
         emit VaultCancelled(vaultId);
@@ -379,12 +224,12 @@ contract ENSDiamonds is ReentrancyGuardTransient {
     // -------------------------------------------------------------------------
 
     /// @notice Locks funding and submits or adopts the fixed ENS commitment.
-    function beginAcquisition(uint256 vaultId) external nonReentrant {
+    function beginAcquisition(bytes32 vaultId) external override nonReentrant {
         Vault storage vault = _vault(vaultId);
         _requireCreator(vault);
         _requireState(vault, State.Funding);
 
-        if (vault.escrowed == 0) revert NoFunding();
+        if (vault.escrowed == 0) revert InvalidAmount();
 
         // Effects before the external call prevent cross-function funding changes.
         // Any downstream revert rolls this state transition back.
@@ -414,7 +259,7 @@ contract ENSDiamonds is ReentrancyGuardTransient {
 
         vault.committedAt = timestamp.toUint40();
 
-        SafeConfig memory config = _safeConfig(vaultId);
+        SafeConfig memory config = _safeConfig(vaultId, ownersOf[vaultId]);
         emit AcquisitionCommitted(
             vaultId, commitment, config.predicted, timestamp, config.threshold
         );
@@ -423,16 +268,17 @@ contract ENSDiamonds is ReentrancyGuardTransient {
     /// @notice Registers the committed name or recognizes an exact copied registration.
     /// @dev Permissionless because every supplied field is bound by the stored commitments.
     function purchase(
-        uint256 vaultId,
+        bytes32 vaultId,
         string calldata normalizedLabel,
         bytes32 targetSalt,
         bytes32 ensSecret
-    ) external nonReentrant {
+    ) external override nonReentrant {
         Vault storage vault = _vault(vaultId);
         _requireState(vault, State.Committed);
 
-        if (targetSalt == bytes32(0)) revert ZeroTargetSalt();
-        if (ensSecret == bytes32(0)) revert ZeroENSSecret();
+        if (targetSalt == bytes32(0) || ensSecret == bytes32(0)) {
+            revert InvalidConfiguration();
+        }
 
         // Keep commitment hashing explicit and easy to compare with client code.
         // forge-lint: disable-next-line(asm-keccak256)
@@ -450,14 +296,14 @@ contract ENSDiamonds is ReentrancyGuardTransient {
                 targetSalt
             )
         );
-        if (expectedIntent != vault.targetIntent) revert TargetIntentMismatch();
+        if (expectedIntent != vault.targetIntent) revert TargetMismatch();
 
-        SafeConfig memory config = _safeConfig(vaultId);
+        SafeConfig memory config = _safeConfig(vaultId, ownersOf[vaultId]);
         IETHRegistrarController.Registration memory registration =
             _registration(vault, normalizedLabel, ensSecret, config.predicted);
 
         if (CONTROLLER.makeCommitment(registration) != vault.ensCommitment) {
-            revert ENSCommitmentMismatch();
+            revert CommitmentMismatch();
         }
 
         uint256 controllerTimestamp = CONTROLLER.commitments(vault.ensCommitment);
@@ -477,7 +323,7 @@ contract ENSDiamonds is ReentrancyGuardTransient {
     }
 
     /// @notice Materializes an expired commitment as Failed.
-    function expireAcquisition(uint256 vaultId) external nonReentrant {
+    function expireAcquisition(bytes32 vaultId) external override nonReentrant {
         Vault storage vault = _vault(vaultId);
         _requireState(vault, State.Committed);
 
@@ -492,9 +338,9 @@ contract ENSDiamonds is ReentrancyGuardTransient {
 
     /// @notice Claims the caller's full refundable balance to a chosen recipient.
     /// @dev An expired Committed vault is failed and claimed in the same transaction.
-    function claim(uint256 vaultId, address payable recipient) external nonReentrant {
+    function claim(bytes32 vaultId, address payable recipient) external override nonReentrant {
         Vault storage vault = _vault(vaultId);
-        if (recipient == address(0)) revert InvalidRecipient();
+        if (recipient == address(0)) revert InvalidAddress();
 
         if (vault.state == State.Committed) {
             uint256 expiresAt = uint256(vault.committedAt) + MAX_COMMITMENT_AGE;
@@ -526,45 +372,28 @@ contract ENSDiamonds is ReentrancyGuardTransient {
     // Views
     // -------------------------------------------------------------------------
 
-    /// @notice Predicts the canonical Safe address and initial threshold.
-    function predictSafe(uint256 vaultId) external view returns (address safe, uint256 threshold) {
-        _vault(vaultId);
-        SafeConfig memory config = _safeConfig(vaultId);
-        return (config.predicted, config.threshold);
+    /// @inheritdoc IENSDiamonds
+    function predictSafe(address creator, bytes32 vaultSalt, address[] calldata owners)
+        external
+        view
+        override
+        returns (bytes32 vaultId, address safe, uint256 threshold)
+    {
+        if (creator == address(0)) revert InvalidAddress();
+        if (vaultSalt == bytes32(0)) revert InvalidConfiguration();
+        _validateOwners(creator, owners);
+
+        vaultId = _deriveVaultId(creator, vaultSalt);
+        SafeConfig memory config = _safeConfig(vaultId, owners);
+        if (_containsOwner(owners, config.predicted)) revert InvalidOwners();
+
+        return (vaultId, config.predicted, config.threshold);
     }
 
     /// @notice Returns the complete fixed Safe owner roster.
-    function getOwners(uint256 vaultId) external view returns (address[] memory owners) {
+    function getOwners(bytes32 vaultId) external view override returns (address[] memory owners) {
         _vault(vaultId);
         return ownersOf[vaultId];
-    }
-
-    /// @notice Returns whether an account belongs to the fixed owner roster.
-    function isMember(uint256 vaultId, address account) external view returns (bool) {
-        _vault(vaultId);
-        return _isMember(vaultId, account);
-    }
-
-    /// @notice Returns unused funding capacity under the immutable spending cap.
-    function remainingCapacity(uint256 vaultId) external view returns (uint256) {
-        Vault storage vault = _vault(vaultId);
-        return uint256(vault.maxSpend) - uint256(vault.escrowed);
-    }
-
-    /// @notice Returns Failed for a virtually expired Committed vault.
-    function effectiveState(uint256 vaultId) external view returns (State) {
-        Vault storage vault = _vault(vaultId);
-
-        if (
-            vault.state == State.Committed
-                // ENS commit-reveal validity is explicitly timestamp based.
-                // forge-lint: disable-next-line(block-timestamp)
-                && block.timestamp >= uint256(vault.committedAt) + MAX_COMMITMENT_AGE
-        ) {
-            return State.Failed;
-        }
-
-        return vault.state;
     }
 
     // -------------------------------------------------------------------------
@@ -572,7 +401,7 @@ contract ENSDiamonds is ReentrancyGuardTransient {
     // -------------------------------------------------------------------------
 
     function _purchaseCommitted(
-        uint256 vaultId,
+        bytes32 vaultId,
         Vault storage vault,
         bytes32 labelhash,
         IETHRegistrarController.Registration memory registration,
@@ -598,7 +427,7 @@ contract ENSDiamonds is ReentrancyGuardTransient {
         CONTROLLER.register{value: price}(registration);
 
         if (_ownerOf(uint256(labelhash)) != config.predicted) {
-            revert ENSOwnershipMismatch();
+            revert ENSVerificationFailed();
         }
 
         uint256 surplus = _settlePurchase(vaultId, vault, funding, price);
@@ -606,7 +435,7 @@ contract ENSDiamonds is ReentrancyGuardTransient {
     }
 
     function _recoverCopiedPurchase(
-        uint256 vaultId,
+        bytes32 vaultId,
         Vault storage vault,
         bytes32 labelhash,
         SafeConfig memory config
@@ -618,7 +447,7 @@ contract ENSDiamonds is ReentrancyGuardTransient {
         if (block.timestamp >= expiresAt) revert CommitmentExpired(expiresAt);
 
         uint256 tokenId = uint256(labelhash);
-        if (_ownerOf(tokenId) != config.predicted) revert ENSOwnershipMismatch();
+        if (_ownerOf(tokenId) != config.predicted) revert ENSVerificationFailed();
 
         uint256 nameExpiry = BASE_REGISTRAR.nameExpires(tokenId);
         uint256 minimumExpiry = committedAt + MIN_COMMITMENT_AGE + vault.registrationDuration;
@@ -630,7 +459,7 @@ contract ENSDiamonds is ReentrancyGuardTransient {
             nameExpiry <= block.timestamp || nameExpiry < minimumExpiry
                 || nameExpiry >= maximumExpiry
         ) {
-            revert ENSExpiryMismatch(nameExpiry);
+            revert ENSVerificationFailed();
         }
 
         _ensureSafe(config);
@@ -639,7 +468,7 @@ contract ENSDiamonds is ReentrancyGuardTransient {
         emit NameAcquired(vaultId, labelhash, config.predicted, 0, vault.escrowed, true);
     }
 
-    function _settlePurchase(uint256 vaultId, Vault storage vault, uint256 funding, uint256 price)
+    function _settlePurchase(bytes32 vaultId, Vault storage vault, uint256 funding, uint256 price)
         internal
         returns (uint256 surplus)
     {
@@ -678,8 +507,11 @@ contract ENSDiamonds is ReentrancyGuardTransient {
     // Internal Safe helpers
     // -------------------------------------------------------------------------
 
-    function _safeConfig(uint256 vaultId) internal view returns (SafeConfig memory config) {
-        address[] memory owners = ownersOf[vaultId];
+    function _safeConfig(bytes32 vaultId, address[] memory owners)
+        internal
+        view
+        returns (SafeConfig memory config)
+    {
         uint256 threshold = owners.length / 2 + 1;
         uint256 saltNonce =
             uint256(keccak256(abi.encode(SAFE_SALT_DOMAIN, block.chainid, address(this), vaultId)));
@@ -730,9 +562,9 @@ contract ENSDiamonds is ReentrancyGuardTransient {
         );
 
         if (deployed != config.predicted) {
-            revert SafePredictionMismatch(config.predicted, deployed);
+            revert SafeVerificationFailed();
         }
-        if (deployed.code.length == 0) revert SafeDeploymentFailed();
+        if (deployed.code.length == 0) revert SafeVerificationFailed();
     }
 
     // -------------------------------------------------------------------------
@@ -761,11 +593,56 @@ contract ENSDiamonds is ReentrancyGuardTransient {
         try BASE_REGISTRAR.ownerOf(tokenId) returns (address currentOwner) {
             return currentOwner;
         } catch {
-            revert ENSOwnershipMismatch();
+            revert ENSVerificationFailed();
         }
     }
 
-    function _isMember(uint256 vaultId, address account) internal view returns (bool) {
+    function _deriveVaultId(address creator, bytes32 vaultSalt) internal view returns (bytes32) {
+        return
+            keccak256(abi.encode(VAULT_ID_DOMAIN, block.chainid, address(this), creator, vaultSalt));
+    }
+
+    function _validateOwners(address creator, address[] calldata owners) internal view {
+        uint256 ownerCount = owners.length;
+        if (ownerCount < MIN_MEMBERS || ownerCount > MAX_MEMBERS || owners[0] != creator) {
+            revert InvalidOwners();
+        }
+
+        for (uint256 i; i < ownerCount;) {
+            address owner = owners[i];
+            if (owner == address(0) || owner == SAFE_SENTINEL || owner == address(this)) {
+                revert InvalidOwners();
+            }
+
+            for (uint256 j; j < i;) {
+                if (owners[j] == owner) revert InvalidOwners();
+                unchecked {
+                    ++j;
+                }
+            }
+
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
+    function _containsOwner(address[] calldata owners, address account)
+        internal
+        pure
+        returns (bool)
+    {
+        uint256 ownerCount = owners.length;
+        for (uint256 i; i < ownerCount;) {
+            if (owners[i] == account) return true;
+            unchecked {
+                ++i;
+            }
+        }
+        return false;
+    }
+
+    function _isMember(bytes32 vaultId, address account) internal view returns (bool) {
         address[] storage owners = ownersOf[vaultId];
         uint256 ownerCount = owners.length;
 
@@ -779,9 +656,9 @@ contract ENSDiamonds is ReentrancyGuardTransient {
         return false;
     }
 
-    function _vault(uint256 vaultId) internal view returns (Vault storage vault) {
-        if (vaultId >= vaultCount) revert VaultNotFound(vaultId);
-        return vaults[vaultId];
+    function _vault(bytes32 vaultId) internal view returns (Vault storage vault) {
+        vault = vaults[vaultId];
+        if (vault.creator == address(0)) revert VaultNotFound();
     }
 
     function _requireCreator(Vault storage vault) internal view {
@@ -794,13 +671,13 @@ contract ENSDiamonds is ReentrancyGuardTransient {
 
     function _requireContract(address dependency) internal view {
         if (dependency == address(0) || dependency.code.length == 0) {
-            revert InvalidDependency(dependency);
+            revert InvalidContract(dependency);
         }
     }
 
     function _sendEth(address payable recipient, uint256 amount) internal {
         (bool success,) = recipient.call{value: amount}("");
-        if (!success) revert ETHTransferFailed();
+        if (!success) revert TransferFailed();
     }
 
     /// @dev Rejects unaccounted direct ETH transfers.
