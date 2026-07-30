@@ -3,11 +3,14 @@ pragma solidity 0.8.36;
 
 import {ISafe} from "@safe-global/safe-smart-account/contracts/interfaces/ISafe.sol";
 import {Enum} from "@safe-global/safe-smart-account/contracts/libraries/Enum.sol";
+import {EfficientHashLib} from "solady/utils/EfficientHashLib.sol";
 import {VaultActions} from "test/utils/VaultActions.sol";
+import {VaultConfig} from "test/utils/VaultConfig.sol";
 
 abstract contract SafeTestUtils is VaultActions {
     bytes32 internal constant FALLBACK_HANDLER_STORAGE_SLOT =
         0x6c9a6c4a39284e37ed1cf53d337577d14212a4870fb976a4366c693b939918d5;
+    bytes32 internal constant SAFE_SALT_DOMAIN = keccak256("ENS_DIAMONDS_SAFE_V1");
 
     function _safeAt(address account) internal pure returns (ISafe) {
         return ISafe(payable(account));
@@ -15,6 +18,42 @@ abstract contract SafeTestUtils is VaultActions {
 
     function _fallbackHandlerAt(address account) internal view returns (address) {
         return address(uint160(uint256(vm.load(account, FALLBACK_HANDLER_STORAGE_SLOT))));
+    }
+
+    function _deployPredictedSafe(VaultConfig memory config) internal returns (address deployed) {
+        deployed = address(
+            safeProxyFactory.createProxyWithNonce(
+                address(safeSingleton), _safeInitializer(config), _safeSaltNonce(config)
+            )
+        );
+        assertEq(deployed, config.predictedSafe);
+    }
+
+    function _safeInitializer(VaultConfig memory config) internal view returns (bytes memory) {
+        return abi.encodeCall(
+            ISafe.setup,
+            (
+                config.owners,
+                config.threshold,
+                address(0),
+                bytes(""),
+                address(safeFallbackHandler),
+                address(0),
+                0,
+                payable(address(0))
+            )
+        );
+    }
+
+    function _safeSaltNonce(VaultConfig memory config) internal view returns (uint256) {
+        return uint256(
+            EfficientHashLib.hash(
+                uint256(SAFE_SALT_DOMAIN),
+                block.chainid,
+                uint256(uint160(address(diamonds))),
+                uint256(config.vaultId)
+            )
+        );
     }
 
     function _executeSafeTransaction(
