@@ -232,10 +232,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         Vault storage vault = _vault(vaultId);
         _requireState(vault, State.Committed);
 
-        if (targetSalt == bytes32(0) || ensSecret == bytes32(0)) {
-            revert InvalidConfiguration();
-        }
-
         bytes32 labelhash = EfficientHashLib.hash(bytes(normalizedLabel));
         bytes32 expectedIntent = EfficientHashLib.hash(
             uint256(TARGET_INTENT_TYPEHASH),
