@@ -79,25 +79,25 @@ importers:
         specifier: 1.168.23
         version: 1.168.23(@tanstack/react-router@1.170.18(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(rolldown@1.2.1)(vite@8.2.0(@types/node@26.1.2)(jiti@2.7.0))
       '@types/node':
-        specifier: ^26.1.2
+        specifier: 26.1.2
         version: 26.1.2
       '@types/react':
-        specifier: ^19.2.18
+        specifier: 19.2.18
         version: 19.2.18
       '@types/react-dom':
-        specifier: ^19.2.4
+        specifier: 19.2.4
         version: 19.2.4(@types/react@19.2.18)
       '@vitejs/plugin-react':
-        specifier: ^6.0.5
+        specifier: 6.0.5
         version: 6.0.5(vite@8.2.0(@types/node@26.1.2)(jiti@2.7.0))
       klarity:
         specifier: 'catalog:'
         version: 0.2.0(@commitlint/cli@21.2.1(@types/node@26.1.2)(conventional-commits-parser@7.1.1)(typescript@6.0.3))(@commitlint/config-conventional@21.2.0)(lefthook@2.1.10)(oxfmt@0.61.0)(oxlint@1.76.0)(turbo@2.10.7)(typescript@6.0.3)
       typescript:
-        specifier: ^6.0.3
+        specifier: 6.0.3
         version: 6.0.3
       vite:
-        specifier: ^8.2.0
+        specifier: 8.2.0
         version: 8.2.0(@types/node@26.1.2)(jiti@2.7.0)
 
   packages/contracts: {}
