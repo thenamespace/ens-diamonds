@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.36;
 
+import {IBaseRegistrar} from "./interfaces/IBaseRegistrar.sol";
 import {IENSDiamonds} from "./interfaces/IENSDiamonds.sol";
-import {IENSDiamondsBaseRegistrar} from "./interfaces/IENSDiamondsBaseRegistrar.sol";
 import {IENSDiamondsRegistrarController} from "./interfaces/IENSDiamondsRegistrarController.sol";
 import {ISafe} from "@safe-global/safe-smart-account/contracts/interfaces/ISafe.sol";
 import {
@@ -31,7 +31,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     address internal constant SAFE_SENTINEL = address(0x1);
 
     IENSDiamondsRegistrarController public immutable CONTROLLER;
-    IENSDiamondsBaseRegistrar public immutable BASE_REGISTRAR;
+    IBaseRegistrar public immutable BASE_REGISTRAR;
     ISafe public immutable SAFE_SINGLETON;
     SafeProxyFactory public immutable SAFE_PROXY_FACTORY;
     address public immutable SAFE_FALLBACK_HANDLER;
@@ -51,7 +51,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
 
     constructor(
         IENSDiamondsRegistrarController controller_,
-        IENSDiamondsBaseRegistrar baseRegistrar_,
+        IBaseRegistrar baseRegistrar_,
         ISafe safeSingleton_,
         SafeProxyFactory safeProxyFactory_,
         address safeFallbackHandler_
