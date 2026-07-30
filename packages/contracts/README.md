@@ -28,8 +28,7 @@ pnpm install
 cp packages/contracts/.env.example packages/contracts/.env
 ```
 
-Configure RPC and explorer credentials when fork tests, scripts, or verification need
-them:
+Configure RPC and explorer credentials when scripts or verification need them:
 
 ```dotenv
 ETHEREUM_MAINNET_RPC_URL=
@@ -41,15 +40,19 @@ ETHERSCAN_API_KEY=
 
 Run these from the repository root:
 
-| Command                                           | Purpose                               |
-| ------------------------------------------------- | ------------------------------------- |
-| `pnpm --filter @ens-diamonds/contracts build`     | Compile contracts                     |
-| `pnpm --filter @ens-diamonds/contracts lint`      | Check Forge formatting and lint rules |
-| `pnpm --filter @ens-diamonds/contracts format`    | Format Solidity                       |
-| `pnpm --filter @ens-diamonds/contracts test`      | Run the Foundry test suite            |
-| `pnpm --filter @ens-diamonds/contracts test:fork` | Run fork tests under `test/fork`      |
-| `pnpm --filter @ens-diamonds/contracts snapshot`  | Generate a gas snapshot               |
-| `pnpm --filter @ens-diamonds/contracts clean`     | Remove Foundry build artifacts        |
+| Command                                                  | Purpose                                  |
+| -------------------------------------------------------- | ---------------------------------------- |
+| `pnpm --filter @ens-diamonds/contracts build`            | Compile contracts                        |
+| `pnpm --filter @ens-diamonds/contracts lint`             | Check Forge formatting and lint rules    |
+| `pnpm --filter @ens-diamonds/contracts format`           | Format Solidity                          |
+| `pnpm --filter @ens-diamonds/contracts test`             | Run every test suite                     |
+| `pnpm --filter @ens-diamonds/contracts test:unit`        | Run focused unit tests                   |
+| `pnpm --filter @ens-diamonds/contracts test:integration` | Run local ENS and Safe integration tests |
+| `pnpm --filter @ens-diamonds/contracts test:fuzz`        | Run stateless fuzz tests                 |
+| `pnpm --filter @ens-diamonds/contracts test:invariant`   | Run stateful invariant tests             |
+| `pnpm --filter @ens-diamonds/contracts test:coverage`    | Print protocol coverage                  |
+| `pnpm --filter @ens-diamonds/contracts snapshot`         | Generate a gas snapshot                  |
+| `pnpm --filter @ens-diamonds/contracts clean`            | Remove Foundry build artifacts           |
 
 Direct Foundry commands can also be run from `packages/contracts`:
 
@@ -57,8 +60,28 @@ Direct Foundry commands can also be run from `packages/contracts`:
 forge build
 forge lint
 forge test
+forge coverage -D never --report summary
 forge snapshot
 ```
+
+Coverage instrumentation disables the normal optimizer settings and causes warnings in
+upstream ENS and Safe sources. `-D never` changes only the compiler diagnostic policy
+for that run; it does not suppress test failures.
+
+## Test layout
+
+```text
+test/
+├── unit/         # One public transition or failure family per file
+├── integration/  # Full local ENS registration and Safe execution flows
+├── fuzz/         # Accounting, timing, and deterministic-address properties
+├── invariant/    # Stateful handler and protocol-wide invariants
+└── utils/        # Deployments, vault builders, actions, and state-specific bases
+```
+
+Tests use locally deployed ENS and Safe contracts rather than protocol mocks for normal
+flows. Mocks are limited to explicit dependency-failure tests. No RPC or fork is
+required.
 
 ## Source layout
 
@@ -90,6 +113,5 @@ Dependencies are pinned as Git submodules and recorded in `foundry.lock`.
 
 ## Status
 
-The contracts are under active development. Deployment scripts and the production test
-suite are not yet included. Do not use the protocol with real funds before tests,
-deployment validation, and an independent security audit are complete.
+The contracts are under active development. Do not use the protocol with real funds
+before deployment validation and an independent security audit are complete.

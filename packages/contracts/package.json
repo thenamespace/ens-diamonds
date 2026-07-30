@@ -11,8 +11,12 @@
     "lint": "forge fmt --check && forge lint",
     "snapshot": "forge snapshot",
     "test": "forge test",
-    "test:fork": "forge test --match-path 'test/fork/**/*.t.sol'",
+    "test:coverage": "forge coverage -D never --report summary",
+    "test:fuzz": "forge test --match-path 'test/fuzz/*.t.sol'",
     "test:gas": "FOUNDRY_PROFILE=gas forge test",
+    "test:integration": "forge test --match-path 'test/integration/*.t.sol'",
+    "test:invariant": "forge test --match-path 'test/invariant/*.t.sol'",
+    "test:unit": "forge test --match-path 'test/unit/*.t.sol'",
     "typecheck": "forge build"
   }
 }
