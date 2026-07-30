@@ -528,11 +528,11 @@ flowchart TD
     D -->|"Yes"| E["Read Controller commitment timestamp"]
     E --> F{"Controller timestamp"}
     F -->|"Equals committedAt"| G["Normal purchase"]
-    F -->|"Zero"| H["Copied-purchase recovery"]
-    F -->|"Different nonzero value"| I["Revert CommitmentChanged"]
+    F -->|"Zero or greater than committedAt"| H["Copied-purchase recovery"]
+    F -->|"Lower nonzero value"| I["Revert CommitmentChanged"]
 ```
 
-The Controller timestamp does not become zero when a commitment merely expires. In the canonical Controller it becomes zero when a successful registration consumes and deletes that commitment.
+The Controller timestamp does not become zero when a commitment merely expires. In the canonical Controller it becomes zero when a successful registration consumes and deletes that commitment. Anyone may recommit the deleted hash, producing a timestamp greater than `committedAt`, so both zero and greater timestamps enter verified copied-purchase recovery.
 
 ### Normal purchase
 
@@ -599,16 +599,16 @@ For a normal purchase, `protocolPrice` is the amount paid to ENS and `copiedPurc
 
 ### Copied-purchase recovery
 
-A zero Controller timestamp is evidence that the exact commitment was consumed, but it is not enough to mark the vault acquired. The function independently verifies the current name owner and registration expiry.
+A zero Controller timestamp indicates that the exact commitment was consumed. A timestamp greater than `committedAt` can indicate that the consumed hash was recommitted. Neither value is enough to mark the vault acquired, so the function independently verifies the original vault window, current name owner, and registration expiry.
 
 ```mermaid
 flowchart TD
-    A["Controller timestamp is zero"] --> B{"Before original maximum-age boundary?"}
+    A["Controller timestamp is zero or greater than committedAt"] --> B{"Before original maximum-age boundary?"}
     B -->|"No"| BR["Revert CommitmentExpired"]
     B -->|"Yes"| C{"Base Registrar owner is predicted Safe?"}
     C -->|"No"| CR["Revert ENSVerificationFailed"]
     C -->|"Yes"| D["Read name expiry"]
-    D --> E{"Name is live and expiry fits this commitment window?"}
+    D --> E{"Name is live and not earlier than the first valid registration?"}
     E -->|"No"| ER["Revert ENSVerificationFailed"]
     E -->|"Yes"| F["Deploy Safe if needed"]
     F --> G["Set state to Acquired"]
@@ -621,8 +621,9 @@ The accepted expiry range is:
 ```text
 nameExpiry > block.timestamp
 nameExpiry >= committedAt + minCommitmentAge + registrationDuration
-nameExpiry < committedAt + maxCommitmentAge + registrationDuration
 ```
+
+There is no maximum accepted `nameExpiry`. ENS renewal is permissionless and can legitimately increase the expiry after the copied registration. The Controller can consume the exact commitment only during its valid window, while the owner and minimum-expiry checks prove that the intended Safe received a live registration.
 
 An exact copied registration must still name the deterministic Safe as owner because that owner is part of the commitment. The copier pays ENS, so ENS Diamonds spends none of the vault escrow. Every contribution remains fully claimable, `vault.escrowed` and `totalLiabilities` remain unchanged, and the event reports `protocolPrice = 0` and `copiedPurchase = true`.
 
@@ -636,7 +637,7 @@ An attacker may register the same label with a different commitment and a differ
 
 ### The commitment timestamp changes
 
-A different nonzero Controller timestamp means the same commitment hash was replaced after the timestamp stored by the vault. The contract cannot safely determine which commitment window should govern the vault, so `purchase` reverts with `CommitmentChanged`. The vault still uses its original `committedAt` for expiry and refunds.
+A greater Controller timestamp enters copied-purchase recovery. Before the original maximum-age boundary, canonical ENS cannot replace an active commitment unless registration first consumed it, and recovery still requires the predicted Safe to own the live name. A lower nonzero timestamp cannot occur under canonical ENS behavior and reverts with `CommitmentChanged`.
 
 ## Expire an acquisition
 
@@ -766,10 +767,12 @@ The contract rejects direct ETH through `receive` and `fallback`. ETH forced int
 | Purchase is called at or after expiry | It reverts; the vault can be marked `Failed` |
 | ENS price is greater than escrow | Purchase reverts and the vault remains `Committed` |
 | ENS price equals escrow | Purchase succeeds and every refund is zero |
-| Exact commitment is copied and consumed | Recovery succeeds only if the Safe owns a live registration with the expected expiry |
+| Exact commitment is copied and consumed | Recovery succeeds only if the Safe owns a live registration with a valid minimum expiry |
+| Consumed commitment is recommitted | A greater timestamp enters the same verified recovery path |
+| Copied registration is renewed | Recovery accepts the increased expiry because ENS renewal is permissionless |
 | Copied name is transferred away before recovery | Recovery fails; the vault later expires unless ownership returns in time |
 | Different commitment acquires the label | Normal registration reverts as unavailable; the vault later expires |
-| Same commitment hash receives a different nonzero timestamp | Purchase reverts with `CommitmentChanged`; original vault expiry still applies |
+| Controller reports a lower nonzero timestamp | Purchase reverts with `CommitmentChanged` because canonical timestamps cannot move backwards |
 | Commitment expires while the label remains available | Vault becomes `Failed`; retry requires a new vault |
 | Safe already exists at the predicted address | Deployment is skipped |
 | Safe deployment returns an unexpected address or no code | Purchase reverts |
@@ -790,7 +793,7 @@ The implementation is designed to preserve these properties:
 - the creator cannot cancel after acquisition begins
 - contributors cannot withdraw while committed
 - a normal purchase cannot spend more than the vault's escrow or immutable `maxSpend`
-- copied-purchase recovery cannot finalize only from a deleted commitment
+- copied-purchase recovery cannot finalize only from a deleted or recommitted commitment
 - only the deterministic Safe can satisfy final ownership verification
 - successful claims and withdrawals reduce balances before external ETH transfer
 - all functions that transfer ETH or interact with acquisition dependencies are protected by transient reentrancy guards
@@ -848,7 +851,7 @@ Anyone can submit a public commitment hash to the ENS Controller. Reverting when
 
 ### Copied-purchase recovery
 
-Once the reveal is public, another account can execute the exact ENS registration first. The commitment forces delivery to the deterministic Safe, so treating every copied execution as failure would strand a successful group purchase. Recovery requires the Safe to be the current registrar owner and the expiry to fit the original commitment window.
+Once the reveal is public, another account can execute the exact ENS registration first. The commitment forces delivery to the deterministic Safe, so treating every copied execution as failure would strand a successful group purchase. Recovery accepts a deleted commitment or a later recommitment, then requires the Safe to be the current registrar owner and the name to be live with at least the earliest valid expiry. It intentionally has no maximum expiry check because anyone may renew an ENS name.
 
 ### Pull-based refunds
 
@@ -895,5 +898,5 @@ After creation:
 - keep reveal values private until the group is ready to execute
 - after `beginAcquisition`, use the emitted `committedAt` rather than assuming the current block timestamp
 - execute normal purchase only inside the Controller's valid window
-- monitor for a consumed commitment and finalize copied-purchase recovery before the original maximum-age boundary
+- monitor for a consumed or recommitted commitment and finalize copied-purchase recovery before the original maximum-age boundary
 - after `Acquired`, `Cancelled`, or `Failed`, let each contributor call `claim`

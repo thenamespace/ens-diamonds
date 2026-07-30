@@ -280,13 +280,13 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
             return;
         }
 
-        if (controllerTimestamp == 0) {
-            // ENS deletes a used commitment: verify whether someone copied the purchase.
+        if (controllerTimestamp == 0 || controllerTimestamp > storedTimestamp) {
+            // ENS deletes a used commitment, which may then be recommitted.
             _recoverCopiedPurchase(vaultId, vault, labelhash, config);
             return;
         }
 
-        // A different nonzero timestamp means the commitment was unexpectedly replaced.
+        // Canonical ENS timestamps cannot move backwards.
         revert CommitmentChanged();
     }
 
@@ -404,15 +404,13 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         uint256 tokenId = uint256(labelhash);
         if (_ownerOf(tokenId) != config.predicted) revert ENSVerificationFailed();
 
-        // The expiry must fit a registration made during this commitment's valid window.
+        // A live expiry cannot precede the earliest valid registration.
         uint256 nameExpiry = BASE_REGISTRAR.nameExpires(tokenId);
         uint256 minimumExpiry = committedAt + MIN_COMMITMENT_AGE + vault.registrationDuration;
-        uint256 maximumExpiry = committedAt + MAX_COMMITMENT_AGE + vault.registrationDuration;
 
         if (
             // forge-lint: disable-next-line(block-timestamp)
             nameExpiry <= block.timestamp || nameExpiry < minimumExpiry
-                || nameExpiry >= maximumExpiry
         ) {
             revert ENSVerificationFailed();
         }
