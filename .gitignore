@@ -26,6 +26,9 @@ pnpm-debug.log*
 .DS_Store
 *.swp
 
+# Local protocol specification
+/spec.md
+
 # TypeScript
 *.tsbuildinfo
 
