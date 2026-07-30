@@ -2,6 +2,7 @@
   "name": "ens-diamonds",
   "version": "0.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "turbo run build",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test",
@@ -15,10 +16,6 @@
     "test": "turbo run test",
     "typecheck": "turbo run typecheck"
   },
-  "engines": {
-    "node": ">=22.18"
-  },
-  "packageManager": "pnpm@11.18.0",
   "devDependencies": {
     "@commitlint/cli": "catalog:",
     "@commitlint/config-conventional": "catalog:",
@@ -27,5 +24,9 @@
     "oxfmt": "catalog:",
     "oxlint": "catalog:",
     "turbo": "catalog:"
-  }
+  },
+  "engines": {
+    "node": ">=22.18"
+  },
+  "packageManager": "pnpm@11.10.0"
 }
