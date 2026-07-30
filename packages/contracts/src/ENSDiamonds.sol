@@ -16,22 +16,12 @@ import {ReentrancyGuardTransient} from "solady/utils/ReentrancyGuardTransient.so
 import {SafeCastLib} from "solady/utils/SafeCastLib.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
-/// @title ENS Diamonds
-/// @notice Pools ETH from a fixed group to register one .eth name directly to a
-/// deterministic Safe.
-/// @dev This contract is immutable, has no administrator, and targets networks
-/// supporting EIP-1153 transient storage.
 contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     using SafeCastLib for uint256;
-
-    // -------------------------------------------------------------------------
-    // Constants
-    // -------------------------------------------------------------------------
 
     uint256 public constant MIN_MEMBERS = 2;
     uint256 public constant MAX_MEMBERS = 10;
 
-    // 0x4e8c046f5ec8c741774b4e1fb3ee358c216ed0b4d5e29b96b276391ab9304118
     bytes32 public constant TARGET_INTENT_TYPEHASH = keccak256(
         "ENSDiamondsTargetIntentV1(uint256 chainId,address protocol,bytes32 vaultId,address creator,bytes32 labelhash,uint32 registrationDuration,bytes32 targetSalt)"
     );
@@ -39,10 +29,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     bytes32 internal constant VAULT_ID_DOMAIN = keccak256("ENS_DIAMONDS_VAULT_V1");
     bytes32 internal constant SAFE_SALT_DOMAIN = keccak256("ENS_DIAMONDS_SAFE_V1");
     address internal constant SAFE_SENTINEL = address(0x1);
-
-    // -------------------------------------------------------------------------
-    // Immutable dependencies
-    // -------------------------------------------------------------------------
 
     IENSDiamondsRegistrarController public immutable CONTROLLER;
     IENSDiamondsBaseRegistrar public immutable BASE_REGISTRAR;
@@ -55,10 +41,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     uint256 internal immutable MIN_REGISTRATION_DURATION;
     bytes32 public immutable SAFE_PROXY_INIT_CODE_HASH;
 
-    // -------------------------------------------------------------------------
-    // Storage
-    // -------------------------------------------------------------------------
-
     mapping(bytes32 vaultId => Vault vault) public override vaults;
     mapping(bytes32 vaultId => address[] owners) internal ownersOf;
     mapping(bytes32 vaultId => mapping(address member => uint256 balance))
@@ -67,15 +49,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
 
     uint256 public override totalLiabilities;
 
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
-
-    /// @param controller_ Canonical ENS ETH Registrar Controller.
-    /// @param baseRegistrar_ Canonical ENS Base Registrar.
-    /// @param safeSingleton_ Canonical Safe singleton implementation.
-    /// @param safeProxyFactory_ Canonical Safe Proxy Factory.
-    /// @param safeFallbackHandler_ Canonical Safe Compatibility Fallback Handler.
     constructor(
         IENSDiamondsRegistrarController controller_,
         IENSDiamondsBaseRegistrar baseRegistrar_,
@@ -114,11 +87,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         );
     }
 
-    // -------------------------------------------------------------------------
-    // Vault creation and funding
-    // -------------------------------------------------------------------------
-
-    /// @inheritdoc IENSDiamonds
     function createVault(
         bytes32 vaultSalt,
         uint96 maxSpend,
@@ -170,7 +138,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         );
     }
 
-    /// @notice Adds ETH to a funding vault.
     function deposit(bytes32 vaultId) external payable override {
         Vault storage vault = _vault(vaultId);
         _requireState(vault, State.Funding);
@@ -188,7 +155,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         emit Deposited(vaultId, msg.sender, msg.value);
     }
 
-    /// @notice Withdraws part or all of the caller's contribution during funding.
     function withdraw(bytes32 vaultId, uint256 amount, address payable recipient)
         external
         override
@@ -211,8 +177,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         SafeTransferLib.safeTransferETH(recipient, amount);
     }
 
-    /// @notice Cancels a Funding vault.
-    /// @dev Contributions remain available through pull-based claims.
     function cancel(bytes32 vaultId) external override {
         Vault storage vault = _vault(vaultId);
         if (msg.sender != vault.creator) revert Unauthorized();
@@ -222,11 +186,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         emit VaultCancelled(vaultId);
     }
 
-    // -------------------------------------------------------------------------
-    // Acquisition
-    // -------------------------------------------------------------------------
-
-    /// @notice Locks funding and submits or adopts the fixed ENS commitment.
     function beginAcquisition(bytes32 vaultId) external override nonReentrant {
         Vault storage vault = _vault(vaultId);
         if (msg.sender != vault.creator) revert Unauthorized();
@@ -234,8 +193,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
 
         if (vault.escrowed == 0) revert InvalidAmount();
 
-        // Effects before the external call prevent cross-function funding changes.
-        // Any downstream revert rolls this state transition back.
+        // Lock funding before the external controller call.
         vault.state = State.Committed;
 
         bytes32 commitment = vault.ensCommitment;
@@ -247,7 +205,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         } else {
             uint256 expiresAt = timestamp + MAX_COMMITMENT_AGE;
 
-            // ENS commit-reveal validity is explicitly timestamp based.
             // forge-lint: disable-next-line(block-timestamp)
             if (block.timestamp == expiresAt) revert CommitmentAtBoundary();
 
@@ -268,8 +225,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         );
     }
 
-    /// @notice Registers the committed name or recognizes an exact copied registration.
-    /// @dev Permissionless because every supplied field is bound by the stored commitments.
     function purchase(
         bytes32 vaultId,
         string calldata normalizedLabel,
@@ -329,13 +284,11 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         revert CommitmentChanged();
     }
 
-    /// @notice Materializes an expired commitment as Failed.
     function expireAcquisition(bytes32 vaultId) external override nonReentrant {
         Vault storage vault = _vault(vaultId);
         _requireState(vault, State.Committed);
 
         uint256 expiresAt = uint256(vault.committedAt) + MAX_COMMITMENT_AGE;
-        // ENS commit-reveal validity is explicitly timestamp based.
         // forge-lint: disable-next-line(block-timestamp)
         if (block.timestamp < expiresAt) revert CommitmentNotExpired(expiresAt);
 
@@ -343,15 +296,12 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         emit AcquisitionExpired(vaultId);
     }
 
-    /// @notice Claims the caller's full refundable balance to a chosen recipient.
-    /// @dev An expired Committed vault is failed and claimed in the same transaction.
     function claim(bytes32 vaultId, address payable recipient) external override nonReentrant {
         Vault storage vault = _vault(vaultId);
         if (recipient == address(0)) revert InvalidAddress();
 
         if (vault.state == State.Committed) {
             uint256 expiresAt = uint256(vault.committedAt) + MAX_COMMITMENT_AGE;
-            // ENS commit-reveal validity is explicitly timestamp based.
             // forge-lint: disable-next-line(block-timestamp)
             if (block.timestamp < expiresAt) revert InvalidState(State.Committed);
 
@@ -375,11 +325,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         SafeTransferLib.safeTransferETH(recipient, amount);
     }
 
-    // -------------------------------------------------------------------------
-    // Views
-    // -------------------------------------------------------------------------
-
-    /// @inheritdoc IENSDiamonds
     function predictSafe(address creator, bytes32 vaultSalt, address[] calldata owners)
         external
         view
@@ -397,15 +342,10 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         return (vaultId, config.predicted, config.threshold);
     }
 
-    /// @notice Returns the complete fixed Safe owner roster.
     function getOwners(bytes32 vaultId) external view override returns (address[] memory owners) {
         _vault(vaultId);
         return ownersOf[vaultId];
     }
-
-    // -------------------------------------------------------------------------
-    // Internal acquisition logic
-    // -------------------------------------------------------------------------
 
     function _purchaseCommitted(
         bytes32 vaultId,
@@ -418,7 +358,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         uint256 validAt = committedAt + MIN_COMMITMENT_AGE;
         uint256 expiresAt = committedAt + MAX_COMMITMENT_AGE;
 
-        // ENS commit-reveal validity is explicitly timestamp based.
         // forge-lint: disable-next-line(block-timestamp)
         if (block.timestamp < validAt) revert CommitmentTooYoung(validAt);
         // forge-lint: disable-next-line(block-timestamp)
@@ -449,7 +388,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     ) internal {
         uint256 committedAt = vault.committedAt;
         uint256 expiresAt = committedAt + MAX_COMMITMENT_AGE;
-        // ENS commit-reveal validity is explicitly timestamp based.
         // forge-lint: disable-next-line(block-timestamp)
         if (block.timestamp >= expiresAt) revert CommitmentExpired(expiresAt);
 
@@ -461,7 +399,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         uint256 maximumExpiry = committedAt + MAX_COMMITMENT_AGE + vault.registrationDuration;
 
         if (
-            // ENS registration expiry is explicitly timestamp based.
             // forge-lint: disable-next-line(block-timestamp)
             nameExpiry <= block.timestamp || nameExpiry < minimumExpiry
                 || nameExpiry >= maximumExpiry
@@ -509,10 +446,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         vault.state = State.Acquired;
         totalLiabilities -= price;
     }
-
-    // -------------------------------------------------------------------------
-    // Internal Safe helpers
-    // -------------------------------------------------------------------------
 
     function _safeConfig(bytes32 vaultId, address[] memory owners)
         internal
@@ -570,10 +503,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         }
         if (deployed.code.length == 0) revert SafeVerificationFailed();
     }
-
-    // -------------------------------------------------------------------------
-    // Internal validation and utility helpers
-    // -------------------------------------------------------------------------
 
     function _ownerOf(uint256 tokenId) internal view returns (address owner) {
         try BASE_REGISTRAR.ownerOf(tokenId) returns (address currentOwner) {
@@ -662,17 +591,15 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         }
     }
 
-    /// @dev ENS Diamonds targets EIP-1153 chains, including Sepolia.
+    // All supported deployments use EIP-1153.
     function _useTransientReentrancyGuardOnlyOnMainnet() internal pure override returns (bool) {
         return false;
     }
 
-    /// @dev Rejects unaccounted direct ETH transfers.
     receive() external payable {
         revert DirectETHNotAccepted();
     }
 
-    /// @dev Rejects unknown calls and direct ETH transfers.
     fallback() external payable {
         revert DirectETHNotAccepted();
     }
