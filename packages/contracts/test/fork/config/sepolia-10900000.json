@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "sources": {
+    "ens": "https://docs.ens.domains/learn/deployments",
+    "safe": "https://www.npmjs.com/package/@safe-global/safe-deployments"
+  },
+  "chain": {
+    "name": "sepolia",
+    "rpcAlias": "sepolia",
+    "chainId": 11155111,
+    "blockNumber": 10900000,
+    "blockTimestamp": 1779481704
+  },
+  "contracts": {
+    "ensRegistry": "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+    "baseRegistrar": "0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85",
+    "controller": "0xfb3cE5D01e0f33f41DbB39035dB9745962F1f968",
+    "nameWrapper": "0x0635513f179D50A207757E05759CbD106d7dFcE8",
+    "safeSingleton": "0xFf51A5898e281Db6DfC7855790607438dF2ca44b",
+    "safeProxyFactory": "0x14F2982D601c9458F93bd70B218933A6f8165e7b",
+    "safeFallbackHandler": "0x3EfCBb83A4A7AfcB4F68D501E2c2203a38be77f4"
+  },
+  "expectations": {
+    "safeVersion": "1.5.0",
+    "minCommitmentAge": 60,
+    "maxCommitmentAge": 86400,
+    "minRegistrationDuration": 2419200,
+    "safeSingletonCodeHash": "0xdda019cbd7c867a533a2a86e5c53434fdc50b13122b5a5ddb4a8df61b31c20f2",
+    "safeProxyFactoryCodeHash": "0x967dae4cda22b0c9ef7f31b010bdc1ceb0af9904b0c3dc060b5302e4c18a4529",
+    "safeFallbackHandlerCodeHash": "0x3c6a85bcf7b563daa624b884b4e9a1b9fa5371edde7be945d998071a48f28bbc"
+  },
+  "labels": {
+    "neverRegistered": "",
+    "premium": "",
+    "postPremium": "",
+    "gracePeriod": "",
+    "registered": "",
+    "wrapped": ""
+  }
+}

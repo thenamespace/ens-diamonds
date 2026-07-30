@@ -40,20 +40,22 @@ ETHERSCAN_API_KEY=
 
 Run these from the repository root:
 
-| Command                                                  | Purpose                                  |
-| -------------------------------------------------------- | ---------------------------------------- |
-| `pnpm --filter @ens-diamonds/contracts build`            | Compile contracts                        |
-| `pnpm --filter @ens-diamonds/contracts lint`             | Check Forge formatting and lint rules    |
-| `pnpm --filter @ens-diamonds/contracts format`           | Format Solidity                          |
-| `pnpm --filter @ens-diamonds/contracts test`             | Run all local test suites                |
-| `pnpm --filter @ens-diamonds/contracts test:fork`        | Run pinned mainnet fork tests            |
-| `pnpm --filter @ens-diamonds/contracts test:unit`        | Run focused unit tests                   |
-| `pnpm --filter @ens-diamonds/contracts test:integration` | Run local ENS and Safe integration tests |
-| `pnpm --filter @ens-diamonds/contracts test:fuzz`        | Run stateless fuzz tests                 |
-| `pnpm --filter @ens-diamonds/contracts test:invariant`   | Run stateful invariant tests             |
-| `pnpm --filter @ens-diamonds/contracts test:coverage`    | Print protocol coverage                  |
-| `pnpm --filter @ens-diamonds/contracts snapshot`         | Generate a gas snapshot                  |
-| `pnpm --filter @ens-diamonds/contracts clean`            | Remove Foundry build artifacts           |
+| Command                                                   | Purpose                                  |
+| --------------------------------------------------------- | ---------------------------------------- |
+| `pnpm --filter @ens-diamonds/contracts build`             | Compile contracts                        |
+| `pnpm --filter @ens-diamonds/contracts lint`              | Check Forge formatting and lint rules    |
+| `pnpm --filter @ens-diamonds/contracts format`            | Format Solidity                          |
+| `pnpm --filter @ens-diamonds/contracts test`              | Run all local test suites                |
+| `pnpm --filter @ens-diamonds/contracts test:fork`         | Run both pinned fork suites              |
+| `pnpm --filter @ens-diamonds/contracts test:fork:mainnet` | Run the Mainnet fork suite               |
+| `pnpm --filter @ens-diamonds/contracts test:fork:sepolia` | Run the Sepolia fork suite               |
+| `pnpm --filter @ens-diamonds/contracts test:unit`         | Run focused unit tests                   |
+| `pnpm --filter @ens-diamonds/contracts test:integration`  | Run local ENS and Safe integration tests |
+| `pnpm --filter @ens-diamonds/contracts test:fuzz`         | Run stateless fuzz tests                 |
+| `pnpm --filter @ens-diamonds/contracts test:invariant`    | Run stateful invariant tests             |
+| `pnpm --filter @ens-diamonds/contracts test:coverage`     | Print protocol coverage                  |
+| `pnpm --filter @ens-diamonds/contracts snapshot`          | Generate a gas snapshot                  |
+| `pnpm --filter @ens-diamonds/contracts clean`             | Remove Foundry build artifacts           |
 
 Direct Foundry commands can also be run from `packages/contracts`:
 
@@ -77,7 +79,7 @@ test/
 ├── integration/  # Full local ENS registration and Safe execution flows
 ├── fuzz/         # Accounting, timing, and deterministic-address properties
 ├── invariant/    # Stateful handler and protocol-wide invariants
-├── fork/         # Pinned mainnet ENS and Safe integration tests
+├── fork/         # Shared tests for pinned Mainnet and Sepolia snapshots
 └── utils/        # Deployments, vault builders, actions, and state-specific bases
 ```
 
@@ -85,26 +87,50 @@ Tests use locally deployed ENS and Safe contracts rather than protocol mocks for
 flows. Mocks are limited to explicit dependency-failure tests. The default suite does
 not require an RPC.
 
-## Mainnet fork tests
+## Fork tests
 
-Fork tests use block `25,647,730` and require an archive-capable
-`ETHEREUM_MAINNET_RPC_URL`. Set it in `packages/contracts/.env`, then run:
+Fork tests run one shared Solidity suite against immutable JSON snapshots:
+
+```text
+test/fork/
+├── config/
+│   ├── mainnet-25647730.json
+│   └── sepolia-10900000.json
+├── ENSDiamondsFork.t.sol
+├── ForkConfig.sol
+├── ForkConfigLoader.sol
+└── ForkTestBase.sol
+```
+
+The Mainnet snapshot uses block `25,647,730`. The Sepolia snapshot uses block
+`10,900,000`, before the official controller was deauthorized at block `10,927,920`.
+Both RPC endpoints must support historical state at their configured block.
+
+Run both networks or one concrete wrapper:
 
 ```bash
 pnpm --filter @ens-diamonds/contracts test:fork
+pnpm --filter @ens-diamonds/contracts test:fork:mainnet
+pnpm --filter @ens-diamonds/contracts test:fork:sepolia
 ```
 
-The pinned snapshot covers:
+Each manifest contains the chain identity, fork block, official ENS and Safe deployment
+addresses, expected protocol parameters, Safe bytecode hashes, and semantic label
+fixtures. Empty label values are explicit placeholders. Only the corresponding
+fixture-dependent tests are skipped; deployment and snapshot validation always run.
 
-| Label                            | State at block `25,647,730` |
-| -------------------------------- | --------------------------- |
-| `way.eth`                        | Available, premium active   |
-| `ens-diamonds-fork-25647730.eth` | Never registered, available |
-| `vitalik.eth`                    | Registered, unavailable     |
+Populate each label without the `.eth` suffix:
 
-Fork tests use the latest authorized ENS controller at
-`0x59E16fcCd424Cc24e280Be16E11Bcd56fb0CE547` and the deterministic Safe v1.5.0
-deployments.
+- `neverRegistered`
+- `premium`
+- `postPremium`
+- `gracePeriod`
+- `registered`
+- `wrapped`
+
+The concrete `MainnetForkTest` and `SepoliaForkTest` contracts inherit the same tests.
+Adding or changing a network requires a snapshot manifest and a small `configPath`
+override, not a duplicate test suite.
 
 ## Source layout
 
