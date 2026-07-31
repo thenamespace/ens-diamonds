@@ -1,5 +1,6 @@
 import NumberFlow, { type Format } from "@number-flow/react";
-import { Card, ExternalLinkIcon, Link, Skeleton, Typography } from "@thenamespace/uikit";
+import { Card, Link, Skeleton, Typography } from "@thenamespace/uikit";
+import { ArrowUpRight01Icon, HugeiconsIcon } from "@thenamespace/uikit/icons";
 import { formatEther } from "viem";
 
 import type { EnsNameDetails } from "@/hooks";
@@ -55,7 +56,7 @@ const AvailableRegistration = ({
       <Card.Description>Live pricing from the ENS registrar on Ethereum mainnet.</Card.Description>
     </Card.Header>
     <Card.Content>
-      <div className="divide-y divide-default border-y border-default">
+      <div className="space-y-3 rounded-2xl bg-surface p-4">
         <PriceRow ethUsd={details.ethUsd} label="Base price" value={details.basePrice} />
         <PriceRow ethUsd={details.ethUsd} label="Premium" value={details.premium} />
       </div>
@@ -66,16 +67,16 @@ const AvailableRegistration = ({
 
       <div className="mt-6 grid grid-cols-2 gap-3">
         <Link
-          className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-full border border-default px-4 text-center text-sm font-semibold transition-colors hover:bg-surface"
+          className="inline-flex min-h-12 items-center justify-center gap-1.5 rounded-full border border-default px-5 text-center text-sm font-semibold transition-colors hover:bg-surface"
           href={`${ensAppUrl}/register`}
           rel="noreferrer"
           target="_blank"
         >
           Buy solo
-          <ExternalLinkIcon aria-hidden className="size-3.5 opacity-60" />
+          <HugeiconsIcon aria-hidden icon={ArrowUpRight01Icon} strokeWidth={1.5} width={12} />
         </Link>
         <Link
-          className="inline-flex min-h-10 items-center justify-center rounded-full bg-foreground px-4 text-center text-sm font-semibold text-background transition-opacity hover:opacity-85"
+          className="inline-flex min-h-12 items-center justify-center rounded-full bg-foreground px-5 text-center text-sm font-semibold text-background transition-opacity hover:opacity-85"
           href={START_VAULT_URL}
         >
           Start a vault
@@ -107,13 +108,13 @@ const UnavailableRegistration = ({
     </Card.Header>
     <Card.Content>
       <Link
-        className="inline-flex min-h-10 w-full items-center justify-center gap-1.5 rounded-full bg-foreground px-4 text-center text-sm font-semibold text-background transition-opacity hover:opacity-85"
+        className="inline-flex min-h-12 w-full items-center justify-center gap-1.5 rounded-full bg-foreground px-5 text-center text-sm font-semibold text-background transition-opacity hover:opacity-85"
         href={ensAppUrl}
         rel="noreferrer"
         target="_blank"
       >
         View on ENS app
-        <ExternalLinkIcon aria-hidden className="size-3.5 opacity-60" />
+        <HugeiconsIcon aria-hidden icon={ArrowUpRight01Icon} strokeWidth={1.5} width={12} />
       </Link>
     </Card.Content>
   </>
@@ -128,11 +129,11 @@ const RegistrationSummarySkeleton = () => (
       </Card.Description>
     </Card.Header>
     <Card.Content>
-      <div className="space-y-4 border-y border-default py-4">
+      <div className="space-y-4 rounded-2xl bg-surface p-4">
         <Skeleton className="h-8 w-full rounded-lg" />
         <Skeleton className="h-8 w-full rounded-lg" />
       </div>
-      <Skeleton className="mt-6 h-10 w-full rounded-full" />
+      <Skeleton className="mt-6 h-12 w-full rounded-full" />
     </Card.Content>
   </>
 );
@@ -150,7 +151,7 @@ const PriceRow = ({
   const eth = value === undefined ? undefined : Number(formatEther(value));
 
   return (
-    <div className="flex items-center justify-between gap-4 py-4">
+    <div className="flex items-center justify-between gap-4">
       <Typography.Paragraph color="muted" size="sm">
         {label}
       </Typography.Paragraph>
