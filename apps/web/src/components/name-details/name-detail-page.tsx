@@ -18,11 +18,13 @@ export const NameDetailPage = ({ label }: NameDetailPageProps) => {
   const name = `${label}.eth`;
   const statusLabel = details.isPending
     ? "Checking availability"
-    : details.isAvailable === false
-      ? "Unavailable"
-      : details.isInPremium
-        ? "Available in premium"
-        : "Available";
+    : details.isAvailable === undefined
+      ? "Unable to verify"
+      : details.isAvailable === false
+        ? "Unavailable"
+        : details.isInPremium
+          ? "Available in premium"
+          : "Available";
 
   return (
     <main className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
@@ -44,7 +46,11 @@ export const NameDetailPage = ({ label }: NameDetailPageProps) => {
         <Chip
           className="self-end sm:self-center"
           color={
-            details.isPending ? "default" : details.isAvailable === false ? "danger" : "success"
+            details.isPending || details.isAvailable === undefined
+              ? "default"
+              : details.isAvailable === false
+                ? "danger"
+                : "success"
           }
           size="sm"
           variant="soft"
@@ -83,7 +89,7 @@ export const NameDetailPage = ({ label }: NameDetailPageProps) => {
             </Card.Content>
           </Card>
         )}
-        <RegistrationSummary details={details} />
+        <RegistrationSummary details={details} name={name} />
         <NameFacts details={details} label={label} />
       </div>
     </main>
