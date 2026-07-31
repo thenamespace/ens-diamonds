@@ -14,25 +14,6 @@ export const metadata: Metadata = {
 
 const EXTERNAL_LINK = "https://example.com";
 
-const ownershipPath = [
-  {
-    label: "Friends",
-    detail: "Choose 2–10 Safe owners and fund independently.",
-  },
-  {
-    label: "Escrow",
-    detail: "Contributions remain accounted to each member.",
-  },
-  {
-    label: "ENS",
-    detail: "Use one commitment window to acquire one name.",
-  },
-  {
-    label: "Group Safe",
-    detail: "Receive and govern the name together.",
-  },
-] as const;
-
 export default function AboutPage() {
   return (
     <main>
@@ -48,20 +29,20 @@ export default function AboutPage() {
               width={96}
             />
             <Typography.Paragraph
-              className="mt-7 font-mono text-xs font-semibold tracking-[0.18em] uppercase"
+              className="mt-7 text-center font-mono text-xs font-semibold tracking-[0.18em] uppercase"
               color="muted"
             >
               ENS Diamonds
             </Typography.Paragraph>
             <Typography.Heading
-              className="mx-auto mt-5 max-w-4xl text-4xl leading-[1.03] tracking-[-0.045em] sm:text-6xl lg:text-7xl"
+              className="mx-auto mt-5 max-w-4xl text-center text-4xl leading-[1.03] tracking-[-0.045em] sm:text-6xl lg:text-7xl"
               level={1}
             >
               Pool ETH for one name.
               <span className="block text-muted">Own it in a Safe together.</span>
             </Typography.Heading>
             <Typography.Paragraph
-              className="mx-auto mt-7 max-w-2xl text-base leading-7 sm:text-lg sm:leading-8"
+              className="mx-auto mt-7 max-w-2xl text-center text-base leading-7 sm:text-lg sm:leading-8"
               color="muted"
             >
               ENS Diamonds coordinates one shared .eth acquisition without taking custody of the
@@ -84,25 +65,6 @@ export default function AboutPage() {
               </NextLink>
             </div>
           </div>
-
-          <ol className="mt-16 grid overflow-hidden rounded-3xl border border-default bg-surface sm:grid-cols-2 lg:grid-cols-4">
-            {ownershipPath.map((step, index) => (
-              <li
-                className="relative border-b border-default p-6 last:border-b-0 sm:[&:nth-child(n+3)]:border-b-0 sm:[&:nth-child(odd)]:border-r lg:border-r lg:border-b-0 lg:last:border-r-0"
-                key={step.label}
-              >
-                <span className="font-mono text-[11px] font-semibold tracking-[0.14em] text-muted">
-                  0{index + 1}
-                </span>
-                <Typography.Heading className="mt-5 text-xl tracking-tight" level={3}>
-                  {step.label}
-                </Typography.Heading>
-                <Typography.Paragraph className="mt-2 leading-6" color="muted" size="sm">
-                  {step.detail}
-                </Typography.Paragraph>
-              </li>
-            ))}
-          </ol>
         </div>
       </section>
 
