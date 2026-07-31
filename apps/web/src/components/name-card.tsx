@@ -9,6 +9,8 @@ import { Clock01Icon, HugeiconsIcon } from "@thenamespace/uikit/icons";
 
 import type { PremiumName } from "@/lib/ens";
 
+import { NameAvatar } from "./name-avatar";
+
 const DAY_SECONDS = 24 * 60 * 60;
 const HOUR_SECONDS = 60 * 60;
 const PREMIUM_DAYS = 21;
@@ -20,8 +22,7 @@ export const NameCard = (name: PremiumName) => {
         <div className="ticket-top flex flex-1 flex-col p-4">
           <div className="flex items-start justify-between gap-2.5">
             <span className="inline-flex transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105">
-              {/* <Monogram label={n.label} /> */}
-              <div className="size-8 border"></div>
+              <NameAvatar className="size-8 rounded-lg" label={name.label} />
             </span>
           </div>
 
