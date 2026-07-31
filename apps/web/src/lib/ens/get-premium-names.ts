@@ -1,4 +1,7 @@
+import { unstable_cache } from "next/cache";
+
 import type { Hex } from "viem";
+import { normalize } from "viem/ens";
 
 import { SECONDS_PER_DAY } from "@/lib/constants";
 import { getUnixTime } from "@/lib/helpers";
@@ -9,9 +12,12 @@ const AVAILABLE_AT_OFFSET = GRACE_PERIOD_SECONDS + PREMIUM_PERIOD_SECONDS;
 const SNAPSHOT_BLOCK_LAG = 32;
 const MAX_PAGE_SIZE = 100;
 const MAX_OFFSET = 100_000;
+const FULL_SET_PAGE_SIZE = 1_000;
+const FULL_SET_SHARDS = 7;
+const FULL_SET_MAX_PAGES_PER_SHARD = 10;
 
 export type PremiumNameMatch = "contains" | "startsWith" | "exact";
-export type PremiumNameOrder = "asc" | "desc";
+export type PremiumNameSort = "ending" | "newest" | "shortest";
 
 export type PremiumNamesFilters = {
   name?: {
@@ -26,7 +32,7 @@ export type PremiumNamesFilters = {
 
 export type GetPremiumNamesProps = {
   filters?: PremiumNamesFilters;
-  order?: PremiumNameOrder;
+  sort?: PremiumNameSort;
   limit?: number;
   after?: string | null;
 };
@@ -67,12 +73,13 @@ type Snapshot = {
 };
 
 type Cursor = Snapshot & {
-  version: 1;
+  version: 2;
   offset: number;
   filters: string;
 };
 
 type Registration = {
+  id: string;
   labelName: string;
   expiryDate: string;
   domain: {
@@ -83,6 +90,13 @@ type Registration = {
 type GraphResponse<T> = {
   data?: T;
   errors?: Array<{ message: string }>;
+};
+
+type GraphOrder = "asc" | "desc";
+
+type RegistrationSet = {
+  registrations: Registration[];
+  snapshot: Snapshot;
 };
 
 const SNAPSHOT_QUERY = `
@@ -105,24 +119,32 @@ const NAME_FILTER_FIELDS = {
 
 export async function getPremiumNames({
   filters,
-  order = "desc",
+  sort = "ending",
   limit = 24,
   after,
 }: GetPremiumNamesProps = {}): Promise<PremiumNamesPage> {
   const pageSize = validatePageSize(limit);
   const normalizedFilters = normalizeFilters(filters);
-  const normalizedOrder = validateOrder(order);
-  const filterKey = JSON.stringify({ filters: normalizedFilters, order: normalizedOrder });
+  const normalizedSort = validateSort(sort);
+  const filterKey = JSON.stringify({ filters: normalizedFilters, sort: normalizedSort });
   const cursor = after ? decodeCursor(after, filterKey) : null;
-  const snapshot = cursor ?? (await getSnapshot());
+  const fullSet = normalizedSort === "shortest" ? await getShortestSource(cursor) : null;
+  const snapshot = cursor ?? fullSet?.snapshot ?? (await getSnapshot());
   const offset = cursor?.offset ?? 0;
-  const registrations = await queryRegistrations({
-    filters: normalizedFilters,
-    order: normalizedOrder,
-    snapshot,
-    first: pageSize + 1,
-    skip: offset,
-  });
+  const registrations =
+    normalizedSort === "shortest"
+      ? sortByShortest(
+          (fullSet?.registrations ?? []).filter((registration) =>
+            registrationMatchesFilters(registration, normalizedFilters, snapshot),
+          ),
+        ).slice(offset, offset + pageSize + 1)
+      : await queryRegistrations({
+          filters: normalizedFilters,
+          order: normalizedSort === "ending" ? "asc" : "desc",
+          snapshot,
+          first: pageSize + 1,
+          skip: offset,
+        });
   const hasNextPage = registrations.length > pageSize;
   const names = registrations.slice(0, pageSize).map(toPremiumName);
 
@@ -134,7 +156,7 @@ export async function getPremiumNames({
       hasNextPage,
       endCursor: hasNextPage
         ? encodeCursor({
-            version: 1,
+            version: 2,
             offset: offset + names.length,
             filters: filterKey,
             blockNumber: snapshot.blockNumber,
@@ -143,6 +165,106 @@ export async function getPremiumNames({
         : null,
     },
   };
+}
+
+const getCachedPremiumRegistrationSet = unstable_cache(
+  async (): Promise<RegistrationSet> => {
+    const snapshot = await getSnapshot();
+    return {
+      registrations: await queryAllRegistrations(snapshot),
+      snapshot,
+    };
+  },
+  ["premium-names-full-set"],
+  { revalidate: 300 },
+);
+
+async function getShortestSource(cursor: Cursor | null): Promise<RegistrationSet> {
+  const cached = await getCachedPremiumRegistrationSet();
+
+  if (
+    !cursor ||
+    (cursor.blockNumber === cached.snapshot.blockNumber &&
+      cursor.timestamp === cached.snapshot.timestamp)
+  ) {
+    return cached;
+  }
+
+  return {
+    registrations: await queryAllRegistrations(cursor),
+    snapshot: cursor,
+  };
+}
+
+async function queryAllRegistrations(snapshot: Snapshot): Promise<Registration[]> {
+  const { from, to } = getPremiumExpiryBounds(snapshot);
+  const span = to - from + 1;
+  const shards = Array.from({ length: FULL_SET_SHARDS }, (_, index) => ({
+    from: from + Math.floor((span * index) / FULL_SET_SHARDS),
+    to: from + Math.floor((span * (index + 1)) / FULL_SET_SHARDS) - 1,
+  }));
+
+  return (await Promise.all(shards.map((shard) => queryRegistrationShard(snapshot, shard)))).flat();
+}
+
+async function queryRegistrationShard(
+  snapshot: Snapshot,
+  expiry: { from: number; to: number },
+): Promise<Registration[]> {
+  const registrations: Registration[] = [];
+  let cursor = "";
+
+  for (let page = 0; page < FULL_SET_MAX_PAGES_PER_SHARD; page += 1) {
+    const query = `
+      query PremiumNamesFullSet(
+        $first: Int!
+        $cursor: String!
+        $blockNumber: Int!
+        $expiryFrom: BigInt!
+        $expiryTo: BigInt!
+      ) {
+        registrations(
+          first: $first
+          block: { number: $blockNumber }
+          orderBy: id
+          orderDirection: asc
+          where: {
+            id_gt: $cursor
+            expiryDate_gte: $expiryFrom
+            expiryDate_lte: $expiryTo
+            labelName_not: null
+          }
+        ) {
+          id
+          labelName
+          expiryDate
+          domain {
+            labelhash
+          }
+        }
+      }
+    `;
+    // eslint-disable-next-line no-await-in-loop -- each keyset page depends on the previous cursor
+    const data = await requestGraph<{ registrations: Registration[] }>({
+      query,
+      variables: {
+        first: FULL_SET_PAGE_SIZE,
+        cursor,
+        blockNumber: snapshot.blockNumber,
+        expiryFrom: String(expiry.from),
+        expiryTo: String(expiry.to),
+      },
+    });
+
+    registrations.push(...data.registrations);
+    if (data.registrations.length < FULL_SET_PAGE_SIZE) return registrations;
+
+    cursor = data.registrations.at(-1)?.id ?? "";
+  }
+
+  throw new Error(
+    `Premium name shard exceeds the ${FULL_SET_MAX_PAGES_PER_SHARD * FULL_SET_PAGE_SIZE} limit`,
+  );
 }
 
 async function getSnapshot(): Promise<Snapshot> {
@@ -174,7 +296,7 @@ async function queryRegistrations({
   skip,
 }: {
   filters: NormalizedFilters;
-  order: PremiumNameOrder;
+  order: GraphOrder;
   snapshot: Snapshot;
   first: number;
   skip: number;
@@ -216,6 +338,7 @@ async function queryRegistrations({
           ${nameFilter}
         }
       ) {
+        id
         labelName
         expiryDate
         domain {
@@ -238,6 +361,59 @@ async function queryRegistrations({
   });
 
   return data.registrations;
+}
+
+function getPremiumExpiryBounds(snapshot: Snapshot) {
+  return {
+    from: snapshot.timestamp - GRACE_PERIOD_SECONDS - PREMIUM_PERIOD_SECONDS + 1,
+    to: snapshot.timestamp - GRACE_PERIOD_SECONDS,
+  };
+}
+
+function registrationMatchesFilters(
+  registration: Registration,
+  filters: NormalizedFilters,
+  snapshot: Snapshot,
+) {
+  const expiry = Number(registration.expiryDate);
+  const premiumBounds = getPremiumExpiryBounds(snapshot);
+  if (expiry < premiumBounds.from || expiry > premiumBounds.to) return false;
+
+  const availableAt = expiry + AVAILABLE_AT_OFFSET;
+  if (filters.availableAt?.from !== undefined && availableAt < filters.availableAt.from) {
+    return false;
+  }
+  if (filters.availableAt?.to !== undefined && availableAt > filters.availableAt.to) return false;
+  if (!filters.name) return true;
+
+  const label = registration.labelName.toLocaleLowerCase();
+  const value = filters.name.value.toLocaleLowerCase();
+
+  if (filters.name.match === "exact") return label === value;
+  if (filters.name.match === "startsWith") return label.startsWith(value);
+  return label.includes(value);
+}
+
+function sortByShortest(registrations: Registration[]) {
+  return registrations
+    .flatMap((registration) => {
+      try {
+        return [{ registration, length: Array.from(normalize(registration.labelName)).length }];
+      } catch {
+        return [];
+      }
+    })
+    .toSorted(
+      (a, b) =>
+        a.length - b.length ||
+        Number(b.registration.expiryDate) - Number(a.registration.expiryDate) ||
+        compareStrings(a.registration.id, b.registration.id),
+    )
+    .map(({ registration }) => registration);
+}
+
+function compareStrings(a: string, b: string) {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 async function requestGraph<T>({
@@ -331,12 +507,12 @@ function validatePageSize(limit: number): number {
   return limit;
 }
 
-function validateOrder(order: PremiumNameOrder): PremiumNameOrder {
-  if (order !== "asc" && order !== "desc") {
-    throw new TypeError("order must be asc or desc");
+function validateSort(sort: PremiumNameSort): PremiumNameSort {
+  if (sort !== "ending" && sort !== "newest" && sort !== "shortest") {
+    throw new TypeError("sort must be ending, newest, or shortest");
   }
 
-  return order;
+  return sort;
 }
 
 function validateTimestamp(value: number, field: string): void {
@@ -354,7 +530,7 @@ function decodeCursor(value: string, filters: string): Cursor {
     const cursor = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<Cursor>;
 
     if (
-      cursor.version !== 1 ||
+      cursor.version !== 2 ||
       cursor.filters !== filters ||
       !Number.isSafeInteger(cursor.offset) ||
       !Number.isSafeInteger(cursor.blockNumber) ||

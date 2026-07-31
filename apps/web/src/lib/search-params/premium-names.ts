@@ -10,17 +10,16 @@ import { SECONDS_PER_DAY } from "@/lib/constants";
 import type { PremiumNamesFilters } from "@/lib/ens";
 
 export const NAME_MATCH_VALUES = ["contains", "startsWith", "exact"] as const;
-export const ORDER_VALUES = ["desc", "asc"] as const;
+export const SORT_VALUES = ["ending", "newest", "shortest"] as const;
 export const VIEW_VALUES = ["grid", "list"] as const;
 export const PREMIUM_DATE_RANGE_DAYS = 21;
-export const PREMIUM_DEFAULT_DATE_RANGE_DAYS = 7;
 
 export const premiumNameFilterParsers = {
   name: parseAsString.withDefault(""),
   match: parseAsStringLiteral(NAME_MATCH_VALUES).withDefault("contains"),
   availableFrom: parseAsIsoDate,
   availableTo: parseAsIsoDate,
-  order: parseAsStringLiteral(ORDER_VALUES).withDefault("desc"),
+  sort: parseAsStringLiteral(SORT_VALUES).withDefault("ending"),
 };
 
 export const premiumNameViewParser = parseAsStringLiteral(VIEW_VALUES).withDefault("grid");
@@ -33,7 +32,7 @@ export const premiumNameSearchParsers = {
 export const loadPremiumNameSearchParams = createLoader(premiumNameSearchParsers);
 
 export type PremiumNameSearchParams = inferParserType<typeof premiumNameSearchParsers>;
-export type PremiumNameOrder = PremiumNameSearchParams["order"];
+export type PremiumNameSort = PremiumNameSearchParams["sort"];
 export type PremiumNameView = PremiumNameSearchParams["view"];
 export type PremiumNameDateRange = {
   start: Date;
@@ -68,11 +67,8 @@ export const getPremiumNameDateRange = (
   asOf: number,
 ): PremiumNameDateRange => {
   const bounds = getPremiumNameDateBounds(asOf);
-  const defaultEnd = new Date(
-    bounds.start.getTime() + PREMIUM_DEFAULT_DATE_RANGE_DAYS * SECONDS_PER_DAY * 1000,
-  );
   const start = clampDate(search.availableFrom ?? bounds.start, bounds.start, bounds.end);
-  const end = clampDate(search.availableTo ?? defaultEnd, bounds.start, bounds.end);
+  const end = clampDate(search.availableTo ?? bounds.end, bounds.start, bounds.end);
 
   return start <= end ? { start, end } : bounds;
 };

@@ -13,7 +13,7 @@ import {
   premiumNameViewParser,
   toPremiumNamesFilters,
   type PremiumNameDateRange,
-  type PremiumNameOrder,
+  type PremiumNameSort,
   type PremiumNameView,
 } from "@/lib/search-params";
 
@@ -47,18 +47,18 @@ export const PremiumNameBrowser = ({ asOf }: PremiumNameBrowserProps) => {
   const query = usePremiumNames({
     filters,
     enabled: !isNavigating,
-    order: search.order,
+    sort: search.sort,
   });
   const names = useMemo(
     () => query.data?.pages.flatMap((page) => page.names) ?? [],
     [query.data?.pages],
   );
   const hasFilters = Boolean(
-    search.name ||
-    search.availableFrom !== null ||
-    search.availableTo !== null ||
-    search.order !== "desc",
+    search.name || search.availableFrom !== null || search.availableTo !== null,
   );
+  const filterCount =
+    Number(Boolean(search.name && search.match !== "contains")) +
+    Number(search.availableFrom !== null || search.availableTo !== null);
   const { fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = query;
 
   const handleNameChange = useCallback(
@@ -77,8 +77,8 @@ export const PremiumNameBrowser = ({ asOf }: PremiumNameBrowserProps) => {
       void setSearch({ availableFrom: start, availableTo: end }),
     [setSearch],
   );
-  const handleOrderChange = useCallback(
-    (order: PremiumNameOrder) => void setSearch({ order }),
+  const handleSortChange = useCallback(
+    (sort: PremiumNameSort) => void setSearch({ sort }),
     [setSearch],
   );
   const handleViewChange = useCallback(
@@ -93,9 +93,17 @@ export const PremiumNameBrowser = ({ asOf }: PremiumNameBrowserProps) => {
       match: null,
       availableFrom: null,
       availableTo: null,
-      order: null,
     });
   }, [setSearch, updateName]);
+  const clearAdvancedFilters = useCallback(
+    () =>
+      void setSearch({
+        match: null,
+        availableFrom: null,
+        availableTo: null,
+      }),
+    [setSearch],
+  );
   const retry = useCallback(() => void refetch(), [refetch]);
   const loadNextPage = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) void fetchNextPage();
@@ -107,14 +115,16 @@ export const PremiumNameBrowser = ({ asOf }: PremiumNameBrowserProps) => {
       <PremiumNameFilters
         dateBounds={dateBounds}
         dateRange={dateRange}
+        filterCount={filterCount}
         name={nameInput}
         nameMatch={search.match}
-        order={search.order}
+        sort={search.sort}
         view={view}
+        onClearFilters={clearAdvancedFilters}
         onDateRangeChange={handleDateRangeChange}
         onNameChange={handleNameChange}
         onNameMatchChange={handleNameMatchChange}
-        onOrderChange={handleOrderChange}
+        onSortChange={handleSortChange}
         onViewChange={handleViewChange}
       />
       <PremiumNameResults

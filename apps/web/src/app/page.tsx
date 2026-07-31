@@ -23,12 +23,12 @@ export default async function Home({ searchParams }: HomeProps) {
   const queryClient = new QueryClient();
 
   await queryClient.prefetchInfiniteQuery({
-    queryKey: premiumNamesQueryKey(filters, search.order),
+    queryKey: premiumNamesQueryKey(filters, search.sort),
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
       getPremiumNames({
         filters,
-        order: search.order,
+        sort: search.sort,
         limit: PREMIUM_NAMES_PAGE_SIZE,
         after: pageParam,
       }),

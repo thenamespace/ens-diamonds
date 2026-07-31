@@ -7,7 +7,7 @@ import {
   PREMIUM_NAMES_PAGE_SIZE,
   premiumNamesQueryKey,
   type PremiumNameMatch,
-  type PremiumNameOrder,
+  type PremiumNameSort,
   type PremiumNamesFilters,
   type PremiumNamesPage,
 } from "@/lib/ens";
@@ -16,7 +16,7 @@ type UsePremiumNamesOptions = {
   filters?: PremiumNamesFilters;
   limit?: number;
   enabled?: boolean;
-  order?: PremiumNameOrder;
+  sort?: PremiumNameSort;
 };
 
 type ApiError = {
@@ -27,18 +27,18 @@ export const usePremiumNames = ({
   filters,
   limit = PREMIUM_NAMES_PAGE_SIZE,
   enabled = true,
-  order = "desc",
+  sort = "ending",
 }: UsePremiumNamesOptions = {}) => {
   const resolvedFilters = filters ?? {};
 
   return useInfiniteQuery({
-    queryKey: premiumNamesQueryKey(resolvedFilters, order, limit),
+    queryKey: premiumNamesQueryKey(resolvedFilters, sort, limit),
     initialPageParam: null as string | null,
     queryFn: ({ pageParam, signal }) =>
       fetchPremiumNames({
         limit,
         cursor: pageParam,
-        order,
+        sort,
         signal,
         filters: resolvedFilters,
       }),
@@ -54,17 +54,17 @@ async function fetchPremiumNames({
   filters,
   limit,
   cursor,
-  order,
+  sort,
   signal,
 }: {
   filters?: PremiumNamesFilters;
   limit: number;
   cursor: string | null;
-  order: PremiumNameOrder;
+  sort: PremiumNameSort;
   signal: AbortSignal;
 }): Promise<PremiumNamesPage> {
   const parameters = new URLSearchParams({ limit: String(limit) });
-  parameters.set("order", order);
+  parameters.set("sort", sort);
 
   if (cursor) parameters.set("cursor", cursor);
   appendNameFilter(parameters, filters?.name);

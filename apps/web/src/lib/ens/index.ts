@@ -3,7 +3,7 @@ export type {
   GetPremiumNamesProps,
   PremiumName,
   PremiumNameMatch,
-  PremiumNameOrder,
+  PremiumNameSort,
   PremiumNamesFilters,
   PremiumNamesPage,
 } from "./get-premium-names";

@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import {
   getPremiumNames,
   type PremiumNameMatch,
-  type PremiumNameOrder,
+  type PremiumNameSort,
   type PremiumNamesFilters,
 } from "@/lib/ens";
 
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
     const page = await getPremiumNames({
       filters,
-      order: parseOrder(parameters.get("order")),
+      sort: parseSort(parameters.get("sort")),
       limit: parsePositiveInteger(parameters.get("limit"), "limit") ?? DEFAULT_LIMIT,
       after: parameters.get("cursor"),
     });
@@ -56,11 +56,11 @@ export async function GET(request: Request) {
   }
 }
 
-function parseOrder(value: string | null): PremiumNameOrder {
-  if (value === null || value === "desc") return "desc";
-  if (value === "asc") return "asc";
+function parseSort(value: string | null): PremiumNameSort {
+  if (value === null || value === "ending") return "ending";
+  if (value === "newest" || value === "shortest") return value;
 
-  throw new TypeError("order must be asc or desc");
+  throw new TypeError("sort must be ending, newest, or shortest");
 }
 
 function parseNameMatch(value: string | null): PremiumNameMatch {

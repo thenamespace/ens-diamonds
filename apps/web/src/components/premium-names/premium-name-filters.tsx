@@ -9,30 +9,26 @@ import {
   DateField,
   DateRangePicker,
   Label,
-  ListBox,
   Popover,
   RangeCalendar,
   SearchField,
   Segment,
-  Select,
-  Tooltip,
 } from "@thenamespace/uikit";
-import {
-  FilterIcon,
-  GridViewIcon,
-  HugeiconsIcon,
-  ListViewIcon,
-  SortByDown01Icon,
-  SortByUp01Icon,
-} from "@thenamespace/uikit/icons";
+import { FilterIcon, GridViewIcon, HugeiconsIcon, ListViewIcon } from "@thenamespace/uikit/icons";
 
 import type { PremiumNameMatch } from "@/lib/ens";
-import type { PremiumNameDateRange, PremiumNameOrder, PremiumNameView } from "@/lib/search-params";
+import type { PremiumNameDateRange, PremiumNameSort, PremiumNameView } from "@/lib/search-params";
+
+const SORT_OPTIONS: Array<{ id: PremiumNameSort; label: string }> = [
+  { id: "ending", label: "Ending soon" },
+  { id: "newest", label: "Newest" },
+  { id: "shortest", label: "Shortest" },
+];
 
 const NAME_MATCH_OPTIONS: Array<{ id: PremiumNameMatch; label: string }> = [
   { id: "contains", label: "Contains" },
   { id: "startsWith", label: "Starts with" },
-  { id: "exact", label: "Is exactly" },
+  { id: "exact", label: "Exact" },
 ];
 
 type PremiumNameFiltersProps = {
@@ -40,12 +36,14 @@ type PremiumNameFiltersProps = {
   nameMatch: PremiumNameMatch;
   dateRange: PremiumNameDateRange;
   dateBounds: PremiumNameDateRange;
-  order: PremiumNameOrder;
+  filterCount: number;
+  sort: PremiumNameSort;
   view: PremiumNameView;
+  onClearFilters: () => void;
   onNameChange: (value: string) => void;
   onNameMatchChange: (value: PremiumNameMatch) => void;
   onDateRangeChange: (value: PremiumNameDateRange) => void;
-  onOrderChange: (value: PremiumNameOrder) => void;
+  onSortChange: (value: PremiumNameSort) => void;
   onViewChange: (value: PremiumNameView) => void;
 };
 
@@ -54,12 +52,14 @@ export const PremiumNameFilters = ({
   nameMatch,
   dateRange,
   dateBounds,
-  order,
+  filterCount,
+  sort,
   view,
+  onClearFilters,
   onNameChange,
   onNameMatchChange,
   onDateRangeChange,
-  onOrderChange,
+  onSortChange,
   onViewChange,
 }: PremiumNameFiltersProps) => {
   const calendarRange = useMemo(
@@ -71,13 +71,12 @@ export const PremiumNameFilters = ({
   );
   const minimumDate = useMemo(() => toCalendarDate(dateBounds.start), [dateBounds.start]);
   const maximumDate = useMemo(() => toCalendarDate(dateBounds.end), [dateBounds.end]);
-  const reverseOrder = order === "asc" ? "desc" : "asc";
-  const reverseOrderLabel =
-    reverseOrder === "asc" ? "Show available sooner first" : "Show available later first";
 
   const handleNameMatch = useCallback(
-    (key: React.Key | null) => {
-      if (key) onNameMatchChange(key as PremiumNameMatch);
+    (key: React.Key) => {
+      if (key === "contains" || key === "startsWith" || key === "exact") {
+        onNameMatchChange(key);
+      }
     },
     [onNameMatchChange],
   );
@@ -92,80 +91,100 @@ export const PremiumNameFilters = ({
     },
     [onDateRangeChange],
   );
+  const handleSort = useCallback(
+    (key: React.Key) => {
+      if (key === "ending" || key === "newest" || key === "shortest") onSortChange(key);
+    },
+    [onSortChange],
+  );
   const handleView = useCallback(
     (key: React.Key) => {
       if (key === "grid" || key === "list") onViewChange(key);
     },
     [onViewChange],
   );
-  const handleReverseOrder = useCallback(
-    () => onOrderChange(reverseOrder),
-    [onOrderChange, reverseOrder],
-  );
 
   return (
-    <div className="my-6 flex items-end justify-between gap-3">
-      <SearchField className="min-w-0 flex-1 sm:max-w-sm" value={name} onChange={onNameChange}>
-        <Label className="sr-only">Name</Label>
+    <div className="my-6 flex flex-wrap items-center gap-2">
+      <Segment
+        aria-label="Sort premium names"
+        className="w-full shrink-0 sm:w-[19rem]"
+        selectedKey={sort}
+        size="sm"
+        onSelectionChange={handleSort}
+      >
+        {SORT_OPTIONS.map((option) => (
+          <Segment.Item id={option.id} key={option.id}>
+            {option.label}
+          </Segment.Item>
+        ))}
+      </Segment>
+
+      <SearchField
+        className="min-w-48 flex-1 sm:ml-auto sm:max-w-xs"
+        value={name}
+        onChange={onNameChange}
+      >
+        <Label className="sr-only">Search names</Label>
         <SearchField.Group>
           <SearchField.SearchIcon />
-          <SearchField.Input placeholder="Filter by name…" />
+          <SearchField.Input placeholder="Search names…" />
           <SearchField.ClearButton />
         </SearchField.Group>
       </SearchField>
 
+      <Segment
+        aria-label="Display premium names"
+        selectedKey={view}
+        size="sm"
+        onSelectionChange={handleView}
+      >
+        <Segment.Item aria-label="Grid view" id="grid">
+          <HugeiconsIcon aria-hidden icon={GridViewIcon} width={17} />
+        </Segment.Item>
+        <Segment.Item aria-label="List view" id="list">
+          <HugeiconsIcon aria-hidden icon={ListViewIcon} width={17} />
+        </Segment.Item>
+      </Segment>
+
       <Popover>
-        <Button variant="secondary">
-          <HugeiconsIcon icon={FilterIcon} width={18} />
-          Filters
+        <Button
+          aria-label={filterCount > 0 ? `Filters, ${filterCount} active` : "Filters"}
+          className="relative"
+          isIconOnly
+          variant="secondary"
+        >
+          <HugeiconsIcon aria-hidden icon={FilterIcon} width={18} />
+          {filterCount > 0 ? (
+            <span className="absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full bg-foreground font-mono text-[9px] font-semibold text-background">
+              {filterCount}
+            </span>
+          ) : null}
         </Button>
         <Popover.Content
           className="w-[calc(100vw-2rem)] max-w-96"
           offset={8}
           placement="bottom end"
         >
-          <Popover.Dialog className="space-y-4">
+          <Popover.Dialog className="space-y-5">
             <Popover.Heading>Filters</Popover.Heading>
 
-            <Segment
-              aria-label="View"
-              className="w-full"
-              selectedKey={view}
-              onSelectionChange={handleView}
-            >
-              <Segment.Item className="flex-1" id="grid">
-                <HugeiconsIcon icon={GridViewIcon} width={18} />
-                Grid view
-              </Segment.Item>
-              <Segment.Item className="flex-1" id="list">
-                <HugeiconsIcon icon={ListViewIcon} width={18} />
-                List view
-              </Segment.Item>
-            </Segment>
-
-            <Select
-              aria-label="Name match"
-              className="w-full"
-              value={nameMatch}
-              variant="secondary"
-              onChange={handleNameMatch}
-            >
-              <Label>Name match</Label>
-              <Select.Trigger>
-                <Select.Value />
-                <Select.Indicator />
-              </Select.Trigger>
-              <Select.Popover>
-                <ListBox items={NAME_MATCH_OPTIONS}>
-                  {(item) => (
-                    <ListBox.Item id={item.id} textValue={item.label}>
-                      {item.label}
-                      <ListBox.ItemIndicator />
-                    </ListBox.Item>
-                  )}
-                </ListBox>
-              </Select.Popover>
-            </Select>
+            <div className="space-y-2">
+              <Label>Name matching</Label>
+              <Segment
+                aria-label="Name matching"
+                className="w-full"
+                selectedKey={nameMatch}
+                size="sm"
+                onSelectionChange={handleNameMatch}
+              >
+                {NAME_MATCH_OPTIONS.map((option) => (
+                  <Segment.Item className="flex-1" id={option.id} key={option.id}>
+                    {option.label}
+                  </Segment.Item>
+                ))}
+              </Segment>
+            </div>
 
             <DateRangePicker
               aria-label="Available between"
@@ -223,21 +242,10 @@ export const PremiumNameFilters = ({
               </DateRangePicker.Popover>
             </DateRangePicker>
 
-            <div className="flex justify-end">
-              <Tooltip delay={0}>
-                <Button
-                  aria-label={reverseOrderLabel}
-                  isIconOnly
-                  variant="secondary"
-                  onPress={handleReverseOrder}
-                >
-                  <HugeiconsIcon
-                    icon={order === "asc" ? SortByUp01Icon : SortByDown01Icon}
-                    width={18}
-                  />
-                </Button>
-                <Tooltip.Content>{reverseOrderLabel}</Tooltip.Content>
-              </Tooltip>
+            <div className="flex justify-end border-t border-default pt-4">
+              <Button isDisabled={filterCount === 0} variant="secondary" onPress={onClearFilters}>
+                Clear filters
+              </Button>
             </div>
           </Popover.Dialog>
         </Popover.Content>
