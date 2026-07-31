@@ -3,6 +3,9 @@ export type {
   GetPremiumNamesProps,
   PremiumName,
   PremiumNameMatch,
+  PremiumNameOrder,
   PremiumNamesFilters,
   PremiumNamesPage,
 } from "./get-premium-names";
+export * from "./premium-decay";
+export * from "./premium-name-query";

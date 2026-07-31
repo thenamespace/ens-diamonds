@@ -1,13 +1,17 @@
 import type { Hex } from "viem";
 
-const GRACE_PERIOD_SECONDS = 90 * 24 * 60 * 60;
-const PREMIUM_PERIOD_SECONDS = 21 * 24 * 60 * 60;
+import { SECONDS_PER_DAY } from "@/lib/constants";
+import { getUnixTime } from "@/lib/helpers";
+
+const GRACE_PERIOD_SECONDS = 90 * SECONDS_PER_DAY;
+const PREMIUM_PERIOD_SECONDS = 21 * SECONDS_PER_DAY;
 const AVAILABLE_AT_OFFSET = GRACE_PERIOD_SECONDS + PREMIUM_PERIOD_SECONDS;
 const SNAPSHOT_BLOCK_LAG = 32;
 const MAX_PAGE_SIZE = 100;
 const MAX_OFFSET = 100_000;
 
 export type PremiumNameMatch = "contains" | "startsWith" | "exact";
+export type PremiumNameOrder = "asc" | "desc";
 
 export type PremiumNamesFilters = {
   name?: {
@@ -22,6 +26,7 @@ export type PremiumNamesFilters = {
 
 export type GetPremiumNamesProps = {
   filters?: PremiumNamesFilters;
+  order?: PremiumNameOrder;
   limit?: number;
   after?: string | null;
 };
@@ -100,17 +105,20 @@ const NAME_FILTER_FIELDS = {
 
 export async function getPremiumNames({
   filters,
+  order = "desc",
   limit = 24,
   after,
 }: GetPremiumNamesProps = {}): Promise<PremiumNamesPage> {
   const pageSize = validatePageSize(limit);
   const normalizedFilters = normalizeFilters(filters);
-  const filterKey = JSON.stringify(normalizedFilters);
+  const normalizedOrder = validateOrder(order);
+  const filterKey = JSON.stringify({ filters: normalizedFilters, order: normalizedOrder });
   const cursor = after ? decodeCursor(after, filterKey) : null;
   const snapshot = cursor ?? (await getSnapshot());
   const offset = cursor?.offset ?? 0;
   const registrations = await queryRegistrations({
     filters: normalizedFilters,
+    order: normalizedOrder,
     snapshot,
     first: pageSize + 1,
     skip: offset,
@@ -154,17 +162,19 @@ async function getSnapshot(): Promise<Snapshot> {
 
   return {
     blockNumber: data.meta.block.number - SNAPSHOT_BLOCK_LAG,
-    timestamp: Math.floor(Date.now() / 1000),
+    timestamp: getUnixTime(),
   };
 }
 
 async function queryRegistrations({
   filters,
+  order,
   snapshot,
   first,
   skip,
 }: {
   filters: NormalizedFilters;
+  order: PremiumNameOrder;
   snapshot: Snapshot;
   first: number;
   skip: number;
@@ -198,7 +208,7 @@ async function queryRegistrations({
         skip: $skip
         block: { number: $blockNumber }
         orderBy: expiryDate
-        orderDirection: desc
+        orderDirection: ${order}
         where: {
           expiryDate_gte: $expiryFrom
           expiryDate_lte: $expiryTo
@@ -319,6 +329,14 @@ function validatePageSize(limit: number): number {
   }
 
   return limit;
+}
+
+function validateOrder(order: PremiumNameOrder): PremiumNameOrder {
+  if (order !== "asc" && order !== "desc") {
+    throw new TypeError("order must be asc or desc");
+  }
+
+  return order;
 }
 
 function validateTimestamp(value: number, field: string): void {

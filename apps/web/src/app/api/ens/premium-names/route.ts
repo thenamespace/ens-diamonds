@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { getPremiumNames, type PremiumNameMatch, type PremiumNamesFilters } from "@/lib/ens";
+import {
+  getPremiumNames,
+  type PremiumNameMatch,
+  type PremiumNameOrder,
+  type PremiumNamesFilters,
+} from "@/lib/ens";
 
 const NAME_MATCHES = new Set<PremiumNameMatch>(["contains", "startsWith", "exact"]);
 const DEFAULT_LIMIT = 24;
@@ -29,6 +34,7 @@ export async function GET(request: Request) {
 
     const page = await getPremiumNames({
       filters,
+      order: parseOrder(parameters.get("order")),
       limit: parsePositiveInteger(parameters.get("limit"), "limit") ?? DEFAULT_LIMIT,
       after: parameters.get("cursor"),
     });
@@ -48,6 +54,13 @@ export async function GET(request: Request) {
       { status: 502 },
     );
   }
+}
+
+function parseOrder(value: string | null): PremiumNameOrder {
+  if (value === null || value === "desc") return "desc";
+  if (value === "asc") return "asc";
+
+  throw new TypeError("order must be asc or desc");
 }
 
 function parseNameMatch(value: string | null): PremiumNameMatch {

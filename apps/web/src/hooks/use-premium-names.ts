@@ -2,13 +2,21 @@
 
 import { useInfiniteQuery } from "@tanstack/react-query";
 
-import type { PremiumNameMatch, PremiumNamesFilters, PremiumNamesPage } from "@/lib/ens";
-
-const DEFAULT_PAGE_SIZE = 24;
+import {
+  getNextPremiumNamesPage,
+  PREMIUM_NAMES_PAGE_SIZE,
+  premiumNamesQueryKey,
+  type PremiumNameMatch,
+  type PremiumNameOrder,
+  type PremiumNamesFilters,
+  type PremiumNamesPage,
+} from "@/lib/ens";
 
 type UsePremiumNamesOptions = {
   filters?: PremiumNamesFilters;
   limit?: number;
+  enabled?: boolean;
+  order?: PremiumNameOrder;
 };
 
 type ApiError = {
@@ -17,20 +25,25 @@ type ApiError = {
 
 export const usePremiumNames = ({
   filters,
-  limit = DEFAULT_PAGE_SIZE,
+  limit = PREMIUM_NAMES_PAGE_SIZE,
+  enabled = true,
+  order = "desc",
 }: UsePremiumNamesOptions = {}) => {
+  const resolvedFilters = filters ?? {};
+
   return useInfiniteQuery({
-    queryKey: ["premium-names", filters, limit],
+    queryKey: premiumNamesQueryKey(resolvedFilters, order, limit),
     initialPageParam: null as string | null,
     queryFn: ({ pageParam, signal }) =>
       fetchPremiumNames({
         limit,
         cursor: pageParam,
+        order,
         signal,
-        ...(filters === undefined ? {} : { filters }),
+        filters: resolvedFilters,
       }),
-    getNextPageParam: (page) =>
-      page.pageInfo.hasNextPage ? (page.pageInfo.endCursor ?? undefined) : undefined,
+    getNextPageParam: getNextPremiumNamesPage,
+    enabled,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
     retry: 2,
@@ -41,14 +54,17 @@ async function fetchPremiumNames({
   filters,
   limit,
   cursor,
+  order,
   signal,
 }: {
   filters?: PremiumNamesFilters;
   limit: number;
   cursor: string | null;
+  order: PremiumNameOrder;
   signal: AbortSignal;
 }): Promise<PremiumNamesPage> {
   const parameters = new URLSearchParams({ limit: String(limit) });
+  parameters.set("order", order);
 
   if (cursor) parameters.set("cursor", cursor);
   appendNameFilter(parameters, filters?.name);

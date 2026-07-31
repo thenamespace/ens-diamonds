@@ -1,13 +1,13 @@
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import type { Address } from "viem";
-import { sepolia } from "wagmi/chains";
+import { mainnet, sepolia } from "wagmi/chains";
 
 import { ensDiamondsAbi, ethPriceFeedAbi } from "./abi";
 
 export const wagmiConfig = getDefaultConfig({
   appName: "ENS Diamonds",
   projectId: process.env.NEXT_PUBLIC_REOWN_PROJECT_ID ?? "",
-  chains: [sepolia],
+  chains: [mainnet, sepolia],
   ssr: true,
 });
 
