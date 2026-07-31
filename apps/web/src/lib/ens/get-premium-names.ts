@@ -4,7 +4,6 @@ const GRACE_PERIOD_SECONDS = 90 * 24 * 60 * 60;
 const PREMIUM_PERIOD_SECONDS = 21 * 24 * 60 * 60;
 const AVAILABLE_AT_OFFSET = GRACE_PERIOD_SECONDS + PREMIUM_PERIOD_SECONDS;
 const SNAPSHOT_BLOCK_LAG = 32;
-const ETHEREUM_SLOT_SECONDS = 12;
 const MAX_PAGE_SIZE = 100;
 const MAX_OFFSET = 100_000;
 
@@ -155,7 +154,7 @@ async function getSnapshot(): Promise<Snapshot> {
 
   return {
     blockNumber: data.meta.block.number - SNAPSHOT_BLOCK_LAG,
-    timestamp: data.meta.block.timestamp - SNAPSHOT_BLOCK_LAG * ETHEREUM_SLOT_SECONDS,
+    timestamp: Math.floor(Date.now() / 1000),
   };
 }
 
@@ -199,7 +198,7 @@ async function queryRegistrations({
         skip: $skip
         block: { number: $blockNumber }
         orderBy: expiryDate
-        orderDirection: asc
+        orderDirection: desc
         where: {
           expiryDate_gte: $expiryFrom
           expiryDate_lte: $expiryTo
