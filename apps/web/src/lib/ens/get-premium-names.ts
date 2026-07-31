@@ -1,8 +1,4 @@
-import "server-only";
 import type { Hex } from "viem";
-
-const DEFAULT_ENS_SUBGRAPH_URL =
-  "https://gateway.thegraph.com/api/subgraphs/id/5XqPmWe6gjyrJtFn9cLy237i4cWw2j9HcUJEXsP5qGtH";
 
 const GRACE_PERIOD_SECONDS = 90 * 24 * 60 * 60;
 const PREMIUM_PERIOD_SECONDS = 21 * 24 * 60 * 60;
@@ -337,13 +333,12 @@ async function requestGraph<T>({
   variables: Record<string, boolean | number | string>;
   revalidate: number;
 }): Promise<T> {
-  const token = process.env.THE_GRAPH_TOKEN;
-  if (!token) throw new Error("THE_GRAPH_TOKEN is not configured");
+  const url = process.env.SUBGRAPH_URL;
+  if (!url) throw new Error("SUBGRAPH_URL is not configured");
 
-  const response = await fetch(process.env.ENS_SUBGRAPH_URL ?? DEFAULT_ENS_SUBGRAPH_URL, {
+  const response = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ query, variables }),
