@@ -2,6 +2,7 @@ export { getPremiumNames } from "./get-premium-names";
 export type {
   GetPremiumNamesProps,
   PremiumName,
+  PremiumNameMatch,
+  PremiumNamesFilters,
   PremiumNamesPage,
-  PremiumNamesSort,
 } from "./get-premium-names";

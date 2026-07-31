@@ -2,17 +2,27 @@ import type { Hex } from "viem";
 
 const GRACE_PERIOD_SECONDS = 90 * 24 * 60 * 60;
 const PREMIUM_PERIOD_SECONDS = 21 * 24 * 60 * 60;
+const AVAILABLE_AT_OFFSET = GRACE_PERIOD_SECONDS + PREMIUM_PERIOD_SECONDS;
 const SNAPSHOT_BLOCK_LAG = 32;
 const ETHEREUM_SLOT_SECONDS = 12;
 const MAX_PAGE_SIZE = 100;
 const MAX_OFFSET = 100_000;
-const SHORTEST_QUERY_PAGE_SIZE = 1_000;
-const SHORTEST_QUERY_CONCURRENCY = 5;
 
-export type PremiumNamesSort = "newest" | "trending" | "ending-soon" | "shortest";
+export type PremiumNameMatch = "contains" | "startsWith" | "exact";
+
+export type PremiumNamesFilters = {
+  name?: {
+    match: PremiumNameMatch;
+    value: string;
+  };
+  availableAt?: {
+    from?: number;
+    to?: number;
+  };
+};
 
 export type GetPremiumNamesProps = {
-  sort: PremiumNamesSort;
+  filters?: PremiumNamesFilters;
   limit?: number;
   after?: string | null;
 };
@@ -21,11 +31,9 @@ export type PremiumName = {
   label: string;
   name: `${string}.eth`;
   labelhash: Hex;
-  labelLength: number;
   registrationExpiresAt: number;
   premiumStartsAt: number;
-  premiumExpiresAt: number;
-  subdomainCount: number;
+  availableAt: number;
 };
 
 export type PremiumNamesPage = {
@@ -38,6 +46,17 @@ export type PremiumNamesPage = {
   };
 };
 
+type NormalizedFilters = {
+  name?: {
+    match: PremiumNameMatch;
+    value: string;
+  };
+  availableAt?: {
+    from?: number;
+    to?: number;
+  };
+};
+
 type Snapshot = {
   blockNumber: number;
   timestamp: number;
@@ -45,8 +64,8 @@ type Snapshot = {
 
 type Cursor = Snapshot & {
   version: 1;
-  sort: PremiumNamesSort;
   offset: number;
+  filters: string;
 };
 
 type Registration = {
@@ -54,7 +73,6 @@ type Registration = {
   expiryDate: string;
   domain: {
     labelhash: Hex;
-    subdomainCount: number;
   };
 };
 
@@ -62,13 +80,6 @@ type GraphResponse<T> = {
   data?: T;
   errors?: Array<{ message: string }>;
 };
-
-let shortestSnapshotCache:
-  | {
-      blockNumber: number;
-      registrations: Promise<Registration[]>;
-    }
-  | undefined;
 
 const SNAPSHOT_QUERY = `
   query PremiumNamesSnapshot {
@@ -82,82 +93,31 @@ const SNAPSHOT_QUERY = `
   }
 `;
 
-const SHORTEST_SNAPSHOT_QUERY = `
-  query ShortestPremiumNamesSnapshot {
-    meta: _meta {
-      block {
-        number
-        timestamp
-      }
-      hasIndexingErrors
-    }
-  }
-`;
-
-const PREMIUM_NAMES_QUERY = `
-  query PremiumNames(
-    $first: Int!
-    $skip: Int!
-    $blockNumber: Int!
-    $premiumStart: BigInt!
-    $premiumEnd: BigInt!
-    $orderBy: Registration_orderBy!
-    $orderDirection: OrderDirection!
-  ) {
-    registrations(
-      first: $first
-      skip: $skip
-      block: { number: $blockNumber }
-      orderBy: $orderBy
-      orderDirection: $orderDirection
-      where: {
-        expiryDate_lte: $premiumStart
-        expiryDate_gt: $premiumEnd
-        labelName_not: null
-      }
-    ) {
-      labelName
-      expiryDate
-      domain {
-        labelhash
-        subdomainCount
-      }
-    }
-  }
-`;
+const NAME_FILTER_FIELDS = {
+  contains: "labelName_contains_nocase",
+  startsWith: "labelName_starts_with_nocase",
+  exact: "labelName",
+} as const;
 
 export async function getPremiumNames({
-  sort,
+  filters,
   limit = 24,
   after,
-}: GetPremiumNamesProps): Promise<PremiumNamesPage> {
+}: GetPremiumNamesProps = {}): Promise<PremiumNamesPage> {
   const pageSize = validatePageSize(limit);
-  const cursor = after ? decodeCursor(after, sort) : null;
-  const snapshot =
-    cursor ??
-    (await getSnapshot({
-      query: sort === "shortest" ? SHORTEST_SNAPSHOT_QUERY : SNAPSHOT_QUERY,
-      revalidate: sort === "shortest" ? 3_600 : 60,
-    }));
+  const normalizedFilters = normalizeFilters(filters);
+  const filterKey = JSON.stringify(normalizedFilters);
+  const cursor = after ? decodeCursor(after, filterKey) : null;
+  const snapshot = cursor ?? (await getSnapshot());
   const offset = cursor?.offset ?? 0;
-
-  const registrations =
-    sort === "shortest"
-      ? await getShortestRegistrations(snapshot)
-      : await getOrderedRegistrations({
-          sort,
-          snapshot,
-          first: pageSize + 1,
-          skip: offset,
-        });
-
-  const pageRegistrations =
-    sort === "shortest" ? registrations.slice(offset, offset + pageSize + 1) : registrations;
-  const hasNextPage = pageRegistrations.length > pageSize;
-  const names = pageRegistrations
-    .slice(0, pageSize)
-    .map((registration) => toPremiumName(registration));
-  const nextOffset = offset + names.length;
+  const registrations = await queryRegistrations({
+    filters: normalizedFilters,
+    snapshot,
+    first: pageSize + 1,
+    skip: offset,
+  });
+  const hasNextPage = registrations.length > pageSize;
+  const names = registrations.slice(0, pageSize).map(toPremiumName);
 
   return {
     names,
@@ -168,8 +128,8 @@ export async function getPremiumNames({
       endCursor: hasNextPage
         ? encodeCursor({
             version: 1,
-            sort,
-            offset: nextOffset,
+            offset: offset + names.length,
+            filters: filterKey,
             blockNumber: snapshot.blockNumber,
             timestamp: snapshot.timestamp,
           })
@@ -178,19 +138,16 @@ export async function getPremiumNames({
   };
 }
 
-async function getSnapshot({
-  query,
-  revalidate,
-}: {
-  query: string;
-  revalidate: number;
-}): Promise<Snapshot> {
+async function getSnapshot(): Promise<Snapshot> {
   const data = await requestGraph<{
     meta: {
       block: { number: number; timestamp: number };
       hasIndexingErrors: boolean;
     };
-  }>({ query, variables: {}, revalidate });
+  }>({
+    query: SNAPSHOT_QUERY,
+    variables: {},
+  });
 
   if (data.meta.hasIndexingErrors) {
     throw new Error("ENS subgraph has indexing errors");
@@ -202,123 +159,73 @@ async function getSnapshot({
   };
 }
 
-async function getOrderedRegistrations({
-  sort,
-  snapshot,
-  first,
-  skip,
-}: {
-  sort: Exclude<PremiumNamesSort, "shortest">;
-  snapshot: Snapshot;
-  first: number;
-  skip: number;
-}): Promise<Registration[]> {
-  const ordering = {
-    newest: {
-      orderBy: "expiryDate",
-      orderDirection: "desc",
-    },
-    trending: {
-      orderBy: "domain__subdomainCount",
-      orderDirection: "desc",
-    },
-    "ending-soon": {
-      orderBy: "expiryDate",
-      orderDirection: "asc",
-    },
-  } as const;
-
-  return queryRegistrations({
-    snapshot,
-    first,
-    skip,
-    revalidate: 60,
-    ...ordering[sort],
-  });
-}
-
-async function getShortestRegistrations(snapshot: Snapshot): Promise<Registration[]> {
-  if (shortestSnapshotCache?.blockNumber === snapshot.blockNumber) {
-    return shortestSnapshotCache.registrations;
-  }
-
-  const registrations = getShortestRegistrationBatch(snapshot, 0, []);
-  shortestSnapshotCache = {
-    blockNumber: snapshot.blockNumber,
-    registrations,
-  };
-
-  try {
-    return await registrations;
-  } catch (error) {
-    if (shortestSnapshotCache?.registrations === registrations) {
-      shortestSnapshotCache = undefined;
-    }
-    throw error;
-  }
-}
-
-async function getShortestRegistrationBatch(
-  snapshot: Snapshot,
-  offset: number,
-  registrations: Registration[],
-): Promise<Registration[]> {
-  if (offset > MAX_OFFSET) {
-    throw new Error("Premium name result exceeds the supported shortest-name scan");
-  }
-
-  const pages = await Promise.all(
-    Array.from({ length: SHORTEST_QUERY_CONCURRENCY }, (_, index) =>
-      queryRegistrations({
-        snapshot,
-        first: SHORTEST_QUERY_PAGE_SIZE,
-        skip: offset + index * SHORTEST_QUERY_PAGE_SIZE,
-        orderBy: "id",
-        orderDirection: "asc",
-        revalidate: 3_600,
-      }),
-    ),
-  );
-
-  const nextRegistrations = registrations.concat(...pages);
-  if (pages.some((page) => page.length < SHORTEST_QUERY_PAGE_SIZE)) {
-    return nextRegistrations.toSorted(compareByLabelLength);
-  }
-
-  return getShortestRegistrationBatch(
-    snapshot,
-    offset + SHORTEST_QUERY_PAGE_SIZE * SHORTEST_QUERY_CONCURRENCY,
-    nextRegistrations,
-  );
-}
-
 async function queryRegistrations({
+  filters,
   snapshot,
   first,
   skip,
-  orderBy,
-  orderDirection,
-  revalidate,
 }: {
+  filters: NormalizedFilters;
   snapshot: Snapshot;
   first: number;
   skip: number;
-  orderBy: "id" | "expiryDate" | "domain__subdomainCount";
-  orderDirection: "asc" | "desc";
-  revalidate: number;
 }): Promise<Registration[]> {
+  const premiumExpiryFrom = snapshot.timestamp - GRACE_PERIOD_SECONDS - PREMIUM_PERIOD_SECONDS + 1;
+  const premiumExpiryTo = snapshot.timestamp - GRACE_PERIOD_SECONDS;
+  const expiryFrom = Math.max(
+    premiumExpiryFrom,
+    filters.availableAt?.from ? filters.availableAt.from - AVAILABLE_AT_OFFSET : premiumExpiryFrom,
+  );
+  const expiryTo = Math.min(
+    premiumExpiryTo,
+    filters.availableAt?.to ? filters.availableAt.to - AVAILABLE_AT_OFFSET : premiumExpiryTo,
+  );
+
+  if (expiryFrom > expiryTo) return [];
+
+  const nameFilter = filters.name ? `${NAME_FILTER_FIELDS[filters.name.match]}: $name` : "";
+  const nameVariable = filters.name ? "$name: String!" : "";
+  const query = `
+    query PremiumNames(
+      $first: Int!
+      $skip: Int!
+      $blockNumber: Int!
+      $expiryFrom: BigInt!
+      $expiryTo: BigInt!
+      ${nameVariable}
+    ) {
+      registrations(
+        first: $first
+        skip: $skip
+        block: { number: $blockNumber }
+        orderBy: expiryDate
+        orderDirection: asc
+        where: {
+          expiryDate_gte: $expiryFrom
+          expiryDate_lte: $expiryTo
+          labelName_not: null
+          ${nameFilter}
+        }
+      ) {
+        labelName
+        expiryDate
+        domain {
+          labelhash
+        }
+      }
+    }
+  `;
+
   const data = await requestGraph<{ registrations: Registration[] }>({
-    query: PREMIUM_NAMES_QUERY,
+    query,
     variables: {
       first,
       skip,
       blockNumber: snapshot.blockNumber,
-      premiumStart: String(snapshot.timestamp - GRACE_PERIOD_SECONDS),
-      premiumEnd: String(snapshot.timestamp - GRACE_PERIOD_SECONDS - PREMIUM_PERIOD_SECONDS),
-      orderBy,
-      orderDirection,
+      expiryFrom: String(expiryFrom),
+      expiryTo: String(expiryTo),
+      ...(filters.name ? { name: filters.name.value } : {}),
     },
-    revalidate,
   });
 
   return data.registrations;
@@ -327,11 +234,9 @@ async function queryRegistrations({
 async function requestGraph<T>({
   query,
   variables,
-  revalidate,
 }: {
   query: string;
-  variables: Record<string, boolean | number | string>;
-  revalidate: number;
+  variables: Record<string, number | string>;
 }): Promise<T> {
   const url = process.env.SUBGRAPH_URL;
   if (!url) throw new Error("SUBGRAPH_URL is not configured");
@@ -343,7 +248,7 @@ async function requestGraph<T>({
     },
     body: JSON.stringify({ query, variables }),
     cache: "force-cache",
-    next: { revalidate },
+    next: { revalidate: 60 },
   });
 
   if (!response.ok) {
@@ -359,6 +264,42 @@ async function requestGraph<T>({
   return result.data;
 }
 
+function normalizeFilters(filters?: PremiumNamesFilters): NormalizedFilters {
+  const name = filters?.name
+    ? {
+        match: filters.name.match,
+        value: filters.name.value.trim().replace(/\.eth$/iu, ""),
+      }
+    : undefined;
+
+  if (name && !name.value) {
+    throw new TypeError("Name filter value cannot be empty");
+  }
+  if (name && !Object.hasOwn(NAME_FILTER_FIELDS, name.match)) {
+    throw new TypeError("Invalid name filter match");
+  }
+
+  const from = filters?.availableAt?.from;
+  const to = filters?.availableAt?.to;
+  if (from !== undefined) validateTimestamp(from, "availableAt.from");
+  if (to !== undefined) validateTimestamp(to, "availableAt.to");
+  if (from !== undefined && to !== undefined && from > to) {
+    throw new RangeError("availableAt.from cannot be later than availableAt.to");
+  }
+
+  return {
+    ...(name ? { name } : {}),
+    ...(from !== undefined || to !== undefined
+      ? {
+          availableAt: {
+            ...(from !== undefined ? { from } : {}),
+            ...(to !== undefined ? { to } : {}),
+          },
+        }
+      : {}),
+  };
+}
+
 function toPremiumName(registration: Registration): PremiumName {
   const registrationExpiresAt = Number(registration.expiryDate);
   const premiumStartsAt = registrationExpiresAt + GRACE_PERIOD_SECONDS;
@@ -367,24 +308,10 @@ function toPremiumName(registration: Registration): PremiumName {
     label: registration.labelName,
     name: `${registration.labelName}.eth`,
     labelhash: registration.domain.labelhash,
-    labelLength: getLabelLength(registration.labelName),
     registrationExpiresAt,
     premiumStartsAt,
-    premiumExpiresAt: premiumStartsAt + PREMIUM_PERIOD_SECONDS,
-    subdomainCount: registration.domain.subdomainCount,
+    availableAt: premiumStartsAt + PREMIUM_PERIOD_SECONDS,
   };
-}
-
-function compareByLabelLength(a: Registration, b: Registration): number {
-  return (
-    getLabelLength(a.labelName) - getLabelLength(b.labelName) ||
-    a.labelName.localeCompare(b.labelName) ||
-    a.domain.labelhash.localeCompare(b.domain.labelhash)
-  );
-}
-
-function getLabelLength(label: string): number {
-  return Array.from(label).length;
 }
 
 function validatePageSize(limit: number): number {
@@ -395,17 +322,23 @@ function validatePageSize(limit: number): number {
   return limit;
 }
 
+function validateTimestamp(value: number, field: string): void {
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new RangeError(`${field} must be a positive Unix timestamp`);
+  }
+}
+
 function encodeCursor(cursor: Cursor): string {
   return Buffer.from(JSON.stringify(cursor)).toString("base64url");
 }
 
-function decodeCursor(value: string, sort: PremiumNamesSort): Cursor {
+function decodeCursor(value: string, filters: string): Cursor {
   try {
     const cursor = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<Cursor>;
 
     if (
       cursor.version !== 1 ||
-      cursor.sort !== sort ||
+      cursor.filters !== filters ||
       !Number.isSafeInteger(cursor.offset) ||
       !Number.isSafeInteger(cursor.blockNumber) ||
       !Number.isSafeInteger(cursor.timestamp) ||
