@@ -1,24 +1,18 @@
-import {
-  Card,
-  ExternalLinkIcon,
-  Link,
-  NumberValue,
-  Skeleton,
-  Typography,
-} from "@thenamespace/uikit";
+import NumberFlow, { type Format } from "@number-flow/react";
+import { Card, ExternalLinkIcon, Link, Skeleton, Typography } from "@thenamespace/uikit";
 import { formatEther } from "viem";
 
 import type { EnsNameDetails } from "@/hooks";
 import { weiToUsd } from "@/lib/ens";
 
 const START_VAULT_URL = "/vaults/new";
-const USD_FORMAT: Intl.NumberFormatOptions = {
+const USD_FORMAT: Format = {
   currency: "USD",
   currencyDisplay: "narrowSymbol",
   maximumFractionDigits: 0,
   style: "currency",
 };
-const ETH_FORMAT: Intl.NumberFormatOptions = {
+const ETH_FORMAT: Format = {
   maximumFractionDigits: 4,
   minimumFractionDigits: 3,
 };
@@ -164,18 +158,17 @@ const PriceRow = ({
         <span className="text-sm text-muted">Unavailable</span>
       ) : (
         <div className="text-right">
-          <NumberValue
+          <NumberFlow
             className="block font-mono text-sm font-semibold text-foreground"
-            formatOptions={USD_FORMAT}
+            format={USD_FORMAT}
             value={usd}
           />
-          <NumberValue
+          <NumberFlow
             className="mt-0.5 block font-mono text-xs text-muted"
-            formatOptions={ETH_FORMAT}
+            format={ETH_FORMAT}
+            suffix=" ETH"
             value={eth}
-          >
-            <NumberValue.Suffix className="ml-1">ETH</NumberValue.Suffix>
-          </NumberValue>
+          />
         </div>
       )}
     </div>

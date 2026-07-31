@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useState, type CSSProperties } from "react";
 
+import NumberFlow from "@number-flow/react";
 import { Chip, ProgressBar } from "@thenamespace/uikit";
 import { Clock01Icon, HugeiconsIcon } from "@thenamespace/uikit/icons";
 import { useInterval } from "usehooks-ts";
 
+import { SECONDS_PER_DAY, SECONDS_PER_HOUR, SECONDS_PER_MINUTE } from "@/lib/constants";
 import {
   getPremiumDecay,
   PREMIUM_PERIOD_DAYS,
@@ -105,26 +107,39 @@ export const PremiumDecayMeter = (props: PremiumDecayProps) => {
       <div className="mt-1.5 flex items-center justify-between gap-3 text-[10px] font-semibold tracking-[0.09em] uppercase text-muted">
         <span>Premium decay</span>
         <span style={colors.labelStyle}>
-          Day {decay.elapsedDay}/{PREMIUM_PERIOD_DAYS}
+          Day <NumberFlow value={decay.elapsedDay} />/<NumberFlow value={PREMIUM_PERIOD_DAYS} />
         </span>
       </div>
 
-      <PremiumDecayChip className="mt-3" label={decay.label} tone={decay.tone} />
+      <PremiumDecayChip
+        className="mt-3"
+        label={decay.label}
+        remainingSeconds={decay.remainingSeconds}
+        tone={decay.tone}
+      />
     </div>
   );
 };
 
 export const CompactPremiumDecay = (props: PremiumDecayProps) => {
   const decay = usePremiumDecay(props);
-  return <PremiumDecayChip label={decay.label} tone={decay.tone} />;
+  return (
+    <PremiumDecayChip
+      label={decay.label}
+      remainingSeconds={decay.remainingSeconds}
+      tone={decay.tone}
+    />
+  );
 };
 
 const PremiumDecayChip = ({
   label,
+  remainingSeconds,
   tone,
   className,
 }: {
   label: string;
+  remainingSeconds: number;
   tone: PremiumDecayTone;
   className?: string;
 }) => {
@@ -139,9 +154,41 @@ const PremiumDecayChip = ({
       {...(className === undefined ? {} : { className })}
     >
       <HugeiconsIcon aria-hidden="true" icon={Clock01Icon} width={13} />
-      <Chip.Label>{label}</Chip.Label>
+      <Chip.Label aria-label={label}>
+        <PremiumDecayTime remainingSeconds={remainingSeconds} />
+      </Chip.Label>
     </Chip>
   );
+};
+
+const PremiumDecayTime = ({ remainingSeconds }: { remainingSeconds: number }) => {
+  if (remainingSeconds <= 0) return "Premium ended";
+
+  const days = Math.floor(remainingSeconds / SECONDS_PER_DAY);
+  const hours = Math.floor((remainingSeconds % SECONDS_PER_DAY) / SECONDS_PER_HOUR);
+  const minutes = Math.floor((remainingSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
+
+  if (days > 0) {
+    return (
+      <>
+        <NumberFlow suffix="d" value={days} /> <NumberFlow suffix="h" value={hours} /> left
+      </>
+    );
+  }
+
+  if (hours > 0)
+    return (
+      <>
+        <NumberFlow suffix="h" value={hours} /> left
+      </>
+    );
+  if (minutes > 0)
+    return (
+      <>
+        <NumberFlow suffix="m" value={minutes} /> left
+      </>
+    );
+  return "<1m left";
 };
 
 function usePremiumDecay({ availableAt, premiumStartsAt }: PremiumDecayProps) {

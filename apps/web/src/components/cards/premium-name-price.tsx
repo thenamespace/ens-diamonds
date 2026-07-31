@@ -1,4 +1,5 @@
-import { NumberValue, Skeleton } from "@thenamespace/uikit";
+import NumberFlow, { type Format } from "@number-flow/react";
+import { Skeleton } from "@thenamespace/uikit";
 import { formatEther } from "viem";
 
 type PremiumNamePriceProps = {
@@ -8,11 +9,15 @@ type PremiumNamePriceProps = {
   compact?: boolean;
 };
 
-const USD_FORMAT: Intl.NumberFormatOptions = {
+const USD_FORMAT: Format = {
   currency: "USD",
   currencyDisplay: "narrowSymbol",
   maximumFractionDigits: 0,
   style: "currency",
+};
+const ETH_FORMAT: Format = {
+  maximumFractionDigits: 4,
+  minimumFractionDigits: 3,
 };
 
 export const PremiumNamePrice = ({
@@ -42,18 +47,16 @@ export const PremiumNamePrice = ({
   if (compact) {
     return (
       <>
-        <NumberValue
+        <NumberFlow
           className="block font-mono text-base font-semibold text-foreground"
-          maximumFractionDigits={4}
-          minimumFractionDigits={3}
+          format={ETH_FORMAT}
+          suffix=" ETH"
           value={eth}
-        >
-          <NumberValue.Suffix className="ml-1">ETH</NumberValue.Suffix>
-        </NumberValue>
+        />
         {usd === undefined ? null : (
-          <NumberValue
+          <NumberFlow
             className="mt-0.5 block font-mono text-xs text-muted"
-            formatOptions={USD_FORMAT}
+            format={USD_FORMAT}
             value={usd}
           />
         )}
@@ -68,30 +71,26 @@ export const PremiumNamePrice = ({
       </span>
       <div className="mt-1 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
         {usd === undefined ? (
-          <NumberValue
+          <NumberFlow
             className="font-mono text-[22px] font-semibold tracking-tight text-foreground"
-            maximumFractionDigits={4}
-            minimumFractionDigits={3}
+            format={ETH_FORMAT}
+            suffix=" ETH"
             value={eth}
-          >
-            <NumberValue.Suffix className="ml-1">ETH</NumberValue.Suffix>
-          </NumberValue>
+          />
         ) : (
           <>
-            <NumberValue
+            <NumberFlow
               className="font-mono text-[22px] font-semibold tracking-tight text-foreground"
-              formatOptions={USD_FORMAT}
+              format={USD_FORMAT}
               value={usd}
             />
-            <NumberValue
+            <NumberFlow
               className="font-mono text-[12px] whitespace-nowrap text-muted"
-              maximumFractionDigits={4}
-              minimumFractionDigits={3}
+              format={ETH_FORMAT}
+              prefix="≈ "
+              suffix=" ETH"
               value={eth}
-            >
-              <NumberValue.Prefix>≈&nbsp;</NumberValue.Prefix>
-              <NumberValue.Suffix className="ml-1">ETH</NumberValue.Suffix>
-            </NumberValue>
+            />
           </>
         )}
       </div>
