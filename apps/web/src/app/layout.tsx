@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 
 import { Providers } from "@/app/providers";
 import { auth } from "@/auth";
+import { AppNavbar } from "@/components";
 
 export const metadata: Metadata = {
   title: "ENS Diamonds",
@@ -16,7 +17,10 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   return (
     <html lang="en">
       <body>
-        <Providers session={session}>{children}</Providers>
+        <Providers session={session}>
+          <AppNavbar />
+          {children}
+        </Providers>
       </body>
     </html>
   );
