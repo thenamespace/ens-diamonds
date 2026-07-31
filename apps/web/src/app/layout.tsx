@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 
 import { Providers } from "@/app/providers";
 import { auth } from "@/auth";
-import { AppNavbar } from "@/components";
+import { AppFooter, AppNavbar } from "@/components";
 
 export const metadata: Metadata = {
   title: "ENS Diamonds",
@@ -16,10 +16,11 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
 
   return (
     <html lang="en">
-      <body>
+      <body className="flex min-h-screen flex-col bg-background text-foreground border-default">
         <Providers session={session}>
           <AppNavbar />
-          {children}
+          <div className="flex-1">{children}</div>
+          <AppFooter />
         </Providers>
       </body>
     </html>

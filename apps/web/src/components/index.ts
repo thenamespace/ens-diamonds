@@ -1,4 +1,5 @@
 export * from "./cards";
+export * from "./footer";
 export * from "./name-details";
 export * from "./navbar";
 export * from "./name-avatar";
