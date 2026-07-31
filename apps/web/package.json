@@ -3,44 +3,35 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "next build",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm build",
-    "dev": "vite dev",
+    "dev": "next dev",
     "format": "oxfmt --write .",
     "format:check": "oxfmt --check .",
-    "generate-routes": "tsr generate",
     "lint": "oxlint --deny-warnings .",
     "lint:fix": "oxlint --fix .",
-    "preview": "vite preview",
+    "start": "next start",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@rainbow-me/rainbowkit": "2.2.11",
-    "@tailwindcss/vite": "4.3.3",
+    "@rainbow-me/rainbowkit-siwe-next-auth": "0.6.0",
     "@tanstack/react-query": "5.101.4",
-    "@tanstack/react-router": "1.170.18",
-    "convex": "^1.42.3",
+    "@x402/core": "2.20.0",
+    "@x402/evm": "2.20.0",
+    "@x402/svm": "2.20.0",
+    "next": "16.2.12",
+    "next-auth": "5.0.0-beta.32",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "tailwindcss": "4.3.3",
     "viem": "2.55.10",
-    "wagmi": "3.7.5"
+    "wagmi": "2.19.5"
   },
   "devDependencies": {
-    "@tanstack/router-cli": "1.167.21",
-    "@tanstack/router-plugin": "1.168.23",
     "@types/node": "26.1.2",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
-    "@vitejs/plugin-react": "6.0.5",
     "klarity": "catalog:",
-    "typescript": "6.0.3",
-    "vite": "8.2.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "lightningcss"
-    ]
+    "typescript": "6.0.3"
   }
 }

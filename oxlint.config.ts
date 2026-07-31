@@ -1,7 +1,7 @@
-import config from "klarity/oxlint/react";
+import config from "klarity/oxlint/next";
 import { defineConfig } from "oxlint";
 
 export default defineConfig({
   extends: [config],
-  ignorePatterns: ["apps/web/src/routeTree.gen.ts", "packages/contracts/lib/**"],
+  ignorePatterns: ["packages/contracts/lib/**"],
 });

@@ -1,10 +1,16 @@
 {
-  "extends": "klarity/tsconfig/app/vite",
+  "extends": "klarity/tsconfig/app/next",
   "compilerOptions": {
     "paths": {
-      "#/*": ["./src/*"],
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "vite.config.ts"]
+  "include": [
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx"
+  ],
+  "exclude": ["node_modules"]
 }
