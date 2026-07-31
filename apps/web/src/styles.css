@@ -1,2 +1,34 @@
 @import "tailwindcss";
 @import "@thenamespace/uikit/styles";
+
+@layer components {
+  .ticket-top {
+    background: var(--color-surface);
+    border-radius: min(31px, var(--radius-3xl)) min(31px, var(--radius-3xl)) 0 0;
+    -webkit-mask-image:
+      radial-gradient(circle 8px at 0 100%, transparent 7.5px, black 8.5px),
+      radial-gradient(circle 8px at 100% 100%, transparent 7.5px, black 8.5px);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      radial-gradient(circle 8px at 0 100%, transparent 7.5px, black 8.5px),
+      radial-gradient(circle 8px at 100% 100%, transparent 7.5px, black 8.5px);
+    mask-composite: intersect;
+  }
+
+  .ticket-stub {
+    position: relative;
+    /* Lighter than the page background — the hairline border defines the
+       bottom edge, and the stub stays clearly card-side of it. */
+    background: color-mix(in srgb, var(--color-foreground) 3.5%, var(--color-surface));
+    border-top: 1.5px dashed color-mix(in srgb, var(--color-foreground) 16%, transparent);
+    border-radius: 0 0 min(31px, var(--radius-3xl)) min(31px, var(--radius-3xl));
+    -webkit-mask-image:
+      radial-gradient(circle 8px at 0 0, transparent 7.5px, black 8.5px),
+      radial-gradient(circle 8px at 100% 0, transparent 7.5px, black 8.5px);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      radial-gradient(circle 8px at 0 0, transparent 7.5px, black 8.5px),
+      radial-gradient(circle 8px at 100% 0, transparent 7.5px, black 8.5px);
+    mask-composite: intersect;
+  }
+}
