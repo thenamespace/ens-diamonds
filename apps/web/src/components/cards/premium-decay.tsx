@@ -94,7 +94,7 @@ export const PremiumDecayMeter = (props: PremiumDecayProps) => {
         maxValue={decay.totalSeconds}
         minValue={0}
         size="sm"
-        value={decay.elapsedSeconds}
+        value={decay.remainingSeconds}
         valueLabel={
           decay.remainingSeconds > 0 ? `${decay.label} until premium ends` : "Premium ended"
         }
