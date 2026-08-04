@@ -3,55 +3,57 @@
 import { useMemo } from "react";
 
 import {
-  addresses,
   baseRegistrarAvailableSnippet,
   baseRegistrarNameExpiresSnippet,
   ethRegistrarControllerRentPriceSnippet,
 } from "@ensdomains/ensjs/contracts";
 import { keccak256, toBytes } from "viem";
 import { useReadContracts } from "wagmi";
-import { mainnet } from "wagmi/chains";
 
 import { SECONDS_PER_DAY, SECONDS_PER_YEAR } from "@/lib/constants";
+import { activeChain, Contracts } from "@/lib/network";
 
 import { useEthPrice } from "./use-eth-price";
 
 type UseEnsNameDetailsProps = {
+  duration?: number;
   label: string;
 };
 
-const contracts = addresses[mainnet.id];
 const GRACE_PERIOD_SECONDS = 90 * SECONDS_PER_DAY;
 const PREMIUM_PERIOD_SECONDS = 21 * SECONDS_PER_DAY;
 
-export const useEnsNameDetails = ({ label }: UseEnsNameDetailsProps) => {
+export const useEnsNameDetails = ({
+  duration = SECONDS_PER_YEAR,
+  label,
+}: UseEnsNameDetailsProps) => {
   const tokenId = useMemo(() => BigInt(keccak256(toBytes(label))), [label]);
   const nameContracts = useMemo(
     () =>
       [
         {
           abi: ethRegistrarControllerRentPriceSnippet,
-          address: contracts.ensEthRegistrarController.address,
+          address: Contracts.ensEthRegistrarController.address,
           functionName: "rentPrice",
-          args: [label, BigInt(SECONDS_PER_YEAR)],
-          chainId: mainnet.id,
+          args: [label, BigInt(duration)],
+          chainId: activeChain.id,
         },
         {
           abi: baseRegistrarAvailableSnippet,
-          address: contracts.ensBaseRegistrarImplementation.address,
+          address: Contracts.ensBaseRegistrar.address,
           functionName: "available",
           args: [tokenId],
-          chainId: mainnet.id,
+          chainId: activeChain.id,
         },
         {
           abi: baseRegistrarNameExpiresSnippet,
-          address: contracts.ensBaseRegistrarImplementation.address,
+          address: Contracts.ensBaseRegistrar.address,
           functionName: "nameExpires",
           args: [tokenId],
-          chainId: mainnet.id,
+          chainId: activeChain.id,
         },
       ] as const,
-    [label, tokenId],
+    [duration, label, tokenId],
   );
   const reads = useReadContracts({
     allowFailure: false,

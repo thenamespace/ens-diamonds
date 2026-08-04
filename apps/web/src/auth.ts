@@ -2,11 +2,12 @@ import type { NextAuthConfig } from "next-auth";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { createPublicClient, http } from "viem";
-import { sepolia } from "viem/chains";
 import { parseSiweMessage, validateSiweMessage } from "viem/siwe";
 
+import { activeChain } from "@/lib/network";
+
 const publicClient = createPublicClient({
-  chain: sepolia,
+  chain: activeChain,
   transport: http(),
 });
 
@@ -40,7 +41,7 @@ export const authConfig = {
             !csrfToken ||
             siweMessage.domain !== new URL(authUrl).host ||
             siweMessage.nonce !== csrfToken ||
-            siweMessage.chainId !== sepolia.id ||
+            siweMessage.chainId !== activeChain.id ||
             !validateSiweMessage({
               address: siweMessage.address,
               message: siweMessage,

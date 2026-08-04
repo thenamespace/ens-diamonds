@@ -1,13 +1,12 @@
 import { useReadContract } from "wagmi";
-import { mainnet } from "wagmi/chains";
 
-import { Contracts } from "@/lib/wagmi";
+import { activeChain, Contracts } from "@/lib/network";
 
 export const useEthPrice = () =>
   useReadContract({
-    abi: Contracts.ethPriceFeedAbi.abi,
-    address: Contracts.ethPriceFeedAbi.address,
-    chainId: mainnet.id,
+    abi: Contracts.ethPriceFeed.abi,
+    address: Contracts.ethPriceFeed.address,
+    chainId: activeChain.id,
     functionName: "latestRoundData",
     query: {
       refetchInterval: 60_000,

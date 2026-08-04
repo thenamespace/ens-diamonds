@@ -11,14 +11,24 @@ allowBuilds:
   utf-8-validate: true
 
 catalog:
-  "@commitlint/cli": ^21.2.1
-  "@commitlint/config-conventional": ^21.2.0
-  "klarity": ^0.2.0
-  "lefthook": ^2.1.10
-  "oxfmt": ^0.61.0
-  "oxlint": ^1.76.0
-  "turbo": ^2.10.7
+  "@commitlint/cli": 21.2.1
+  "@commitlint/config-conventional": 21.2.0
+  "klarity": 0.2.0
+  "lefthook": 2.1.10
+  "oxfmt": 0.61.0
+  "oxlint": 1.76.0
+  "turbo": 2.10.7
 
 minimumReleaseAgeExclude:
   - "@types/react-dom@19.2.4"
   - "@types/react@19.2.18"
+  - "@next/env@16.3.0"
+  - "@next/swc-darwin-arm64@16.3.0"
+  - "@next/swc-darwin-x64@16.3.0"
+  - "@next/swc-linux-arm64-gnu@16.3.0"
+  - "@next/swc-linux-arm64-musl@16.3.0"
+  - "@next/swc-linux-x64-gnu@16.3.0"
+  - "@next/swc-linux-x64-musl@16.3.0"
+  - "@next/swc-win32-arm64-msvc@16.3.0"
+  - "@next/swc-win32-x64-msvc@16.3.0"
+  - next@16.3.0

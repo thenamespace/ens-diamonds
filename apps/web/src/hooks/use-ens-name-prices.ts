@@ -2,21 +2,21 @@
 
 import { useMemo } from "react";
 
-import { addresses, ethRegistrarControllerRentPriceSnippet } from "@ensdomains/ensjs/contracts";
+import { ethRegistrarControllerRentPriceSnippet } from "@ensdomains/ensjs/contracts";
 import { useReadContracts } from "wagmi";
-import { mainnet } from "wagmi/chains";
 
 import { SECONDS_PER_YEAR } from "@/lib/constants";
+import { activeChain, Contracts } from "@/lib/network";
 
 export const useEnsNamePrices = (labels: string[]) => {
   const contracts = useMemo(
     () =>
       labels.map((label) => ({
         abi: ethRegistrarControllerRentPriceSnippet,
-        address: addresses[mainnet.id].ensEthRegistrarController.address,
+        address: Contracts.ensEthRegistrarController.address,
         functionName: "rentPrice" as const,
         args: [label, BigInt(SECONDS_PER_YEAR)] as const,
-        chainId: mainnet.id,
+        chainId: activeChain.id,
       })),
     [labels],
   );
