@@ -1,0 +1,247 @@
+{
+  "version": "8",
+  "dialect": "postgres",
+  "id": "83dbdcaf-5650-43bd-b7b1-4d775eb49235",
+  "prevIds": [
+    "00000000-0000-0000-0000-000000000000"
+  ],
+  "ddl": [
+    {
+      "isRlsEnabled": false,
+      "name": "vault_members",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "isRlsEnabled": false,
+      "name": "vaults",
+      "entityType": "tables",
+      "schema": "public"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "vault_record_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "vault_members"
+    },
+    {
+      "type": "varchar(42)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "member_address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "vault_members"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "position",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "vault_members"
+    },
+    {
+      "type": "uuid",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "vaults"
+    },
+    {
+      "type": "integer",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "chain_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "vaults"
+    },
+    {
+      "type": "varchar(42)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "protocol_address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "vaults"
+    },
+    {
+      "type": "varchar(66)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "vault_id",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "vaults"
+    },
+    {
+      "type": "varchar(42)",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "creator_address",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "vaults"
+    },
+    {
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "name": "encrypted_data",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "vaults"
+    },
+    {
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "name": "created_at",
+      "entityType": "columns",
+      "schema": "public",
+      "table": "vaults"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "member_address",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "vault_members_member_address_idx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "vault_members"
+    },
+    {
+      "nameExplicit": true,
+      "columns": [
+        {
+          "value": "chain_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "protocol_address",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        },
+        {
+          "value": "vault_id",
+          "isExpression": false,
+          "asc": true,
+          "nullsFirst": false,
+          "opclass": null
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "with": "",
+      "method": "btree",
+      "concurrently": false,
+      "name": "vaults_chain_protocol_vault_uidx",
+      "entityType": "indexes",
+      "schema": "public",
+      "table": "vaults"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "vault_record_id"
+      ],
+      "schemaTo": "public",
+      "tableTo": "vaults",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "CASCADE",
+      "name": "vault_members_vault_record_id_vaults_id_fkey",
+      "entityType": "fks",
+      "schema": "public",
+      "table": "vault_members"
+    },
+    {
+      "columns": [
+        "vault_record_id",
+        "member_address"
+      ],
+      "nameExplicit": true,
+      "name": "vault_members_pk",
+      "entityType": "pks",
+      "schema": "public",
+      "table": "vault_members"
+    },
+    {
+      "columns": [
+        "id"
+      ],
+      "nameExplicit": false,
+      "name": "vaults_pkey",
+      "schema": "public",
+      "table": "vaults",
+      "entityType": "pks"
+    }
+  ],
+  "renames": []
+}

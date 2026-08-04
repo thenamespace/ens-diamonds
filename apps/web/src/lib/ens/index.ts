@@ -8,6 +8,7 @@ export type {
   PremiumNamesPage,
 } from "./get-premium-names";
 export * from "./premium-decay";
+export * from "./name";
 export * from "./premium-name-query";
 export * from "./premium-price-curve";
 export * from "./price";
