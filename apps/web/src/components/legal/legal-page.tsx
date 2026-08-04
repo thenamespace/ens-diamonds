@@ -2,6 +2,8 @@ import NextLink from "next/link";
 
 import { Markdown, Typography } from "@thenamespace/uikit";
 
+import { PageMain } from "@/components/common";
+
 const legalNavigation = [
   { href: "/terms", label: "Terms", slug: "terms" },
   { href: "/privacy", label: "Privacy", slug: "privacy" },
@@ -16,7 +18,7 @@ type LegalPageProps = {
 };
 
 export const LegalPage = ({ content, lastUpdated, slug, title }: LegalPageProps) => (
-  <main className="mx-auto w-full max-w-5xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+  <PageMain size="reading" spacing="loose">
     <nav aria-label="Legal documents" className="flex items-center gap-2 text-sm">
       {legalNavigation.map((item, index) => (
         <span className="flex items-center gap-2" key={item.slug}>
@@ -37,7 +39,7 @@ export const LegalPage = ({ content, lastUpdated, slug, title }: LegalPageProps)
     </nav>
 
     <header className="mt-12 border-b border-default pb-9">
-      <Typography.Heading className="text-4xl tracking-tight sm:text-5xl" level={1}>
+      <Typography.Heading className="text-balance text-4xl tracking-tight sm:text-5xl" level={1}>
         {title}
       </Typography.Heading>
       <Typography.Paragraph className="mt-5" color="muted">
@@ -51,5 +53,5 @@ export const LegalPage = ({ content, lastUpdated, slug, title }: LegalPageProps)
     >
       {content}
     </Markdown>
-  </main>
+  </PageMain>
 );

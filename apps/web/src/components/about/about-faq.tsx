@@ -53,7 +53,7 @@ export const AboutFaq = () => (
         >
           Common questions
         </Typography.Paragraph>
-        <Typography.Heading className="mt-5 text-4xl tracking-tight" level={2}>
+        <Typography.Heading className="mt-5 text-balance text-4xl tracking-tight" level={2}>
           The short version
         </Typography.Heading>
       </div>

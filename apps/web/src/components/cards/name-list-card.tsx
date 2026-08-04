@@ -2,9 +2,9 @@ import Link from "next/link";
 
 import { Card, Skeleton } from "@thenamespace/uikit";
 
+import { NameAvatar } from "@/components/common";
 import type { PremiumName } from "@/lib/ens";
 
-import { NameAvatar } from "../name-avatar";
 import { CompactPremiumDecay } from "./premium-decay";
 import { PremiumNamePrice } from "./premium-name-price";
 

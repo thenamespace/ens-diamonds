@@ -2,15 +2,27 @@
 
 import { useMemo } from "react";
 
-import { Button, EmptyState } from "@thenamespace/uikit";
+import {
+  Button,
+  EmptyState,
+  EmptyStateContent,
+  EmptyStateDescription,
+  EmptyStateHeader,
+  EmptyStateMedia,
+  Typography,
+} from "@thenamespace/uikit";
 import { HugeiconsIcon, Search01Icon } from "@thenamespace/uikit/icons";
 import InfiniteScroll from "react-infinite-scroll-component";
 
+import {
+  NameGridCard,
+  NameGridCardSkeleton,
+  NameListCard,
+  NameListCardSkeleton,
+} from "@/components/cards";
 import { useEnsNamePrices, useEthPrice } from "@/hooks";
 import type { PremiumName } from "@/lib/ens";
 import type { PremiumNameView } from "@/lib/search-params";
-
-import { NameGridCard, NameGridCardSkeleton, NameListCard, NameListCardSkeleton } from "../cards";
 
 const END_MESSAGE = <p className="py-8 text-center text-sm text-muted">You’ve reached the end.</p>;
 const INFINITE_SCROLL_STYLE = { overflow: "visible" } as const;
@@ -150,19 +162,21 @@ const QueryState = ({
   onAction?: () => void;
 }) => (
   <EmptyState className="min-h-80 rounded-2xl border border-dashed border-default bg-surface">
-    <EmptyState.Media>
-      <HugeiconsIcon icon={Search01Icon} width={24} />
-    </EmptyState.Media>
-    <EmptyState.Header>
-      <EmptyState.Title>{title}</EmptyState.Title>
-      <EmptyState.Description>{description}</EmptyState.Description>
-    </EmptyState.Header>
+    <EmptyStateMedia variant="icon">
+      <HugeiconsIcon aria-hidden icon={Search01Icon} width={22} />
+    </EmptyStateMedia>
+    <EmptyStateHeader>
+      <Typography.Heading className="empty-state__title text-balance" level={2}>
+        {title}
+      </Typography.Heading>
+      <EmptyStateDescription>{description}</EmptyStateDescription>
+    </EmptyStateHeader>
     {action && onAction ? (
-      <EmptyState.Content>
+      <EmptyStateContent>
         <Button variant="secondary" onPress={onAction}>
           {action}
         </Button>
-      </EmptyState.Content>
+      </EmptyStateContent>
     ) : null}
   </EmptyState>
 );

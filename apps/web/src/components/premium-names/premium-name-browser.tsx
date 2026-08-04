@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from "react"
 import { useQueryState, useQueryStates } from "nuqs";
 import { useDebounceCallback } from "usehooks-ts";
 
+import { PageMain } from "@/components/common";
 import { usePremiumNames } from "@/hooks";
 import {
   getPremiumNameDateBounds,
@@ -110,7 +111,7 @@ export const PremiumNameBrowser = ({ asOf }: PremiumNameBrowserProps) => {
   }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+    <PageMain>
       <PremiumNameHeader />
       <PremiumNameFilters
         dateBounds={dateBounds}
@@ -138,6 +139,6 @@ export const PremiumNameBrowser = ({ asOf }: PremiumNameBrowserProps) => {
         onReset={resetFilters}
         onRetry={retry}
       />
-    </main>
+    </PageMain>
   );
 };

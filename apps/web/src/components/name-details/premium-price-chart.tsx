@@ -14,6 +14,7 @@ import {
 } from "@thenamespace/uikit";
 import { useInterval } from "usehooks-ts";
 
+import { CardHeading } from "@/components/common";
 import { getPremiumPriceCurve, type PremiumName } from "@/lib/ens";
 import { formatChartDate, getUnixTime } from "@/lib/helpers";
 
@@ -116,7 +117,7 @@ export const PremiumPriceChart = ({
     <Card className="overflow-hidden" variant="default">
       <Card.Header className="flex-row items-start justify-between gap-4">
         <div>
-          <Card.Title>Temporary premium decay</Card.Title>
+          <CardHeading>Temporary premium decay</CardHeading>
           <Card.Description>
             The premium halves daily until the name reaches its standard registration price.
           </Card.Description>

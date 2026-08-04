@@ -2,9 +2,10 @@
 
 import { Breadcrumbs, Card, Chip, Skeleton, Surface, Typography } from "@thenamespace/uikit";
 
+import { CardHeading, NameAvatar, PageMain } from "@/components/common";
 import { useEnsNameDetails } from "@/hooks";
+import { networkDisplayName } from "@/lib/network";
 
-import { NameAvatar } from "../name-avatar";
 import { NameFacts } from "./name-facts";
 import { PremiumPriceChart } from "./premium-price-chart";
 import { RegistrationSummary } from "./registration-summary";
@@ -27,7 +28,7 @@ export const NameDetailPage = ({ label }: NameDetailPageProps) => {
           : "Available";
 
   return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+    <PageMain>
       <Breadcrumbs>
         <Breadcrumbs.Item href="/">Discover</Breadcrumbs.Item>
         <Breadcrumbs.Item>{name}</Breadcrumbs.Item>
@@ -37,7 +38,10 @@ export const NameDetailPage = ({ label }: NameDetailPageProps) => {
         <div className="flex min-w-0 items-center gap-4">
           <NameAvatar className="size-14 shrink-0 rounded-2xl" label={label} />
           <div className="min-w-0">
-            <Typography.Heading className="break-all text-3xl tracking-tight sm:text-5xl" level={1}>
+            <Typography.Heading
+              className="break-all text-balance text-3xl tracking-tight sm:text-5xl"
+              level={1}
+            >
               {label}
               <span className="font-normal text-muted">.eth</span>
             </Typography.Heading>
@@ -71,10 +75,10 @@ export const NameDetailPage = ({ label }: NameDetailPageProps) => {
         ) : (
           <Card className="flex min-h-[452px] flex-col" variant="default">
             <Card.Header>
-              <Card.Title>Temporary premium decay</Card.Title>
+              <CardHeading>Temporary premium decay</CardHeading>
               <Card.Description>
                 {details.isPending
-                  ? "Reading the current premium from Ethereum mainnet."
+                  ? `Reading the current premium from ${networkDisplayName}.`
                   : "This name does not currently have a temporary premium."}
               </Card.Description>
             </Card.Header>
@@ -92,6 +96,6 @@ export const NameDetailPage = ({ label }: NameDetailPageProps) => {
         <RegistrationSummary details={details} name={name} />
         <NameFacts details={details} label={label} />
       </div>
-    </main>
+    </PageMain>
   );
 };

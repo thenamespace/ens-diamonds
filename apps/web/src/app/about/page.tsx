@@ -1,16 +1,9 @@
-import type { Metadata } from "next";
 import Image from "next/image";
 import NextLink from "next/link";
 
-import { ExternalLinkIcon, Link, Typography } from "@thenamespace/uikit";
+import { buttonVariants, ExternalLinkIcon, Link, Typography } from "@thenamespace/uikit";
 
 import { AboutFaq, AboutTimeline } from "@/components/about";
-
-export const metadata: Metadata = {
-  title: "About · ENS Diamonds",
-  description:
-    "How ENS Diamonds pools ETH for one ENS acquisition and places the name in a shared Safe.",
-};
 
 const EXTERNAL_LINK = "https://example.com";
 
@@ -35,7 +28,7 @@ export default function AboutPage() {
               ENS Diamonds
             </Typography.Paragraph>
             <Typography.Heading
-              className="mx-auto mt-5 max-w-4xl text-center text-4xl leading-[1.03] tracking-[-0.045em] sm:text-6xl lg:text-7xl"
+              className="mx-auto mt-5 max-w-4xl text-center text-balance text-4xl leading-[1.03] tracking-[-0.045em] sm:text-6xl lg:text-7xl"
               level={1}
             >
               Pool ETH for one name.
@@ -51,17 +44,14 @@ export default function AboutPage() {
             </Typography.Paragraph>
 
             <div className="mt-9 flex flex-wrap justify-center gap-3">
-              <NextLink
-                className="rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-background transition-opacity hover:opacity-80"
-                href="/"
-              >
-                Explore premium names
+              <NextLink className={buttonVariants({ size: "md", variant: "primary" })} href="/">
+                Explore Premium Names
               </NextLink>
               <NextLink
-                className="rounded-full border border-default px-5 py-3 text-sm font-semibold transition-colors hover:bg-surface"
+                className={buttonVariants({ size: "md", variant: "secondary" })}
                 href="/risks"
               >
-                Understand the risks
+                Understand the Risks
               </NextLink>
             </div>
           </div>
@@ -77,7 +67,10 @@ export default function AboutPage() {
             >
               The lifecycle
             </Typography.Paragraph>
-            <Typography.Heading className="mt-5 text-4xl tracking-tight sm:text-5xl" level={2}>
+            <Typography.Heading
+              className="mt-5 text-balance text-4xl tracking-tight sm:text-5xl"
+              level={2}
+            >
               One vault has one job.
             </Typography.Heading>
             <Typography.Paragraph className="mt-5 max-w-md leading-7" color="muted">
@@ -103,19 +96,16 @@ export default function AboutPage() {
             </Typography.Paragraph>
           </div>
           <div className="flex shrink-0 flex-wrap gap-3">
-            <NextLink
-              className="rounded-full bg-foreground px-5 py-3 text-sm font-semibold text-background"
-              href="/risks"
-            >
-              Read risks
+            <NextLink className={buttonVariants({ size: "md" })} href="/risks">
+              Read Risks
             </NextLink>
             <Link
-              className="inline-flex items-center gap-1.5 rounded-full border border-default px-5 py-3 text-sm font-semibold"
+              className={buttonVariants({ size: "md", variant: "secondary" })}
               href={EXTERNAL_LINK}
               rel="noreferrer"
               target="_blank"
             >
-              View contract
+              View Contract
               <ExternalLinkIcon aria-hidden className="size-3 opacity-60" />
             </Link>
           </div>

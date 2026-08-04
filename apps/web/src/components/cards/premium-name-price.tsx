@@ -1,6 +1,7 @@
 import NumberFlow, { type Format } from "@number-flow/react";
 import { Skeleton } from "@thenamespace/uikit";
-import { formatEther } from "viem";
+
+import { weiToEth } from "@/lib/helpers";
 
 type PremiumNamePriceProps = {
   price: bigint | undefined;
@@ -41,7 +42,7 @@ export const PremiumNamePrice = ({
     return <p className="text-xs text-muted">Price unavailable</p>;
   }
 
-  const eth = Number(formatEther(price));
+  const eth = weiToEth(price);
   const usd = ethUsd === undefined ? undefined : (eth * Number(ethUsd)) / 1e8;
 
   if (compact) {

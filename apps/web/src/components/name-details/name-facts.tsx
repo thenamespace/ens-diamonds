@@ -1,5 +1,6 @@
 import { Card, Chip, Skeleton, Typography } from "@thenamespace/uikit";
 
+import { CardHeading } from "@/components/common";
 import type { EnsNameDetails } from "@/hooks";
 import { formatUnixDate, getGraphemeCount } from "@/lib/helpers";
 
@@ -11,7 +12,7 @@ type NameFactsProps = {
 export const NameFacts = ({ details, label }: NameFactsProps) => (
   <Card variant="default">
     <Card.Header>
-      <Card.Title>Name details</Card.Title>
+      <CardHeading>Name details</CardHeading>
       <Card.Description>Registrar state and premium timeline.</Card.Description>
     </Card.Header>
     <Card.Content>

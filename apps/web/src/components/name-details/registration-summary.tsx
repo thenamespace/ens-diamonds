@@ -3,17 +3,16 @@
 import { useCallback, useState } from "react";
 
 import NumberFlow, { type Format } from "@number-flow/react";
-import { Card, Link, Skeleton, Typography } from "@thenamespace/uikit";
+import { buttonVariants, Card, Link, Skeleton, Typography } from "@thenamespace/uikit";
 import { ArrowUpRight01Icon, HugeiconsIcon } from "@thenamespace/uikit/icons";
 import { useInterval } from "usehooks-ts";
-import { formatEther } from "viem";
 
+import { CardHeading } from "@/components/common";
 import type { EnsNameDetails } from "@/hooks";
-import { SECONDS_PER_DAY, SECONDS_PER_HOUR, SECONDS_PER_MINUTE } from "@/lib/constants";
 import { weiToUsd } from "@/lib/ens";
-import { getUnixTime } from "@/lib/helpers";
+import { formatCompactDuration, getUnixTime, weiToEth } from "@/lib/helpers";
+import { networkDisplayName } from "@/lib/network";
 
-const START_VAULT_URL = "/vaults/new";
 const USD_FORMAT: Format = {
   currency: "USD",
   currencyDisplay: "narrowSymbol",
@@ -38,7 +37,11 @@ export const RegistrationSummary = ({ details, name }: RegistrationSummaryProps)
       {details.isPending ? (
         <RegistrationSummarySkeleton />
       ) : details.isAvailable === true ? (
-        <AvailableRegistration details={details} ensAppUrl={ensAppUrl} />
+        <AvailableRegistration
+          details={details}
+          ensAppUrl={ensAppUrl}
+          startVaultUrl={`/vaults/new/${encodeURIComponent(name)}`}
+        />
       ) : (
         <UnavailableRegistration
           ensAppUrl={ensAppUrl}
@@ -53,13 +56,15 @@ export const RegistrationSummary = ({ details, name }: RegistrationSummaryProps)
 const AvailableRegistration = ({
   details,
   ensAppUrl,
+  startVaultUrl,
 }: {
   details: EnsNameDetails;
   ensAppUrl: string;
+  startVaultUrl: string;
 }) => (
   <>
     <Card.Header className="pb-0">
-      <Card.Title>Register for one year</Card.Title>
+      <CardHeading>Register for one year</CardHeading>
     </Card.Header>
     <Card.Content>
       <div className="divide-y divide-dashed divide-default">
@@ -75,7 +80,7 @@ const AvailableRegistration = ({
 
       <div className="mt-2 grid grid-cols-2 gap-2.5">
         <Link
-          className="inline-flex min-h-10 items-center justify-center rounded-full bg-foreground px-3 text-center text-xs font-semibold text-background transition-opacity hover:opacity-85 sm:text-sm"
+          className={buttonVariants({ fullWidth: true, size: "sm", variant: "primary" })}
           href={`${ensAppUrl}/register`}
           rel="noreferrer"
           target="_blank"
@@ -83,8 +88,8 @@ const AvailableRegistration = ({
           Buy now (pay solo)
         </Link>
         <Link
-          className="inline-flex min-h-10 items-center justify-center rounded-full bg-surface px-3 text-center text-xs font-semibold text-foreground transition-colors hover:bg-surface-secondary sm:text-sm"
-          href={START_VAULT_URL}
+          className={buttonVariants({ fullWidth: true, size: "sm", variant: "secondary" })}
+          href={startVaultUrl}
         >
           Start a vault to buy
         </Link>
@@ -104,9 +109,9 @@ const UnavailableRegistration = ({
 }) => (
   <>
     <Card.Header>
-      <Card.Title>
+      <CardHeading>
         {isUnavailable ? "Not available to register" : "Availability unavailable"}
-      </Card.Title>
+      </CardHeading>
       <Card.Description>
         {isUnavailable
           ? `${name} is currently registered or unavailable through ENS.`
@@ -115,7 +120,7 @@ const UnavailableRegistration = ({
     </Card.Header>
     <Card.Content>
       <Link
-        className="inline-flex min-h-12 w-full items-center justify-center gap-1.5 rounded-full bg-foreground px-5 text-center text-sm font-semibold text-background transition-opacity hover:opacity-85"
+        className={buttonVariants({ fullWidth: true, size: "lg", variant: "primary" })}
         href={ensAppUrl}
         rel="noreferrer"
         target="_blank"
@@ -130,9 +135,9 @@ const UnavailableRegistration = ({
 const RegistrationSummarySkeleton = () => (
   <>
     <Card.Header>
-      <Card.Title>Checking availability</Card.Title>
+      <CardHeading>Checking availability</CardHeading>
       <Card.Description>
-        Reading the current registration state from Ethereum mainnet.
+        Reading the current registration state from {networkDisplayName}.
       </Card.Description>
     </Card.Header>
     <Card.Content>
@@ -219,7 +224,7 @@ const TotalPriceRow = ({
 };
 
 const EthPrice = ({ value }: { value: bigint | undefined }) => {
-  const eth = value === undefined ? undefined : Number(formatEther(value));
+  const eth = value === undefined ? undefined : weiToEth(value);
 
   return eth === undefined ? (
     <span>ETH unavailable</span>
@@ -245,18 +250,5 @@ const PremiumEndCountdown = ({
 
   if (isInPremium !== true || availableAt === undefined) return null;
 
-  return <span>premium gone in {formatPremiumCountdown(availableAt - now)}</span>;
-};
-
-const formatPremiumCountdown = (seconds: number) => {
-  if (seconds <= 0) return "now";
-
-  const days = Math.floor(seconds / SECONDS_PER_DAY);
-  const hours = Math.floor((seconds % SECONDS_PER_DAY) / SECONDS_PER_HOUR);
-  const minutes = Math.floor((seconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE);
-
-  if (days > 0) return `${days}d ${hours}h`;
-  if (hours > 0) return `${hours}h ${minutes}m`;
-  if (minutes > 0) return `${minutes}m`;
-  return "<1m";
+  return <span>premium gone in {formatCompactDuration(availableAt - now)}</span>;
 };

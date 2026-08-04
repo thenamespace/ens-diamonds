@@ -1,12 +1,5 @@
-import type { Metadata } from "next";
-
 import { LegalPage } from "@/components";
 import { termsContent } from "@/lib/legal";
-
-export const metadata: Metadata = {
-  title: "Terms of Service · ENS Diamonds",
-  description: "Terms governing use of the ENS Diamonds interface.",
-};
 
 export default function TermsPage() {
   return (
