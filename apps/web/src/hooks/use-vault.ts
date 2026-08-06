@@ -38,10 +38,9 @@ export type VaultState = (typeof VAULT_STATES)[number];
 
 export const useVault = (vaultId: Hex | undefined) => {
   const config = useConfig();
-  const isConfigured = Contracts.ensDiamonds.address !== zeroAddress;
 
   return useQuery({
-    enabled: isConfigured && vaultId !== undefined,
+    enabled: vaultId !== undefined,
     queryKey: ["vault", Contracts.ensDiamonds.address, vaultId],
     queryFn: async () => {
       if (!vaultId) throw new Error("Vault ID is required.");

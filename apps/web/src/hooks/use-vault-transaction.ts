@@ -5,11 +5,10 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import type { Address, Hex, TransactionReceipt } from "viem";
-import { zeroAddress } from "viem";
 import type { Config } from "wagmi";
 import { useAccount, useConfig, usePublicClient, useWriteContract } from "wagmi";
 
-import { activeChain, Contracts } from "@/lib/network";
+import { activeChain } from "@/lib/network";
 
 export type VaultTransactionProgress = "confirm-wallet" | "confirming-transaction" | null;
 
@@ -63,12 +62,7 @@ export const useVaultTransaction = <TVariables, TData, TResult>({
     onMutate: () => setProgress("confirm-wallet"),
     mutationFn: async (variables: TVariables) => {
       try {
-        if (
-          !account.address ||
-          account.chainId !== activeChain.id ||
-          !publicClient ||
-          Contracts.ensDiamonds.address === zeroAddress
-        ) {
+        if (!account.address || account.chainId !== activeChain.id || !publicClient) {
           throw new Error("Invalid transaction context.");
         }
 
