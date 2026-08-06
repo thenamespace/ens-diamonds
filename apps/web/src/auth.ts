@@ -10,13 +10,13 @@ const publicClient = createPublicClient({
   chain: activeChain,
   transport: http(),
 });
+const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
 
 export const authConfig = {
   providers: [
     Credentials({
       name: "Ethereum",
       credentials: {
-        csrfToken: { label: "CSRF token", type: "hidden" },
         message: { label: "Message", type: "text" },
         signature: { label: "Signature", type: "text" },
       },
@@ -31,9 +31,14 @@ export const authConfig = {
 
           const siweMessage = parseSiweMessage(message);
           const address = siweMessage.address;
-          const authUrl = process.env.AUTH_URL ?? process.env.NEXTAUTH_URL;
+          const authUrl =
+            process.env.AUTH_URL ??
+            process.env.NEXTAUTH_URL ??
+            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null);
           const csrfToken =
-            typeof credentials.csrfToken === "string" ? credentials.csrfToken : undefined;
+            "csrfToken" in credentials && typeof credentials.csrfToken === "string"
+              ? credentials.csrfToken
+              : undefined;
 
           if (
             !address ||
@@ -41,7 +46,6 @@ export const authConfig = {
             !csrfToken ||
             siweMessage.domain !== new URL(authUrl).host ||
             siweMessage.nonce !== csrfToken ||
-            siweMessage.chainId !== activeChain.id ||
             !validateSiweMessage({
               address: siweMessage.address,
               message: siweMessage,
@@ -70,6 +74,7 @@ export const authConfig = {
       return session;
     },
   },
+  ...(authSecret ? { secret: authSecret } : {}),
   session: {
     strategy: "jwt",
   },
