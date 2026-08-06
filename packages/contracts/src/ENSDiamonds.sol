@@ -16,12 +16,19 @@ import {ReentrancyGuardTransient} from "solady/utils/ReentrancyGuardTransient.so
 import {SafeCastLib} from "solady/utils/SafeCastLib.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
+/// @title ENS Diamonds
+/// @notice Permissionless escrow for groups acquiring an ENS name into a deterministic Safe.
+/// @dev Each vault has immutable owners and one acquisition attempt. The contract has no
+/// administrator, upgrade path, fees, or rescue function.
 contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     using SafeCastLib for uint256;
 
+    /// @notice Minimum number of owners in a vault and its Safe.
     uint256 public constant MIN_MEMBERS = 2;
+    /// @notice Maximum number of owners in a vault and its Safe.
     uint256 public constant MAX_MEMBERS = 10;
 
+    /// @notice Domain-separated type hash used to commit to a private acquisition target.
     bytes32 public constant TARGET_INTENT_TYPEHASH = keccak256(
         "ENSDiamondsTargetIntentV1(uint256 chainId,address protocol,bytes32 vaultId,address creator,bytes32 labelhash,uint32 registrationDuration,bytes32 targetSalt)"
     );
@@ -30,25 +37,40 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     bytes32 internal constant SAFE_SALT_DOMAIN = keccak256("ENS_DIAMONDS_SAFE_V1");
     address internal constant SAFE_SENTINEL = address(0x1);
 
+    /// @notice ENS Controller used for commitments, pricing, and registration.
     IENSDiamondsRegistrarController public immutable CONTROLLER;
+    /// @notice ENS Base Registrar used to verify the final registrant.
     IBaseRegistrar public immutable BASE_REGISTRAR;
+    /// @notice Safe singleton used by every deterministic Safe proxy.
     ISafe public immutable SAFE_SINGLETON;
+    /// @notice Factory used to deploy deterministic Safe proxies.
     SafeProxyFactory public immutable SAFE_PROXY_FACTORY;
+    /// @notice Fallback handler installed on every protocol-created Safe.
     address public immutable SAFE_FALLBACK_HANDLER;
 
     uint256 internal immutable MIN_COMMITMENT_AGE;
     uint256 internal immutable MAX_COMMITMENT_AGE;
     uint256 internal immutable MIN_REGISTRATION_DURATION;
+    /// @notice Init-code hash used to predict Safe proxy addresses.
     bytes32 public immutable SAFE_PROXY_INIT_CODE_HASH;
 
+    /// @inheritdoc IENSDiamonds
     mapping(bytes32 vaultId => Vault vault) public override vaults;
     mapping(bytes32 vaultId => address[] owners) internal ownersOf;
+    /// @inheritdoc IENSDiamonds
     mapping(bytes32 vaultId => mapping(address member => uint256 balance))
         public
         override balanceOf;
 
+    /// @inheritdoc IENSDiamonds
     uint256 public override totalLiabilities;
 
+    /// @notice Deploys ENS Diamonds for one fixed ENS Controller and Safe deployment stack.
+    /// @param controller_ ENS registration controller.
+    /// @param baseRegistrar_ ENS `.eth` Base Registrar.
+    /// @param safeSingleton_ Safe singleton implementation.
+    /// @param safeProxyFactory_ Safe proxy factory.
+    /// @param safeFallbackHandler_ Fallback handler installed on deployed Safes.
     constructor(
         IENSDiamondsRegistrarController controller_,
         IBaseRegistrar baseRegistrar_,
@@ -87,6 +109,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         );
     }
 
+    /// @inheritdoc IENSDiamonds
     function createVault(
         bytes32 vaultSalt,
         uint96 maxSpend,
@@ -141,6 +164,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         );
     }
 
+    /// @inheritdoc IENSDiamonds
     function deposit(bytes32 vaultId) external payable override {
         Vault storage vault = _vault(vaultId);
         _requireState(vault, State.Funding);
@@ -158,6 +182,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         emit Deposited(vaultId, msg.sender, msg.value);
     }
 
+    /// @inheritdoc IENSDiamonds
     function withdraw(bytes32 vaultId, uint256 amount, address payable recipient)
         external
         override
@@ -181,6 +206,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         SafeTransferLib.safeTransferETH(recipient, amount);
     }
 
+    /// @inheritdoc IENSDiamonds
     function cancel(bytes32 vaultId) external override {
         Vault storage vault = _vault(vaultId);
         if (msg.sender != vault.creator) revert Unauthorized();
@@ -190,6 +216,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         emit VaultCancelled(vaultId);
     }
 
+    /// @inheritdoc IENSDiamonds
     function beginAcquisition(bytes32 vaultId) external override nonReentrant {
         Vault storage vault = _vault(vaultId);
         if (msg.sender != vault.creator) revert Unauthorized();
@@ -230,6 +257,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         );
     }
 
+    /// @inheritdoc IENSDiamonds
     function purchase(
         bytes32 vaultId,
         string calldata normalizedLabel,
@@ -279,6 +307,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         _purchaseCommitted(vaultId, vault, labelhash, registration, config);
     }
 
+    /// @inheritdoc IENSDiamonds
     function expireAcquisition(bytes32 vaultId) external override nonReentrant {
         Vault storage vault = _vault(vaultId);
         _requireState(vault, State.Committed);
@@ -291,6 +320,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         emit AcquisitionExpired(vaultId);
     }
 
+    /// @inheritdoc IENSDiamonds
     function claim(bytes32 vaultId, address payable recipient) external override nonReentrant {
         Vault storage vault = _vault(vaultId);
         if (recipient == address(0)) revert InvalidAddress();
@@ -321,6 +351,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         SafeTransferLib.safeTransferETH(recipient, amount);
     }
 
+    /// @inheritdoc IENSDiamonds
     function predictSafe(address creator, bytes32 vaultSalt, address[] calldata owners)
         external
         view
@@ -338,6 +369,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         return (vaultId, config.predicted, config.threshold);
     }
 
+    /// @inheritdoc IENSDiamonds
     function getOwners(bytes32 vaultId) external view override returns (address[] memory owners) {
         _vault(vaultId);
         return ownersOf[vaultId];
