@@ -329,7 +329,9 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
             // The first claimant can finalize an expired acquisition as Failed.
             uint256 expiresAt = uint256(vault.committedAt) + MAX_COMMITMENT_AGE;
             // forge-lint: disable-next-line(block-timestamp)
-            if (block.timestamp < expiresAt) revert InvalidState(State.Committed);
+            if (block.timestamp < expiresAt) {
+                revert InvalidState(State.Committed);
+            }
 
             vault.state = State.Failed;
             emit AcquisitionExpired(vaultId);
@@ -428,7 +430,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
 
             if (contribution != 0) {
                 lastContributor = owner;
-                uint256 refund = contribution * surplus / funding;
+                uint256 refund = (contribution * surplus) / funding;
                 balanceOf[vaultId][owner] = refund;
                 allocated += refund;
             }
