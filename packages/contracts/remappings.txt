@@ -1,1 +1,10 @@
+@safe-global/safe-smart-account/=lib/safe-smart-account/
+@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
+ens-contracts/=lib/ens-contracts/contracts/
 forge-std/=lib/forge-std/src/
+safe-smart-account/=lib/safe-smart-account/
+solady/=lib/solady/src/
+
+@ensdomains/ens-contracts/=lib/ens-contracts/contracts/
+src/=src/
+test/=test/

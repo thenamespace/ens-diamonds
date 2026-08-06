@@ -1,0 +1,25 @@
+{
+  "name": "@ens-diamonds/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "build": "forge build",
+    "check": "pnpm format:check && pnpm lint && pnpm build && pnpm test",
+    "clean": "forge clean",
+    "format": "forge fmt",
+    "format:check": "forge fmt --check",
+    "lint": "forge fmt --check && forge lint",
+    "snapshot": "forge snapshot --no-match-path 'test/fork/*.t.sol'",
+    "test": "forge test --no-match-path 'test/fork/*.t.sol'",
+    "test:coverage": "forge coverage -D never --no-match-path 'test/fork/*.t.sol' --report summary",
+    "test:fork": "forge test --match-path 'test/fork/ENSDiamondsFork.t.sol' -vv",
+    "test:fork:mainnet": "forge test --match-contract MainnetForkTest -vv",
+    "test:fork:sepolia": "forge test --match-contract SepoliaForkTest -vv",
+    "test:fuzz": "forge test --match-path 'test/fuzz/*.t.sol'",
+    "test:gas": "FOUNDRY_PROFILE=gas forge test --no-match-path 'test/fork/*.t.sol'",
+    "test:integration": "forge test --match-path 'test/integration/*.t.sol'",
+    "test:invariant": "forge test --match-path 'test/invariant/*.t.sol'",
+    "test:unit": "forge test --match-path 'test/unit/*.t.sol'",
+    "typecheck": "forge build"
+  }
+}

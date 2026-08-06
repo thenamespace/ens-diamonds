@@ -1,23 +1,56 @@
 [profile.default]
 src = "src"
+test = "test"
+script = "script"
 out = "out"
 libs = ["lib"]
-test = "test"
-solc_version = "0.8.24"
+solc_version = "0.8.36"
+auto_detect_solc = false
+evm_version = "cancun"
 optimizer = true
 optimizer_runs = 200
 via_ir = false
-ffi = false
-fs_permissions = [{ access = "read", path = "./" }]
+deny = "warnings"
+ignored_error_codes = [
+  "license",
+  "code-size",
+  "init-code-size",
+  "transient-storage",
+  "transfer-deprecated",
+  "natspec-memory-safe-assembly-deprecated",
+  "too-many-warnings",
+]
+ignored_warnings_from = ["lib"]
+no_match_coverage = "^(test|script)/"
+fs_permissions = [{ access = "read", path = "out" }, { access = "read", path = "test/fork/config" }]
 
 [fuzz]
-runs = 256
+runs = 1000
 
 [invariant]
-runs = 64
-depth = 32
+runs = 256
+depth = 64
 fail_on_revert = false
+show_metrics = true
+
+[profile.gas]
+gas_reports = ["*"]
+
+[fmt]
+line_length = 100
+tab_width = 4
+bracket_spacing = false
+multiline_func_header = "attributes_first"
+sort_imports = true
+
+[lint]
+severity = ["high", "med", "low", "info", "gas", "code-size"]
+ignore = ["lib/**/*"]
 
 [rpc_endpoints]
-mainnet = "${MAINNET_RPC_URL}"
-sepolia = "${SEPOLIA_RPC_URL}"
+mainnet = "${ETHEREUM_MAINNET_RPC_URL}"
+sepolia = "${ETHEREUM_SEPOLIA_RPC_URL}"
+
+[etherscan]
+mainnet = { key = "${ETHERSCAN_API_KEY}" }
+sepolia = { key = "${ETHERSCAN_API_KEY}" }
