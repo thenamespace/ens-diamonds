@@ -1,5 +1,4 @@
 import { addresses } from "@ensdomains/ensjs/contracts";
-import { zeroAddress } from "viem";
 import { mainnet, sepolia } from "viem/chains";
 
 import { ensDiamondsAbi, ethPriceFeedAbi } from "./abi";
@@ -18,7 +17,7 @@ export const ContractSets = {
   mainnet: {
     ensDiamonds: {
       abi: ensDiamondsAbi,
-      address: zeroAddress,
+      address: "0xb1A022bD260e22e0A767fB7f6324D1C721AF44b9",
     },
     ensBaseRegistrar: {
       address: addresses[mainnet.id].ensBaseRegistrarImplementation.address,
