@@ -11,6 +11,7 @@ cache/
 coverage/
 dist/
 out/
+generated/
 
 # Environment files
 .env
@@ -35,9 +36,11 @@ pnpm-debug.log*
 # Test and tooling caches
 .cache/
 .nyc_output/
+.latest.json
+packages/subgraph/tests/.bin/
 
 
-## Foundry Specific
+# Foundry
 dependencies/
 out/
 cache/
@@ -55,3 +58,5 @@ gas-report.*
 *.temp
 
 broadcast/**/31337
+typechain
+typechain-types

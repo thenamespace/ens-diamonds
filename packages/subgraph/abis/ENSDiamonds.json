@@ -1,0 +1,567 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "contract IENSDiamondsRegistrarController",
+        "name": "controller_",
+        "type": "address"
+      },
+      {
+        "internalType": "contract IBaseRegistrar",
+        "name": "baseRegistrar_",
+        "type": "address"
+      },
+      {
+        "internalType": "contract ISafe",
+        "name": "safeSingleton_",
+        "type": "address"
+      },
+      {
+        "internalType": "contract SafeProxyFactory",
+        "name": "safeProxyFactory_",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "safeFallbackHandler_",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "constructor"
+  },
+  { "inputs": [], "name": "CommitmentAtBoundary", "type": "error" },
+  { "inputs": [], "name": "CommitmentChanged", "type": "error" },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "expiredAt", "type": "uint256" }],
+    "name": "CommitmentExpired",
+    "type": "error"
+  },
+  { "inputs": [], "name": "CommitmentMismatch", "type": "error" },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "expiresAt", "type": "uint256" }],
+    "name": "CommitmentNotExpired",
+    "type": "error"
+  },
+  {
+    "inputs": [{ "internalType": "uint256", "name": "validAt", "type": "uint256" }],
+    "name": "CommitmentTooYoung",
+    "type": "error"
+  },
+  { "inputs": [], "name": "DirectETHNotAccepted", "type": "error" },
+  { "inputs": [], "name": "ENSVerificationFailed", "type": "error" },
+  { "inputs": [], "name": "ETHTransferFailed", "type": "error" },
+  { "inputs": [], "name": "FundingLimitExceeded", "type": "error" },
+  { "inputs": [], "name": "InsufficientBalance", "type": "error" },
+  {
+    "inputs": [
+      { "internalType": "uint256", "name": "price", "type": "uint256" },
+      { "internalType": "uint256", "name": "escrowed", "type": "uint256" }
+    ],
+    "name": "InsufficientFunding",
+    "type": "error"
+  },
+  { "inputs": [], "name": "InvalidAddress", "type": "error" },
+  { "inputs": [], "name": "InvalidAmount", "type": "error" },
+  { "inputs": [], "name": "InvalidConfiguration", "type": "error" },
+  {
+    "inputs": [{ "internalType": "address", "name": "dependency", "type": "address" }],
+    "name": "InvalidContract",
+    "type": "error"
+  },
+  { "inputs": [], "name": "InvalidOwners", "type": "error" },
+  {
+    "inputs": [
+      {
+        "internalType": "enum IENSDiamonds.State",
+        "name": "current",
+        "type": "uint8"
+      }
+    ],
+    "name": "InvalidState",
+    "type": "error"
+  },
+  { "inputs": [], "name": "NotMember", "type": "error" },
+  { "inputs": [], "name": "NothingToClaim", "type": "error" },
+  { "inputs": [], "name": "Reentrancy", "type": "error" },
+  { "inputs": [], "name": "SafeVerificationFailed", "type": "error" },
+  { "inputs": [], "name": "TargetMismatch", "type": "error" },
+  { "inputs": [], "name": "Unauthorized", "type": "error" },
+  { "inputs": [], "name": "VaultAlreadyExists", "type": "error" },
+  { "inputs": [], "name": "VaultNotFound", "type": "error" },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "vaultId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "ensCommitment",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "predictedSafe",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "committedAt",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "threshold",
+        "type": "uint256"
+      }
+    ],
+    "name": "AcquisitionCommitted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "vaultId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "AcquisitionExpired",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "vaultId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "member",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "Claimed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "vaultId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "member",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "Deposited",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "vaultId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "labelhash",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "safe",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "protocolPrice",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "refundableBalance",
+        "type": "uint256"
+      }
+    ],
+    "name": "NameAcquired",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "vaultId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "VaultCancelled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "vaultId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint96",
+        "name": "maxSpend",
+        "type": "uint96"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint32",
+        "name": "registrationDuration",
+        "type": "uint32"
+      },
+      {
+        "indexed": false,
+        "internalType": "address[]",
+        "name": "owners",
+        "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "targetIntent",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "ensCommitment",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "creatorDeposit",
+        "type": "uint256"
+      }
+    ],
+    "name": "VaultCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "vaultId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "member",
+        "type": "address"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      }
+    ],
+    "name": "Withdrawn",
+    "type": "event"
+  },
+  { "stateMutability": "payable", "type": "fallback" },
+  {
+    "inputs": [],
+    "name": "BASE_REGISTRAR",
+    "outputs": [
+      {
+        "internalType": "contract IBaseRegistrar",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "CONTROLLER",
+    "outputs": [
+      {
+        "internalType": "contract IENSDiamondsRegistrarController",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MAX_MEMBERS",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MIN_MEMBERS",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "SAFE_FALLBACK_HANDLER",
+    "outputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "SAFE_PROXY_FACTORY",
+    "outputs": [
+      {
+        "internalType": "contract SafeProxyFactory",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "SAFE_PROXY_INIT_CODE_HASH",
+    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "SAFE_SINGLETON",
+    "outputs": [{ "internalType": "contract ISafe", "name": "", "type": "address" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "TARGET_INTENT_TYPEHASH",
+    "outputs": [{ "internalType": "bytes32", "name": "", "type": "bytes32" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "vaultId", "type": "bytes32" },
+      { "internalType": "address", "name": "member", "type": "address" }
+    ],
+    "name": "balanceOf",
+    "outputs": [{ "internalType": "uint256", "name": "balance", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "vaultId", "type": "bytes32" }],
+    "name": "beginAcquisition",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "vaultId", "type": "bytes32" }],
+    "name": "cancel",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "vaultId", "type": "bytes32" },
+      {
+        "internalType": "address payable",
+        "name": "recipient",
+        "type": "address"
+      }
+    ],
+    "name": "claim",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "vaultSalt", "type": "bytes32" },
+      { "internalType": "uint96", "name": "maxSpend", "type": "uint96" },
+      {
+        "internalType": "uint32",
+        "name": "registrationDuration",
+        "type": "uint32"
+      },
+      { "internalType": "address[]", "name": "owners", "type": "address[]" },
+      { "internalType": "bytes32", "name": "targetIntent", "type": "bytes32" },
+      { "internalType": "bytes32", "name": "ensCommitment", "type": "bytes32" }
+    ],
+    "name": "createVault",
+    "outputs": [{ "internalType": "bytes32", "name": "vaultId", "type": "bytes32" }],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "vaultId", "type": "bytes32" }],
+    "name": "deposit",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "vaultId", "type": "bytes32" }],
+    "name": "expireAcquisition",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "vaultId", "type": "bytes32" }],
+    "name": "getOwners",
+    "outputs": [{ "internalType": "address[]", "name": "owners", "type": "address[]" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "address", "name": "creator", "type": "address" },
+      { "internalType": "bytes32", "name": "vaultSalt", "type": "bytes32" },
+      { "internalType": "address[]", "name": "owners", "type": "address[]" }
+    ],
+    "name": "predictSafe",
+    "outputs": [
+      { "internalType": "bytes32", "name": "vaultId", "type": "bytes32" },
+      { "internalType": "address", "name": "safe", "type": "address" },
+      { "internalType": "uint256", "name": "threshold", "type": "uint256" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "vaultId", "type": "bytes32" },
+      { "internalType": "string", "name": "normalizedLabel", "type": "string" },
+      { "internalType": "bytes32", "name": "targetSalt", "type": "bytes32" },
+      { "internalType": "bytes32", "name": "ensSecret", "type": "bytes32" }
+    ],
+    "name": "purchase",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalLiabilities",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "vaultId", "type": "bytes32" }],
+    "name": "vaults",
+    "outputs": [
+      { "internalType": "address", "name": "creator", "type": "address" },
+      { "internalType": "uint96", "name": "escrowed", "type": "uint96" },
+      { "internalType": "uint96", "name": "maxSpend", "type": "uint96" },
+      { "internalType": "uint40", "name": "committedAt", "type": "uint40" },
+      {
+        "internalType": "uint32",
+        "name": "registrationDuration",
+        "type": "uint32"
+      },
+      {
+        "internalType": "enum IENSDiamonds.State",
+        "name": "state",
+        "type": "uint8"
+      },
+      { "internalType": "bytes32", "name": "targetIntent", "type": "bytes32" },
+      { "internalType": "bytes32", "name": "ensCommitment", "type": "bytes32" }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      { "internalType": "bytes32", "name": "vaultId", "type": "bytes32" },
+      { "internalType": "uint256", "name": "amount", "type": "uint256" },
+      {
+        "internalType": "address payable",
+        "name": "recipient",
+        "type": "address"
+      }
+    ],
+    "name": "withdraw",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  { "stateMutability": "payable", "type": "receive" }
+]

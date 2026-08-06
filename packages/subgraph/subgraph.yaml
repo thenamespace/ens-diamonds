@@ -1,0 +1,47 @@
+specVersion: 1.3.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: ENSDiamonds
+    network: mainnet
+    source:
+      address: "0xb1A022bD260e22e0A767fB7f6324D1C721AF44b9"
+      abi: ENSDiamonds
+      startBlock: 25692866
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.9
+      language: wasm/assemblyscript
+      entities:
+        - AcquisitionCommitted
+        - AcquisitionExpired
+        - Claimed
+        - Deposited
+        - NameAcquired
+        - VaultCancelled
+        - VaultCreated
+        - Withdrawn
+      abis:
+        - name: ENSDiamonds
+          file: ./abis/ENSDiamonds.json
+      eventHandlers:
+        - event: AcquisitionCommitted(indexed bytes32,bytes32,indexed address,uint256,uint256)
+          handler: handleAcquisitionCommitted
+        - event: AcquisitionExpired(indexed bytes32)
+          handler: handleAcquisitionExpired
+        - event: Claimed(indexed bytes32,indexed address,indexed address,uint256)
+          handler: handleClaimed
+        - event: Deposited(indexed bytes32,indexed address,uint256)
+          handler: handleDeposited
+        - event: NameAcquired(indexed bytes32,indexed bytes32,indexed address,uint256,uint256)
+          handler: handleNameAcquired
+        - event: VaultCancelled(indexed bytes32)
+          handler: handleVaultCancelled
+        - event: VaultCreated(indexed bytes32,indexed address,uint96,uint32,address[],bytes32,bytes32,uint256)
+          handler: handleVaultCreated
+        - event: Withdrawn(indexed bytes32,indexed address,indexed address,uint256)
+          handler: handleWithdrawn
+      file: ./src/ens-diamonds.ts
