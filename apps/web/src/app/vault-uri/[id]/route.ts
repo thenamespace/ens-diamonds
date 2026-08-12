@@ -4,10 +4,11 @@ import { NextResponse } from "next/server";
 import type { Hex } from "viem";
 
 import { getVaultUri } from "@/db/actions";
+import { SITE_URL } from "@/lib/seo";
 
 const VAULT_ID_PATTERN = /^0x[\da-fA-F]{64}$/;
 
-export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!VAULT_ID_PATTERN.test(id)) {
     return NextResponse.json({ error: "Invalid vault ID." }, { status: 400 });
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     {
       name: metadata.name,
       description: metadata.description,
-      external_url: new URL(`/vaults/${id}`, request.url).toString(),
+      external_url: `${SITE_URL}/vaults/${id}`,
     },
     { headers: { "Cache-Control": "public, max-age=60, s-maxage=3600" } },
   );

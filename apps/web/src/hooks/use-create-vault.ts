@@ -20,6 +20,7 @@ import { readContracts } from "wagmi/actions";
 import { createVault as saveVault } from "@/db/actions";
 import { ensDiamondsAbi } from "@/lib/abi";
 import { activeChain, Contracts } from "@/lib/network";
+import { SITE_URL } from "@/lib/seo";
 
 import { useVaultTransaction, type VaultTransactionProgress } from "./use-vault-transaction";
 
@@ -101,7 +102,7 @@ export const useCreateVault = () => {
       if (!isAvailable) throw new Error("ENS name is unavailable.");
 
       const [predictedVaultId, predictedSafe, threshold] = prediction;
-      const vaultUri = `${window.location.origin}/vault-uri/${predictedVaultId}`;
+      const vaultUri = `${SITE_URL}/vault-uri/${predictedVaultId}`;
       const targetIntent = keccak256(
         encodeAbiParameters(TARGET_INTENT_PARAMETERS, [
           targetIntentTypehash,
