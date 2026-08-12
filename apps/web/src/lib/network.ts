@@ -50,4 +50,5 @@ export const ContractSets = {
 
 export const activeChain = NetworkChains[appNetwork];
 export const Contracts = ContractSets[appNetwork];
+export const mainnetContractUrl = `${mainnet.blockExplorers.default.url}/address/${ContractSets.mainnet.ensDiamonds.address}`;
 export const networkDisplayName = appNetwork === "testnet" ? "Sepolia testnet" : "Ethereum mainnet";

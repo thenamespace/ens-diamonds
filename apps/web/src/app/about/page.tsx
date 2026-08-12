@@ -1,11 +1,11 @@
 import Image from "next/image";
 import NextLink from "next/link";
 
-import { buttonVariants, ExternalLinkIcon, Link, Typography } from "@thenamespace/uikit";
+import { buttonVariants, Link, Typography } from "@thenamespace/uikit";
+import { ArrowUpRight01Icon, HugeiconsIcon } from "@thenamespace/uikit/icons";
 
 import { AboutFaq, AboutTimeline } from "@/components/about";
-
-const EXTERNAL_LINK = "https://example.com";
+import { mainnetContractUrl } from "@/lib/network";
 
 export default function AboutPage() {
   return (
@@ -100,13 +100,18 @@ export default function AboutPage() {
               Read Risks
             </NextLink>
             <Link
-              className={buttonVariants({ size: "md", variant: "secondary" })}
-              href={EXTERNAL_LINK}
+              className={`${buttonVariants({ size: "md", variant: "secondary" })} gap-2`}
+              href={mainnetContractUrl}
               rel="noreferrer"
               target="_blank"
             >
               View Contract
-              <ExternalLinkIcon aria-hidden className="size-3 opacity-60" />
+              <HugeiconsIcon
+                aria-hidden
+                className="size-3 opacity-60"
+                icon={ArrowUpRight01Icon}
+                strokeWidth={1.5}
+              />
             </Link>
           </div>
         </div>

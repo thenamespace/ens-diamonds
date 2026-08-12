@@ -8,12 +8,12 @@ import {
   SuccessIcon,
   Typography,
 } from "@thenamespace/uikit";
+import { ArrowUpRight01Icon, HugeiconsIcon } from "@thenamespace/uikit/icons";
 
-import { activeChain, Contracts } from "@/lib/network";
+import { mainnetContractUrl } from "@/lib/network";
 
 const REPOSITORY_URL = "https://github.com/thenamespace/ens-diamonds";
 const AUDIT_REPORTS_URL = `${REPOSITORY_URL}/tree/main/audits`;
-const CONTRACT_URL = `${activeChain.blockExplorers.default.url}/address/${Contracts.ensDiamonds.address}`;
 
 type FooterLink = {
   external?: boolean;
@@ -33,7 +33,7 @@ const linkGroups = [
   {
     label: "Protocol",
     links: [
-      { external: true, href: CONTRACT_URL, label: "ENS Diamonds contract" },
+      { external: true, href: mainnetContractUrl, label: "ENS Diamonds contract" },
       { external: true, href: "https://app.ens.domains/", label: "ENS app" },
       { external: true, href: "https://app.safe.global/", label: "Safe" },
       { external: true, href: "https://resolvio.xyz/", label: "Resolvio" },
@@ -73,14 +73,19 @@ export const AppFooter = () => (
           </Typography.Paragraph>
 
           <Link
-            className={`${buttonVariants({ size: "sm", variant: "secondary" })} mt-6 w-fit`}
+            className={`${buttonVariants({ size: "sm", variant: "secondary" })} mt-6 w-fit gap-2`}
             href={AUDIT_REPORTS_URL}
             rel="noreferrer"
             target="_blank"
           >
             <SuccessIcon aria-hidden className="size-4 text-success" />
             Audit reports
-            <ExternalLinkIcon aria-hidden className="size-2.5 opacity-60" />
+            <HugeiconsIcon
+              aria-hidden
+              className="size-3 opacity-60"
+              icon={ArrowUpRight01Icon}
+              strokeWidth={1.5}
+            />
           </Link>
         </div>
 
