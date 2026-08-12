@@ -13,6 +13,7 @@ type VaultSidebarProps = {
   error: string | undefined;
   initialContribution: string;
   isConnected: boolean;
+  isPublic: boolean;
   isPending: boolean;
   maxSpend: string;
   name: string;
@@ -26,6 +27,7 @@ export const VaultSidebar = ({
   error,
   initialContribution,
   isConnected,
+  isPublic,
   isPending,
   maxSpend,
   name,
@@ -75,12 +77,13 @@ export const VaultSidebar = ({
         <div className="divide-y divide-default">
           <SummaryRow label="Owners" value={`${ownerCount} addresses`} />
           <SummaryRow label="Approval required" value={`${threshold} of ${ownerCount}`} />
-          <SummaryAmount label="Maximum spend" value={maxSpend} />
+          <SummaryAmount label="Target amount" value={maxSpend} />
           <SummaryAmount label="Your contribution" value={initialContribution} />
           <SummaryRow
             label="Registration"
             value={`${registrationYears} ${registrationYears === 1 ? "year" : "years"}`}
           />
+          <SummaryRow label="Visibility" value={isPublic ? "Public" : "Private"} />
         </div>
 
         <div className="mt-5">

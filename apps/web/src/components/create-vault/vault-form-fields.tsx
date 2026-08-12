@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, type ReactNode } from "react";
 
 import {
   Description,
@@ -8,8 +8,11 @@ import {
   InputGroup,
   InfoIcon,
   Label,
+  NumberField,
   NumberStepper,
   NumberValue,
+  Switch,
+  TextArea,
   TextField,
   Tooltip,
 } from "@thenamespace/uikit";
@@ -27,6 +30,7 @@ const USD_FORMAT_OPTIONS: Intl.NumberFormatOptions = {
   style: "currency",
 };
 const MAX_SPEND_RULES = { validate: validatePositiveEth };
+const ETH_FORMAT_OPTIONS = { maximumFractionDigits: 18, useGrouping: false } as const;
 
 type FormFieldProps = {
   control: Control<VaultFormValues>;
@@ -54,8 +58,8 @@ export const MaximumSpendField = ({
       error={fieldState.error?.message}
       field={field}
       isInvalid={fieldState.invalid}
-      label="Maximum spend"
-      tooltip="The most ETH this vault may raise or spend on the name."
+      label="Target amount"
+      tooltip="The total ETH the group plans to raise and may spend on the name."
     />
   );
 };
@@ -130,26 +134,124 @@ const EthAmountField = ({
   isInvalid,
   label,
   tooltip,
-}: EthAmountFieldProps) => (
-  <TextField
-    isRequired
-    className="min-w-0 w-full"
-    isInvalid={isInvalid}
-    name={field.name}
-    variant="secondary"
-    value={String(field.value)}
-    onBlur={field.onBlur}
-    onChange={field.onChange}
-  >
-    <FieldLabel label={label} tooltip={tooltip} />
-    <InputGroup fullWidth className="min-w-0">
-      <InputGroup.Input ref={field.ref} autoComplete="off" inputMode="decimal" placeholder="0.00" />
-      <InputGroup.Suffix>ETH</InputGroup.Suffix>
-    </InputGroup>
-    {error ? <FieldError>{error}</FieldError> : null}
-    {description ? <Description>{description}</Description> : null}
-  </TextField>
-);
+}: EthAmountFieldProps) => {
+  const handleChange = useCallback(
+    (value: number) => field.onChange(Number.isNaN(value) ? "" : String(value)),
+    [field],
+  );
+
+  return (
+    <NumberField
+      isRequired
+      className="min-w-0 w-full"
+      formatOptions={ETH_FORMAT_OPTIONS}
+      isInvalid={isInvalid}
+      minValue={0}
+      name={field.name}
+      variant="secondary"
+      value={Number(field.value)}
+      onBlur={field.onBlur}
+      onChange={handleChange}
+    >
+      <FieldLabel label={label} tooltip={tooltip} />
+      <NumberField.Group>
+        <NumberField.Input
+          ref={field.ref}
+          autoComplete="off"
+          inputMode="decimal"
+          placeholder="0.00"
+        />
+        <span className="px-3 text-sm text-muted">ETH</span>
+      </NumberField.Group>
+      {error ? <FieldError>{error}</FieldError> : null}
+      {description ? <Description>{description}</Description> : null}
+    </NumberField>
+  );
+};
+
+export const VaultMetadataFields = ({ control }: FormFieldProps) => {
+  const name = useController({
+    control,
+    name: "vaultName",
+    rules: {
+      required: "Enter a public vault name.",
+      maxLength: { value: 80, message: "Use 80 characters or fewer." },
+    },
+  });
+  const description = useController({
+    control,
+    name: "description",
+    rules: {
+      required: "Enter a short description.",
+      maxLength: { value: 500, message: "Use 500 characters or fewer." },
+    },
+  });
+  const visibility = useController({ control, name: "isPublic" });
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-5 sm:grid-cols-2">
+        <TextField
+          isRequired
+          isInvalid={name.fieldState.invalid}
+          variant="secondary"
+          value={name.field.value}
+          onBlur={name.field.onBlur}
+          onChange={name.field.onChange}
+        >
+          <FieldLabel
+            label="Vault name"
+            tooltip="A public title for this vault. It does not reveal the ENS name being targeted."
+          />
+          <InputGroup fullWidth>
+            <InputGroup.Input
+              ref={name.field.ref}
+              maxLength={80}
+              placeholder="Community name vault"
+            />
+          </InputGroup>
+          {name.fieldState.error ? <FieldError>{name.fieldState.error.message}</FieldError> : null}
+        </TextField>
+
+        <TextField
+          isRequired
+          isInvalid={description.fieldState.invalid}
+          variant="secondary"
+          value={description.field.value}
+          onBlur={description.field.onBlur}
+          onChange={description.field.onChange}
+        >
+          <FieldLabel
+            label="Description"
+            tooltip="A public summary shown in vault discovery and metadata."
+          />
+          <TextArea
+            ref={description.field.ref}
+            className="min-h-20"
+            maxLength={500}
+            placeholder="Pooling ETH to acquire an ENS name together."
+          />
+          {description.fieldState.error ? (
+            <FieldError>{description.fieldState.error.message}</FieldError>
+          ) : null}
+        </TextField>
+      </div>
+
+      <Switch isSelected={visibility.field.value} onChange={visibility.field.onChange}>
+        <Switch.Content>
+          <span className="text-sm font-medium">List this vault publicly</span>
+          <Switch.Control>
+            <Switch.Thumb />
+          </Switch.Control>
+        </Switch.Content>
+      </Switch>
+      <Description>
+        Public vaults appear in discovery using only this title and description. Acquisition secrets
+        remain encrypted.
+      </Description>
+    </div>
+  );
+};
 
 export const FieldLabel = ({ label, tooltip }: { label: string; tooltip: string }) => (
   <div className="flex items-center gap-1.5">

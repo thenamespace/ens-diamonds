@@ -33,6 +33,11 @@ export type CreateVaultVariables = {
   maxSpend: bigint;
   registrationDuration: number;
   initialContribution: bigint;
+  isPublic: boolean;
+  metadata: {
+    name: string;
+    description: string;
+  };
 };
 
 export type CreateVaultProgress = VaultTransactionProgress;
@@ -44,6 +49,8 @@ type CreateVaultTransactionData = {
   predictedSafe: Address;
   targetSalt: Hex;
   threshold: bigint;
+  isPublic: boolean;
+  metadata: CreateVaultVariables["metadata"];
 };
 
 export const useCreateVault = () => {
@@ -94,6 +101,7 @@ export const useCreateVault = () => {
       if (!isAvailable) throw new Error("ENS name is unavailable.");
 
       const [predictedVaultId, predictedSafe, threshold] = prediction;
+      const vaultUri = `${window.location.origin}/vault-uri/${predictedVaultId}`;
       const targetIntent = keccak256(
         encodeAbiParameters(TARGET_INTENT_PARAMETERS, [
           targetIntentTypehash,
@@ -127,13 +135,23 @@ export const useCreateVault = () => {
           owners,
           targetIntent,
           ensCommitment,
+          vaultUri,
         ],
         value: variables.initialContribution,
       });
       const transactionHash = await writeContractAsync(simulation.request);
 
       return {
-        data: { ensSecret, label, owners, predictedSafe, targetSalt, threshold },
+        data: {
+          ensSecret,
+          isPublic: variables.isPublic,
+          label,
+          metadata: variables.metadata,
+          owners,
+          predictedSafe,
+          targetSalt,
+          threshold,
+        },
         transactionHash,
       };
     },
@@ -151,6 +169,8 @@ export const useCreateVault = () => {
       await saveVault({
         creatorAddress: account,
         memberAddresses: data.owners,
+        isPublic: data.isPublic,
+        metadata: data.metadata,
         secrets: {
           ensSecret: data.ensSecret,
           label: data.label,

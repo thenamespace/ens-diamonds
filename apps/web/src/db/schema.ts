@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   pgTable,
@@ -22,10 +23,19 @@ export const vaultsTable = pgTable(
     vaultId: varchar("vault_id", { length: 66 }).$type<Hex>().notNull(),
     creatorAddress: varchar("creator_address", { length: 42 }).$type<Address>().notNull(),
     encryptedData: text("encrypted_data").notNull(),
+    isPublic: boolean("is_public").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [uniqueIndex("vaults_network_vault_uidx").on(table.network, table.vaultId)],
 );
+
+export const vaultUrisTable = pgTable("vault_uris", {
+  vaultRecordId: uuid("vault_record_id")
+    .primaryKey()
+    .references(() => vaultsTable.id, { onDelete: "cascade" }),
+  name: varchar("name", { length: 80 }).notNull(),
+  description: varchar("description", { length: 500 }).notNull(),
+});
 
 export const vaultMembersTable = pgTable(
   "vault_members",
@@ -45,5 +55,20 @@ export const vaultMembersTable = pgTable(
   ],
 );
 
+export const favouritesTable = pgTable(
+  "favourites",
+  {
+    network: varchar("network", { length: 7 }).$type<AppNetwork>().notNull(),
+    address: varchar("address", { length: 42 }).$type<Address>().notNull(),
+    label: varchar("label", { length: 255 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ name: "favourites_pk", columns: [table.network, table.address, table.label] }),
+    index("favourites_network_label_idx").on(table.network, table.label),
+  ],
+);
+
 export type Vault = typeof vaultsTable.$inferSelect;
 export type VaultMember = typeof vaultMembersTable.$inferSelect;
+export type VaultUri = typeof vaultUrisTable.$inferSelect;

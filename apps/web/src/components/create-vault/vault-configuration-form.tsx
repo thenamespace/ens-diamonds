@@ -21,12 +21,16 @@ import {
   InitialContributionField,
   MaximumSpendField,
   RegistrationDurationField,
+  VaultMetadataFields,
 } from "./vault-form-fields";
 import { CREATE_VAULT_FORM_ID, MAX_OWNERS, type VaultFormValues } from "./vault-form-types";
 import { VaultSidebar } from "./vault-sidebar";
 
 const DEFAULT_VALUES: VaultFormValues = {
   owners: [{ address: "" }, { address: "" }],
+  vaultName: "",
+  description: "",
+  isPublic: true,
   maxSpend: "",
   registrationYears: 1,
   initialContribution: "0",
@@ -48,9 +52,9 @@ export const VaultConfigurationForm = ({ label }: VaultConfigurationFormProps) =
   });
   const { control, formState, getValues, handleSubmit, reset, setValue, trigger } = form;
   const { fields, append, remove } = useFieldArray({ control, name: "owners" });
-  const [maxSpend, registrationYears, initialContribution] = useWatch({
+  const [maxSpend, registrationYears, initialContribution, isPublic] = useWatch({
     control,
-    name: ["maxSpend", "registrationYears", "initialContribution"],
+    name: ["maxSpend", "registrationYears", "initialContribution", "isPublic"],
   });
   const ethPrice = useEthPrice();
 
@@ -73,8 +77,13 @@ export const VaultConfigurationForm = ({ label }: VaultConfigurationFormProps) =
     try {
       const result = await createVault.mutateAsync({
         initialContribution: parseEther(values.initialContribution),
+        isPublic: values.isPublic,
         label,
         maxSpend: parseEther(values.maxSpend),
+        metadata: {
+          name: values.vaultName.trim(),
+          description: values.description.trim(),
+        },
         owners: values.owners.map(({ address }) => address as Address),
         registrationDuration: values.registrationYears * SECONDS_PER_YEAR,
       });
@@ -122,6 +131,8 @@ export const VaultConfigurationForm = ({ label }: VaultConfigurationFormProps) =
             </Card.Description>
           </Card.Header>
           <Card.Content className="space-y-8">
+            <VaultMetadataFields control={control} />
+
             <Fieldset>
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -190,6 +201,7 @@ export const VaultConfigurationForm = ({ label }: VaultConfigurationFormProps) =
         ownerCount={ownerCount}
         progress={createVault.progress}
         registrationYears={registrationYears}
+        isPublic={isPublic}
         threshold={threshold}
       />
     </div>
