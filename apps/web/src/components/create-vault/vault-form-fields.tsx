@@ -164,7 +164,6 @@ const EthAmountField = ({
           inputMode="decimal"
           placeholder="0.00"
         />
-        <span className="px-2 text-xs font-medium text-muted">ETH</span>
         <NumberField.IncrementButton aria-label={`Increase ${label.toLowerCase()}`} />
       </NumberField.Group>
       {error ? <FieldError>{error}</FieldError> : null}
@@ -202,7 +201,7 @@ export const VaultMetadataFields = ({ control }: FormFieldProps) => {
       >
         <FieldLabel
           label="Vault name"
-          tooltip="A public title for this vault. It does not reveal the ENS name being targeted."
+          tooltip="This name and description are public when the vault is listed. To keep the target private, do not include the ENS name in either field."
         />
         <InputGroup fullWidth>
           <InputGroup.Input
@@ -245,8 +244,12 @@ export const VaultVisibilityField = ({ control }: FormFieldProps) => {
 
   return (
     <div>
-      <Switch isSelected={visibility.field.value} onChange={visibility.field.onChange}>
-        <Switch.Content>
+      <Switch
+        className="w-full"
+        isSelected={visibility.field.value}
+        onChange={visibility.field.onChange}
+      >
+        <Switch.Content className="w-full justify-between">
           <span className="text-sm font-medium">List this vault publicly</span>
           <Switch.Control>
             <Switch.Thumb />
@@ -268,7 +271,9 @@ export const FieldLabel = ({ label, tooltip }: { label: string; tooltip: string 
       <Tooltip.Trigger aria-label={`About ${label}`} className="text-muted">
         <InfoIcon className="size-3.5" />
       </Tooltip.Trigger>
-      <Tooltip.Content className="max-w-64">{tooltip}</Tooltip.Content>
+      <Tooltip.Content className="max-w-72 break-normal whitespace-normal">
+        {tooltip}
+      </Tooltip.Content>
     </Tooltip>
   </div>
 );

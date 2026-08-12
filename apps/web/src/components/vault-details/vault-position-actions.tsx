@@ -79,7 +79,6 @@ export const VaultFundingActions = ({
             name="vault-contribution"
             placeholder="0.00"
           />
-          <span className="px-2 text-xs font-medium text-muted">ETH</span>
           <NumberField.IncrementButton aria-label="Increase contribution" />
         </NumberField.Group>
       </NumberField>
