@@ -6,12 +6,13 @@ import { Card, Chip, ProgressBar, Skeleton, Typography } from "@thenamespace/uik
 import { Diamond02Icon, HugeiconsIcon } from "@thenamespace/uikit/icons";
 import type { Address, Hex } from "viem";
 
-import { EthValue } from "@/components/common";
+import { EthValue, NameAvatar } from "@/components/common";
 import { useVault, type VaultState } from "@/hooks";
 
 export type VaultCardSummary = {
-  title: string;
-  description: string;
+  identity:
+    | { type: "metadata"; title: string; description: string }
+    | { type: "name"; label: string };
   memberCount: number;
   vaultId: Hex;
 };
@@ -20,13 +21,7 @@ type VaultCardProps = VaultCardSummary & {
   viewerAddress?: Address | null;
 };
 
-export const VaultCard = ({
-  title,
-  description,
-  memberCount,
-  vaultId,
-  viewerAddress,
-}: VaultCardProps) => {
+export const VaultCard = ({ identity, memberCount, vaultId, viewerAddress }: VaultCardProps) => {
   const vaultQuery = useVault(vaultId);
   const vault = vaultQuery.data;
 
@@ -44,9 +39,16 @@ export const VaultCard = ({
       <Card className="h-full gap-0 bg-transparent p-0 shadow-none transition-[transform,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform filter-[drop-shadow(0_2px_6px_rgba(18,21,28,0.08))] hover:-translate-y-0.75 hover:filter-[drop-shadow(0_10px_14px_rgba(18,21,28,0.13))] motion-reduce:transform-none motion-reduce:transition-none">
         <div className="ticket-top flex min-h-40 flex-col p-4">
           <div className="flex items-start justify-between gap-3">
-            <span className="inline-flex size-10 items-center justify-center rounded-lg bg-accent-subtle transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105">
-              <HugeiconsIcon aria-hidden icon={Diamond02Icon} width={21} />
-            </span>
+            {identity.type === "name" ? (
+              <NameAvatar
+                className="size-10 rounded-lg transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105"
+                label={identity.label}
+              />
+            ) : (
+              <span className="inline-flex size-10 items-center justify-center rounded-lg bg-accent-subtle transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105">
+                <HugeiconsIcon aria-hidden icon={Diamond02Icon} width={21} />
+              </span>
+            )}
             {status ? (
               <Chip color={getStatusColor(status)} size="sm" variant="soft">
                 <Chip.Label className="capitalize">{status}</Chip.Label>
@@ -56,11 +58,13 @@ export const VaultCard = ({
 
           <div className="mt-auto pt-5">
             <div className="text-xl leading-tight font-semibold tracking-tight wrap-break-word text-foreground">
-              {title}
+              {identity.type === "name" ? `${identity.label}.eth` : identity.title}
             </div>
-            <Typography.Paragraph className="mt-2 line-clamp-2" color="muted" size="sm">
-              {description}
-            </Typography.Paragraph>
+            {identity.type === "metadata" ? (
+              <Typography.Paragraph className="mt-2 line-clamp-2" color="muted" size="sm">
+                {identity.description}
+              </Typography.Paragraph>
+            ) : null}
           </div>
         </div>
 

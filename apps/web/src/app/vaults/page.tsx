@@ -3,8 +3,11 @@ import { getPublicVaults } from "@/db/actions";
 
 const toVaultCardSummaries = (records: Awaited<ReturnType<typeof getPublicVaults>>) =>
   records.map(({ members, metadata, vault }) => ({
-    title: metadata.name,
-    description: metadata.description,
+    identity: {
+      type: "metadata" as const,
+      title: metadata.name,
+      description: metadata.description,
+    },
     memberCount: members.length,
     vaultId: vault.vaultId,
   }));

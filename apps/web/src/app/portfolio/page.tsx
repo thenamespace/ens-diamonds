@@ -5,9 +5,8 @@ import { VaultsOverview } from "@/components/vaults";
 import { getVaultsForUser } from "@/db/actions";
 
 const toVaultCardSummaries = (records: Awaited<ReturnType<typeof getVaultsForUser>>) =>
-  records.map(({ members, metadata, vault }) => ({
-    title: metadata?.name ?? "Untitled vault",
-    description: metadata?.description ?? "Shared ENS acquisition vault.",
+  records.map(({ members, vault }) => ({
+    identity: { type: "name" as const, label: vault.secrets.label },
     memberCount: members.length,
     vaultId: vault.vaultId,
   }));
