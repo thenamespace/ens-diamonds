@@ -14,15 +14,23 @@ import { useDisconnect } from "wagmi";
 
 import { truncateAddress } from "@/lib/helpers";
 
-import { WalletAvatar } from "./wallet-avatar";
+import { WalletIdentityAvatar } from "./wallet-avatar";
 
 type AccountDropdownProps = {
   address: string;
+  avatar: string | null;
+  displayName: string;
   fullWidth: boolean;
   onDisconnect: () => void;
 };
 
-function AccountDropdown({ address, fullWidth, onDisconnect }: AccountDropdownProps) {
+function AccountDropdown({
+  address,
+  avatar,
+  displayName,
+  fullWidth,
+  onDisconnect,
+}: AccountDropdownProps) {
   const [copied, setCopied] = useState(false);
 
   const copyAddress = useCallback(async () => {
@@ -47,8 +55,8 @@ function AccountDropdown({ address, fullWidth, onDisconnect }: AccountDropdownPr
   return (
     <Dropdown>
       <Button fullWidth={fullWidth} aria-label="Open wallet menu" variant="secondary">
-        <WalletAvatar address={address} />
-        <span className="text-sm font-normal">{truncateAddress(address)}</span>
+        <WalletIdentityAvatar address={address} avatar={avatar} />
+        <span className="text-sm font-normal">{displayName}</span>
       </Button>
       <Dropdown.Popover className="min-w-64" placement="bottom end">
         <Dropdown.Menu>
@@ -58,8 +66,13 @@ function AccountDropdown({ address, fullWidth, onDisconnect }: AccountDropdownPr
             shouldCloseOnSelect={false}
             textValue="Copy address"
           >
-            <WalletAvatar address={address} />
-            <Label>{truncateAddress(address)}</Label>
+            <WalletIdentityAvatar address={address} avatar={avatar} />
+            <div className="flex min-w-0 flex-col">
+              <Label>{displayName}</Label>
+              {displayName !== truncateAddress(address) ? (
+                <span className="text-xs text-muted">{truncateAddress(address)}</span>
+              ) : null}
+            </div>
             <HugeiconsIcon
               className="ms-auto size-4 text-muted"
               icon={copied ? CheckIcon : Copy01Icon}
@@ -113,6 +126,8 @@ export function ConnectButton({ fullWidth = false }: ConnectButtonProps) {
             ) : (
               <AccountDropdown
                 address={account.address}
+                avatar={account.ensAvatar ?? null}
+                displayName={account.ensName ?? account.displayName}
                 fullWidth={fullWidth}
                 onDisconnect={disconnect}
               />

@@ -10,8 +10,8 @@ import { useDebounceValue } from "usehooks-ts";
 import { getAddress, isAddress, zeroAddress } from "viem";
 import { normalize } from "viem/ens";
 
-import { NameAvatar } from "@/components/common";
-import { useEnsAddressRecord } from "@/hooks";
+import { NameAvatar, WalletIdentityAvatar } from "@/components/common";
+import { useEnsAddressRecord, useEnsIdentity } from "@/hooks";
 
 import { FieldLabel } from "./vault-form-fields";
 import type { VaultFormValues } from "./vault-form-types";
@@ -49,6 +49,12 @@ export const OwnerAddressField = ({
     name: `owners.${index}.address`,
     rules,
   });
+  const address = useMemo(() => {
+    const candidate = draft.trim();
+    return isAddress(candidate) && candidate !== zeroAddress ? getAddress(candidate) : null;
+  }, [draft]);
+  const reverseIdentity = useEnsIdentity(address);
+  const displayName = resolvedName ?? reverseIdentity.name;
 
   useEffect(() => {
     if (!draft && !resolvedName && field.value) setDraft(field.value);
@@ -106,7 +112,7 @@ export const OwnerAddressField = ({
         isInvalid={Boolean(error)}
         name={field.name}
         variant="secondary"
-        value={resolvedName ? "" : draft}
+        value={displayName ? "" : draft}
         onBlur={validateInput}
         onChange={updateDraft}
       >
@@ -119,14 +125,22 @@ export const OwnerAddressField = ({
           }
         />
         <InputGroup fullWidth className="min-w-0">
-          {resolvedName ? (
+          {displayName ? (
             <InputGroup.Prefix>
               <Chip size="sm" variant="soft">
-                <NameAvatar className="size-5" label={resolvedName} />
-                <Chip.Label>{resolvedName}</Chip.Label>
+                {resolvedName ? (
+                  <NameAvatar className="size-5" label={resolvedName} />
+                ) : address ? (
+                  <WalletIdentityAvatar
+                    address={address}
+                    avatar={reverseIdentity.avatar}
+                    className="size-5"
+                  />
+                ) : null}
+                <Chip.Label>{displayName}</Chip.Label>
                 <Button
                   isIconOnly
-                  aria-label={`Clear ${resolvedName}`}
+                  aria-label={`Clear ${displayName}`}
                   size="sm"
                   type="button"
                   variant="ghost"
@@ -139,14 +153,14 @@ export const OwnerAddressField = ({
           ) : null}
           <InputGroup.Input
             ref={field.ref}
-            aria-label={resolvedName ? `${resolvedName} resolved address` : undefined}
+            aria-label={displayName ? `${displayName} resolved address` : undefined}
             autoComplete="off"
             className="min-w-0 flex-1"
-            placeholder={resolvedName ? "" : "vitalik.eth or 0x…"}
-            readOnly={resolvedName !== null}
+            placeholder={displayName ? "" : "vitalik.eth or 0x…"}
+            readOnly={displayName !== null}
             spellCheck={false}
           />
-          {resolution.isFetching ? (
+          {resolution.isFetching || reverseIdentity.isFetching ? (
             <InputGroup.Suffix>
               <Spinner aria-label="Resolving ENS name" size="sm" />
             </InputGroup.Suffix>

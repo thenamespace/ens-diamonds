@@ -3,8 +3,8 @@
 import { useCallback, useState } from "react";
 
 import { Avatar } from "@thenamespace/uikit";
-import { mainnet } from "viem/chains";
-import { useEnsAvatar, useEnsName } from "wagmi";
+
+import { useEnsIdentity } from "@/hooks";
 
 import { getDeterministicAvatar } from "./name-avatar";
 
@@ -14,19 +14,29 @@ interface WalletAvatarProps {
 }
 
 export function WalletAvatar({ address, className = "size-6" }: WalletAvatarProps) {
-  const [failedAvatar, setFailedAvatar] = useState(false);
-  const { data: ensName } = useEnsName({ address: address as `0x${string}`, chainId: mainnet.id });
-  const { data: ensAvatar } = useEnsAvatar({
-    chainId: mainnet.id,
-    name: ensName ?? undefined,
-    query: { enabled: Boolean(ensName) },
-  });
-  const avatar = ensAvatar && !failedAvatar ? ensAvatar : getDeterministicAvatar(address);
-  const handleError = useCallback(() => setFailedAvatar(true), []);
+  const identity = useEnsIdentity(address as `0x${string}`);
+
+  return <WalletIdentityAvatar address={address} avatar={identity.avatar} className={className} />;
+}
+
+interface WalletIdentityAvatarProps extends WalletAvatarProps {
+  avatar?: string | null;
+}
+
+export function WalletIdentityAvatar({
+  address,
+  avatar,
+  className = "size-6",
+}: WalletIdentityAvatarProps) {
+  const [failedAvatar, setFailedAvatar] = useState<string | null>(null);
+  const source = avatar && avatar !== failedAvatar ? avatar : getDeterministicAvatar(address);
+  const handleError = useCallback(() => {
+    if (avatar) setFailedAvatar(avatar);
+  }, [avatar]);
 
   return (
     <Avatar className={className}>
-      <Avatar.Image alt="" onError={handleError} src={avatar} />
+      <Avatar.Image key={source} alt="" onError={handleError} src={source} />
       <Avatar.Fallback />
     </Avatar>
   );
