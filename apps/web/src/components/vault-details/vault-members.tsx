@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 
-import { Avatar, Card, Chip, Typography } from "@thenamespace/uikit";
+import { Avatar, Card, Chip, NumberValue, Typography } from "@thenamespace/uikit";
 import type { Address } from "viem";
 import { mainnet } from "viem/chains";
 import { useEnsAvatar, useEnsName } from "wagmi";
@@ -21,36 +21,47 @@ type VaultMembersProps = {
   members: readonly VaultMember[];
 };
 
-export const VaultMembers = ({ currentAddress, members }: VaultMembersProps) => (
-  <Card variant="default">
-    <Card.Header className="gap-1">
-      <CardHeading>Members</CardHeading>
-      <Typography.Paragraph color="muted" size="sm">
-        Every member is an equal Safe owner; balances track ETH in the vault.
-      </Typography.Paragraph>
-    </Card.Header>
-    <Card.Content>
-      <div className="divide-y divide-default">
-        {members.map((member) => (
-          <div
-            className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-4 first:pt-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_9rem]"
-            key={member.address}
-          >
-            <MemberIdentity
-              address={member.address}
-              isCreator={member.isCreator}
-              isCurrent={member.address.toLowerCase() === currentAddress?.toLowerCase()}
-            />
+export const VaultMembers = ({ currentAddress, members }: VaultMembersProps) => {
+  const totalBalance = members.reduce((total, member) => total + member.balance, 0n);
 
-            <div className="text-right">
-              <EthValue className="text-sm font-semibold" value={member.balance} />
+  return (
+    <Card variant="default">
+      <Card.Header className="gap-1">
+        <CardHeading>Members</CardHeading>
+        <Typography.Paragraph color="muted" size="sm">
+          Every member is an equal Safe owner; balances track ETH in the vault.
+        </Typography.Paragraph>
+      </Card.Header>
+      <Card.Content>
+        <div className="divide-y divide-default">
+          {members.map((member) => (
+            <div
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 py-4 first:pt-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_9rem]"
+              key={member.address}
+            >
+              <MemberIdentity
+                address={member.address}
+                isCreator={member.isCreator}
+                isCurrent={member.address.toLowerCase() === currentAddress?.toLowerCase()}
+              />
+
+              <div className="text-right">
+                <EthValue className="text-sm font-semibold" value={member.balance} />
+                <NumberValue
+                  className="mt-0.5 text-xs text-muted"
+                  maximumFractionDigits={1}
+                  value={getContributionPercentage(member.balance, totalBalance)}
+                >
+                  <NumberValue.Suffix>% contributed</NumberValue.Suffix>
+                </NumberValue>
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
-    </Card.Content>
-  </Card>
-);
+          ))}
+        </div>
+      </Card.Content>
+    </Card>
+  );
+};
 
 const MemberIdentity = ({
   address,
@@ -102,3 +113,6 @@ const MemberIdentity = ({
     </div>
   );
 };
+
+const getContributionPercentage = (balance: bigint, total: bigint) =>
+  total === 0n ? 0 : Number((balance * 1_000n) / total) / 10;

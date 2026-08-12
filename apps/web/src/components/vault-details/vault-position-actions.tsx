@@ -65,18 +65,22 @@ export const VaultFundingActions = ({
         isDisabled={transactionPending}
         maxValue={Number(formatEther(inputMaximum))}
         minValue={0}
+        step={0.001}
         value={amount === "" ? Number.NaN : Number(amount)}
         variant="secondary"
         onChange={handleAmountChange}
       >
         <NumberField.Group>
+          <NumberField.DecrementButton aria-label="Decrease contribution" />
           <NumberField.Input
+            className="min-w-0 flex-1"
             autoComplete="off"
             inputMode="decimal"
             name="vault-contribution"
             placeholder="0.00"
           />
-          <span className="px-3 text-sm text-muted">ETH</span>
+          <span className="px-2 text-xs font-medium text-muted">ETH</span>
+          <NumberField.IncrementButton aria-label="Increase contribution" />
         </NumberField.Group>
       </NumberField>
 

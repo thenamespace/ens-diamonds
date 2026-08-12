@@ -18,35 +18,38 @@ type NameGridCardProps = {
 
 export const NameGridCard = ({ name, price, ethUsd, isPricePending }: NameGridCardProps) => {
   return (
-    <div className="group relative h-full">
-      <Link className="block h-full" href={`/name/${name.label}.eth`}>
-        <Card className="h-full gap-0 bg-transparent p-0 shadow-none transition-[transform,filter] duration-200 filter-[drop-shadow(0_2px_6px_rgba(18,21,28,0.08))] hover:-translate-y-0.75 hover:filter-[drop-shadow(0_10px_14px_rgba(18,21,28,0.13))]">
-          <div className="ticket-top flex flex-1 flex-col p-4">
-            <div className="flex items-start justify-between gap-2.5">
-              <span className="inline-flex transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105">
-                <NameAvatar className="size-10 rounded-lg" label={name.label} />
-              </span>
-            </div>
-
-            <div className="mt-4 mb-5 text-[29px] leading-[1.05] font-semibold tracking-tight wrap-break-word text-foreground">
-              {name.label}
-              <span className="font-normal text-muted">.eth</span>
-            </div>
+    <Card className="group relative h-full gap-0 bg-transparent p-0 shadow-none transition-[transform,filter] duration-200 filter-[drop-shadow(0_2px_6px_rgba(18,21,28,0.08))] hover:-translate-y-0.75 hover:filter-[drop-shadow(0_10px_14px_rgba(18,21,28,0.13))]">
+      <Link
+        aria-label={`View ${name.label}.eth`}
+        className="absolute inset-0 z-0 rounded-[inherit]"
+        href={`/name/${name.label}.eth`}
+      />
+      <div className="pointer-events-none relative z-[1] flex h-full flex-col">
+        <div className="ticket-top flex flex-1 flex-col p-4">
+          <div className="flex items-start justify-between gap-2.5">
+            <span className="inline-flex transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105">
+              <NameAvatar className="size-10 rounded-lg" label={name.label} />
+            </span>
           </div>
 
-          <div className="ticket-stub px-4 pt-3.5 pb-4">
-            <PremiumNamePrice ethUsd={ethUsd} isPending={isPricePending} price={price} />
-            <PremiumDecayMeter
-              availableAt={name.availableAt}
-              premiumStartsAt={name.premiumStartsAt}
-            />
+          <div className="mt-4 mb-5 text-[29px] leading-[1.05] font-semibold tracking-tight wrap-break-word text-foreground">
+            {name.label}
+            <span className="font-normal text-muted">.eth</span>
           </div>
-        </Card>
-      </Link>
+        </div>
+
+        <div className="ticket-stub px-4 pt-3.5 pb-4">
+          <PremiumNamePrice ethUsd={ethUsd} isPending={isPricePending} price={price} />
+          <PremiumDecayMeter
+            availableAt={name.availableAt}
+            premiumStartsAt={name.premiumStartsAt}
+          />
+        </div>
+      </div>
       <div className="absolute top-3 right-3 z-10">
         <FavouriteButton label={name.label} />
       </div>
-    </div>
+    </Card>
   );
 };
 

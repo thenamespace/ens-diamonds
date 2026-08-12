@@ -148,6 +148,7 @@ const EthAmountField = ({
       isInvalid={isInvalid}
       minValue={0}
       name={field.name}
+      step={0.001}
       variant="secondary"
       value={field.value === "" ? Number.NaN : Number(field.value)}
       onBlur={field.onBlur}
@@ -155,13 +156,16 @@ const EthAmountField = ({
     >
       <FieldLabel label={label} tooltip={tooltip} />
       <NumberField.Group>
+        <NumberField.DecrementButton aria-label={`Decrease ${label.toLowerCase()}`} />
         <NumberField.Input
           ref={field.ref}
           autoComplete="off"
+          className="min-w-0 flex-1"
           inputMode="decimal"
           placeholder="0.00"
         />
-        <span className="px-3 text-sm text-muted">ETH</span>
+        <span className="px-2 text-xs font-medium text-muted">ETH</span>
+        <NumberField.IncrementButton aria-label={`Increase ${label.toLowerCase()}`} />
       </NumberField.Group>
       {error ? <FieldError>{error}</FieldError> : null}
       {description ? <Description>{description}</Description> : null}
@@ -186,57 +190,61 @@ export const VaultMetadataFields = ({ control }: FormFieldProps) => {
       maxLength: { value: 500, message: "Use 500 characters or fewer." },
     },
   });
+  return (
+    <div className="space-y-5">
+      <TextField
+        isRequired
+        isInvalid={name.fieldState.invalid}
+        variant="secondary"
+        value={name.field.value}
+        onBlur={name.field.onBlur}
+        onChange={name.field.onChange}
+      >
+        <FieldLabel
+          label="Vault name"
+          tooltip="A public title for this vault. It does not reveal the ENS name being targeted."
+        />
+        <InputGroup fullWidth>
+          <InputGroup.Input
+            ref={name.field.ref}
+            maxLength={80}
+            placeholder="Community name vault"
+          />
+        </InputGroup>
+        {name.fieldState.error ? <FieldError>{name.fieldState.error.message}</FieldError> : null}
+      </TextField>
+
+      <TextField
+        isRequired
+        isInvalid={description.fieldState.invalid}
+        variant="secondary"
+        value={description.field.value}
+        onBlur={description.field.onBlur}
+        onChange={description.field.onChange}
+      >
+        <FieldLabel
+          label="Description"
+          tooltip="A public summary shown in vault discovery and metadata."
+        />
+        <TextArea
+          ref={description.field.ref}
+          className="min-h-20"
+          maxLength={500}
+          placeholder="Pooling ETH to acquire an ENS name together."
+        />
+        {description.fieldState.error ? (
+          <FieldError>{description.fieldState.error.message}</FieldError>
+        ) : null}
+      </TextField>
+    </div>
+  );
+};
+
+export const VaultVisibilityField = ({ control }: FormFieldProps) => {
   const visibility = useController({ control, name: "isPublic" });
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-5 sm:grid-cols-2">
-        <TextField
-          isRequired
-          isInvalid={name.fieldState.invalid}
-          variant="secondary"
-          value={name.field.value}
-          onBlur={name.field.onBlur}
-          onChange={name.field.onChange}
-        >
-          <FieldLabel
-            label="Vault name"
-            tooltip="A public title for this vault. It does not reveal the ENS name being targeted."
-          />
-          <InputGroup fullWidth>
-            <InputGroup.Input
-              ref={name.field.ref}
-              maxLength={80}
-              placeholder="Community name vault"
-            />
-          </InputGroup>
-          {name.fieldState.error ? <FieldError>{name.fieldState.error.message}</FieldError> : null}
-        </TextField>
-
-        <TextField
-          isRequired
-          isInvalid={description.fieldState.invalid}
-          variant="secondary"
-          value={description.field.value}
-          onBlur={description.field.onBlur}
-          onChange={description.field.onChange}
-        >
-          <FieldLabel
-            label="Description"
-            tooltip="A public summary shown in vault discovery and metadata."
-          />
-          <TextArea
-            ref={description.field.ref}
-            className="min-h-20"
-            maxLength={500}
-            placeholder="Pooling ETH to acquire an ENS name together."
-          />
-          {description.fieldState.error ? (
-            <FieldError>{description.fieldState.error.message}</FieldError>
-          ) : null}
-        </TextField>
-      </div>
-
+    <div>
       <Switch isSelected={visibility.field.value} onChange={visibility.field.onChange}>
         <Switch.Content>
           <span className="text-sm font-medium">List this vault publicly</span>

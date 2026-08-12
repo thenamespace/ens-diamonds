@@ -22,6 +22,7 @@ import {
   MaximumSpendField,
   RegistrationDurationField,
   VaultMetadataFields,
+  VaultVisibilityField,
 } from "./vault-form-fields";
 import { CREATE_VAULT_FORM_ID, MAX_OWNERS, type VaultFormValues } from "./vault-form-types";
 import { VaultSidebar } from "./vault-sidebar";
@@ -186,6 +187,10 @@ export const VaultConfigurationForm = ({ label }: VaultConfigurationFormProps) =
                 />
               </div>
               <RegistrationDurationField control={control} />
+            </div>
+
+            <div className="border-t border-default pt-8">
+              <VaultVisibilityField control={control} />
             </div>
           </Card.Content>
         </Card>

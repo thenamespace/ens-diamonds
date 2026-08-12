@@ -17,37 +17,40 @@ type NameListCardProps = {
 };
 
 export const NameListCard = ({ name, price, ethUsd, isPricePending }: NameListCardProps) => (
-  <div className="group relative">
-    <Link className="block" href={`/name/${name.label}.eth`}>
-      <Card className="grid min-h-20 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 py-3 pr-16 pl-4 shadow-xs transition duration-200 hover:-translate-y-0.5 hover:shadow-sm sm:grid-cols-[auto_minmax(0,1fr)_auto_minmax(9rem,auto)] sm:gap-5">
-        <NameAvatar
-          className="size-11 rounded-xl transition-transform duration-300 group-hover:-rotate-3 group-hover:scale-105"
-          label={name.label}
+  <Card className="group relative grid min-h-20 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 py-3 pr-16 pl-4 shadow-xs transition duration-200 hover:-translate-y-0.5 hover:shadow-sm sm:grid-cols-[auto_minmax(0,1fr)_auto_minmax(9rem,auto)] sm:gap-5">
+    <Link
+      aria-label={`View ${name.label}.eth`}
+      className="absolute inset-0 z-0 rounded-[inherit]"
+      href={`/name/${name.label}.eth`}
+    />
+    <div className="pointer-events-none contents">
+      <NameAvatar
+        className="relative z-[1] size-11 rounded-xl transition-transform duration-300 group-hover:-rotate-3 group-hover:scale-105"
+        label={name.label}
+      />
+
+      <div className="relative z-[1] min-w-0">
+        <div className="truncate text-lg font-semibold tracking-tight text-foreground sm:text-xl">
+          {name.label}
+          <span className="font-normal text-muted">.eth</span>
+        </div>
+      </div>
+
+      <div className="relative z-[1] col-start-2 row-start-2 sm:col-auto sm:row-auto">
+        <CompactPremiumDecay
+          availableAt={name.availableAt}
+          premiumStartsAt={name.premiumStartsAt}
         />
+      </div>
 
-        <div className="min-w-0">
-          <div className="truncate text-lg font-semibold tracking-tight text-foreground sm:text-xl">
-            {name.label}
-            <span className="font-normal text-muted">.eth</span>
-          </div>
-        </div>
-
-        <div className="col-start-2 row-start-2 sm:col-auto sm:row-auto">
-          <CompactPremiumDecay
-            availableAt={name.availableAt}
-            premiumStartsAt={name.premiumStartsAt}
-          />
-        </div>
-
-        <div className="hidden text-right sm:block">
-          <PremiumNamePrice compact ethUsd={ethUsd} isPending={isPricePending} price={price} />
-        </div>
-      </Card>
-    </Link>
+      <div className="relative z-[1] hidden text-right sm:block">
+        <PremiumNamePrice compact ethUsd={ethUsd} isPending={isPricePending} price={price} />
+      </div>
+    </div>
     <div className="absolute top-1/2 right-3 z-10 -translate-y-1/2 sm:right-4">
       <FavouriteButton label={name.label} />
     </div>
-  </div>
+  </Card>
 );
 
 export const NameListCardSkeleton = ({ count = 8 }: { count?: number }) => (

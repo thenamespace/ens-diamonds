@@ -20,10 +20,10 @@ import type { PremiumNameMatch } from "@/lib/ens";
 import type { PremiumNameDateRange, PremiumNameSort, PremiumNameView } from "@/lib/search-params";
 
 const SORT_OPTIONS: Array<{ id: PremiumNameSort; label: string }> = [
-  { id: "trending", label: "Trending" },
   { id: "ending", label: "Ending soon" },
   { id: "newest", label: "Newest" },
   { id: "shortest", label: "Shortest" },
+  { id: "trending", label: "Trending" },
 ];
 
 const NAME_MATCH_OPTIONS: Array<{ id: PremiumNameMatch; label: string }> = [
