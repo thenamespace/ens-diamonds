@@ -1,4 +1,4 @@
-export { getPremiumNames } from "./get-premium-names";
+export { getPremiumNames, getTrendingPremiumNames } from "./get-premium-names";
 export type {
   GetPremiumNamesProps,
   PremiumName,

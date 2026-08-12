@@ -20,6 +20,7 @@ import type { PremiumNameMatch } from "@/lib/ens";
 import type { PremiumNameDateRange, PremiumNameSort, PremiumNameView } from "@/lib/search-params";
 
 const SORT_OPTIONS: Array<{ id: PremiumNameSort; label: string }> = [
+  { id: "trending", label: "Trending" },
   { id: "ending", label: "Ending soon" },
   { id: "newest", label: "Newest" },
   { id: "shortest", label: "Shortest" },
@@ -93,7 +94,9 @@ export const PremiumNameFilters = ({
   );
   const handleSort = useCallback(
     (key: React.Key) => {
-      if (key === "ending" || key === "newest" || key === "shortest") onSortChange(key);
+      if (key === "ending" || key === "newest" || key === "shortest" || key === "trending") {
+        onSortChange(key);
+      }
     },
     [onSortChange],
   );
@@ -108,7 +111,7 @@ export const PremiumNameFilters = ({
     <div className="my-6 flex flex-wrap items-center gap-2">
       <Segment
         aria-label="Sort premium names"
-        className="w-full shrink-0 sm:w-[19rem]"
+        className="w-full shrink-0 sm:w-[25rem]"
         selectedKey={sort}
         size="sm"
         onSelectionChange={handleSort}

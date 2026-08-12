@@ -17,7 +17,7 @@ const FULL_SET_SHARDS = 7;
 const FULL_SET_MAX_PAGES_PER_SHARD = 10;
 
 export type PremiumNameMatch = "contains" | "startsWith" | "exact";
-export type PremiumNameSort = "ending" | "newest" | "shortest";
+export type PremiumNameSort = "ending" | "newest" | "shortest" | "trending";
 
 export type PremiumNamesFilters = {
   name?: {
@@ -163,6 +163,90 @@ export async function getPremiumNames({
             timestamp: snapshot.timestamp,
           })
         : null,
+    },
+  };
+}
+
+export async function getTrendingPremiumNames({
+  rankedLabels,
+  filters,
+  limit,
+  offset = 0,
+}: {
+  rankedLabels: string[];
+  filters?: PremiumNamesFilters;
+  limit: number;
+  offset?: number;
+}): Promise<PremiumNamesPage> {
+  const pageSize = validatePageSize(limit);
+  const normalizedFilters = normalizeFilters(filters);
+  const snapshot = await getSnapshot();
+  if (rankedLabels.length === 0) {
+    return {
+      names: [],
+      pageInfo: {
+        asOf: snapshot.timestamp,
+        blockNumber: snapshot.blockNumber,
+        hasNextPage: false,
+        endCursor: null,
+      },
+    };
+  }
+
+  const { from, to } = getPremiumExpiryBounds(snapshot);
+  const data = await requestGraph<{ registrations: Registration[] }>({
+    query: `
+      query TrendingPremiumNames(
+        $labels: [String!]!
+        $blockNumber: Int!
+        $expiryFrom: BigInt!
+        $expiryTo: BigInt!
+      ) {
+        registrations(
+          first: 100
+          block: { number: $blockNumber }
+          where: {
+            labelName_in: $labels
+            expiryDate_gte: $expiryFrom
+            expiryDate_lte: $expiryTo
+            labelName_not: null
+          }
+        ) {
+          id
+          labelName
+          expiryDate
+          domain { labelhash }
+        }
+      }
+    `,
+    variables: {
+      labels: rankedLabels,
+      blockNumber: snapshot.blockNumber,
+      expiryFrom: String(from),
+      expiryTo: String(to),
+    },
+  });
+  const byLabel = new Map(
+    data.registrations
+      .filter((registration) =>
+        registrationMatchesFilters(registration, normalizedFilters, snapshot),
+      )
+      .map((registration) => [registration.labelName.toLowerCase(), registration]),
+  );
+  const registrations = rankedLabels.flatMap((label) => {
+    const registration = byLabel.get(label.toLowerCase());
+    return registration ? [registration] : [];
+  });
+  const page = registrations.slice(offset, offset + pageSize);
+  const hasNextPage = offset + page.length < registrations.length;
+
+  return {
+    names: page.map(toPremiumName),
+    pageInfo: {
+      asOf: snapshot.timestamp,
+      blockNumber: snapshot.blockNumber,
+      hasNextPage,
+      endCursor: hasNextPage ? String(offset + page.length) : null,
     },
   };
 }
@@ -421,7 +505,7 @@ async function requestGraph<T>({
   variables,
 }: {
   query: string;
-  variables: Record<string, number | string>;
+  variables: Record<string, number | string | string[]>;
 }): Promise<T> {
   const url = process.env.SUBGRAPH_URL;
   if (!url) throw new Error("SUBGRAPH_URL is not configured");

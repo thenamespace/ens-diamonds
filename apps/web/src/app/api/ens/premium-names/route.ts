@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 
+import { getTrendingLabels } from "@/db/actions";
 import {
   getPremiumNames,
+  getTrendingPremiumNames,
   type PremiumNameMatch,
   type PremiumNameSort,
   type PremiumNamesFilters,
@@ -32,12 +34,22 @@ export async function GET(request: Request) {
       throw new RangeError(`name must be at most ${MAX_NAME_LENGTH} characters`);
     }
 
-    const page = await getPremiumNames({
-      filters,
-      sort: parseSort(parameters.get("sort")),
-      limit: parsePositiveInteger(parameters.get("limit"), "limit") ?? DEFAULT_LIMIT,
-      after: parameters.get("cursor"),
-    });
+    const sort = parseSort(parameters.get("sort"));
+    const limit = parsePositiveInteger(parameters.get("limit"), "limit") ?? DEFAULT_LIMIT;
+    const page =
+      sort === "trending"
+        ? await getTrendingPremiumNames({
+            filters,
+            limit,
+            offset: parseCursorOffset(parameters.get("cursor")),
+            rankedLabels: (await getTrendingLabels()).map(({ label }) => label),
+          })
+        : await getPremiumNames({
+            filters,
+            sort,
+            limit,
+            after: parameters.get("cursor"),
+          });
 
     return NextResponse.json(page, {
       headers: {
@@ -58,9 +70,16 @@ export async function GET(request: Request) {
 
 function parseSort(value: string | null): PremiumNameSort {
   if (value === null || value === "ending") return "ending";
-  if (value === "newest" || value === "shortest") return value;
+  if (value === "newest" || value === "shortest" || value === "trending") return value;
 
-  throw new TypeError("sort must be ending, newest, or shortest");
+  throw new TypeError("sort must be ending, newest, shortest, or trending");
+}
+
+function parseCursorOffset(value: string | null) {
+  if (value === null) return 0;
+  const offset = Number(value);
+  if (!Number.isSafeInteger(offset) || offset < 0) throw new RangeError("Invalid cursor");
+  return offset;
 }
 
 function parseNameMatch(value: string | null): PremiumNameMatch {

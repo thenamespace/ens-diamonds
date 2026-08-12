@@ -10,7 +10,7 @@ import { SECONDS_PER_DAY } from "@/lib/constants";
 import type { PremiumNamesFilters } from "@/lib/ens";
 
 export const NAME_MATCH_VALUES = ["contains", "startsWith", "exact"] as const;
-export const SORT_VALUES = ["ending", "newest", "shortest"] as const;
+export const SORT_VALUES = ["ending", "newest", "shortest", "trending"] as const;
 export const VIEW_VALUES = ["grid", "list"] as const;
 export const PREMIUM_DATE_RANGE_DAYS = 21;
 

@@ -1,4 +1,5 @@
 export * from "./use-eth-price";
+export * from "./use-favourites";
 export * from "./use-ens-address-record";
 export * from "./use-ens-name-details";
 export * from "./use-ens-name-prices";
