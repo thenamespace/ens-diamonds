@@ -2,7 +2,8 @@
 
 import { useMemo } from "react";
 
-import { Alert, Breadcrumbs, Chip, Typography } from "@thenamespace/uikit";
+import { Alert, Breadcrumbs, Button, Chip, Toast, Typography } from "@thenamespace/uikit";
+import { HugeiconsIcon, Share08Icon } from "@thenamespace/uikit/icons";
 import type { Hex } from "viem";
 
 import { CopyButton, PageMain } from "@/components/common";
@@ -25,6 +26,11 @@ type VaultContentProps = {
   vault: OnchainVault;
 };
 
+const shareVault = async () => {
+  await navigator.clipboard.writeText(window.location.href);
+  Toast.toast.success("Vault link copied");
+};
+
 export const VaultContent = ({ currentAddress, id, record, vault }: VaultContentProps) => {
   const label = record.vault.secrets.label;
   const name = `${label}.eth`;
@@ -44,7 +50,6 @@ export const VaultContent = ({ currentAddress, id, record, vault }: VaultContent
         : undefined,
     [label, record.vault.secrets],
   );
-
   return (
     <PageMain>
       <div className="flex items-center gap-1">
@@ -55,7 +60,7 @@ export const VaultContent = ({ currentAddress, id, record, vault }: VaultContent
         <CopyButton label="Copy vault ID" value={id} />
       </div>
 
-      <header className="mt-8">
+      <header className="mt-8 flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           <Typography.Heading
             className="text-balance text-3xl tracking-tight sm:text-4xl"
@@ -67,6 +72,10 @@ export const VaultContent = ({ currentAddress, id, record, vault }: VaultContent
             <span className="capitalize">{vault.status}</span>
           </Chip>
         </div>
+        <Button variant="secondary" onPress={shareVault}>
+          <HugeiconsIcon aria-hidden icon={Share08Icon} width={16} />
+          Share vault
+        </Button>
       </header>
 
       {nameDetails.isAvailable === false && vault.status !== "acquired" ? (

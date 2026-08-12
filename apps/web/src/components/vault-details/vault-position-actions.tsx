@@ -1,4 +1,4 @@
-import { Button, InputGroup, TextField, Typography } from "@thenamespace/uikit";
+import { Button, NumberField, Typography } from "@thenamespace/uikit";
 import { formatEther } from "viem";
 
 import type { PurchaseNameVariables, VaultTransactionProgress } from "@/hooks";
@@ -8,6 +8,7 @@ export type VaultActionStatus = {
   isPending: boolean;
   progress: VaultTransactionProgress;
 };
+const ETH_NUMBER_FORMAT = { maximumFractionDigits: 18, useGrouping: false } as const;
 
 export const VaultFundingActions = ({
   amount,
@@ -26,6 +27,8 @@ export const VaultFundingActions = ({
   onBegin,
   onCancel,
   onDeposit,
+  onSetHalf,
+  onSetMax,
   onWithdraw,
 }: {
   amount: string;
@@ -44,68 +47,90 @@ export const VaultFundingActions = ({
   onBegin: () => void;
   onCancel: () => void;
   onDeposit: () => void;
+  onSetHalf: () => void;
+  onSetMax: () => void;
   onWithdraw: () => void;
-}) => (
-  <div aria-live="polite">
-    <TextField
-      aria-label="Contribution amount"
-      className="mt-4"
-      isDisabled={transactionPending}
-      value={amount}
-      variant="secondary"
-      onChange={onAmountChange}
-    >
-      <InputGroup fullWidth>
-        <InputGroup.Input
-          autoComplete="off"
-          inputMode="decimal"
-          max={formatEther(inputMaximum)}
-          min="0.000000000000000001"
-          name="vault-contribution"
-          placeholder="0.00"
-          step="any"
-          type="number"
-        />
-        <InputGroup.Suffix>ETH</InputGroup.Suffix>
-      </InputGroup>
-    </TextField>
+}) => {
+  const handleAmountChange = useCallback(
+    (value: number) => onAmountChange(Number.isNaN(value) ? "" : String(value)),
+    [onAmountChange],
+  );
 
-    <div className="mt-3 grid grid-cols-2 gap-3">
-      <Button fullWidth isDisabled={!canDeposit} isPending={deposit.isPending} onPress={onDeposit}>
-        {getVaultTransactionLabel("Deposit", deposit.progress)}
-      </Button>
-      <Button
-        fullWidth
-        isDisabled={!canWithdraw}
-        isPending={withdraw.isPending}
+  return (
+    <div aria-live="polite">
+      <NumberField
+        aria-label="Contribution amount"
+        className="mt-4"
+        formatOptions={ETH_NUMBER_FORMAT}
+        isDisabled={transactionPending}
+        maxValue={Number(formatEther(inputMaximum))}
+        minValue={0}
+        value={Number(amount)}
         variant="secondary"
-        onPress={onWithdraw}
+        onChange={handleAmountChange}
       >
-        {getVaultTransactionLabel("Withdraw", withdraw.progress)}
-      </Button>
-    </div>
+        <NumberField.Group>
+          <NumberField.Input
+            autoComplete="off"
+            inputMode="decimal"
+            name="vault-contribution"
+            placeholder="0.00"
+          />
+          <span className="px-3 text-sm text-muted">ETH</span>
+        </NumberField.Group>
+      </NumberField>
 
-    {isCreator ? (
-      <div className="mt-3 grid gap-3 border-t border-default pt-3">
-        {canBegin || beginAcquisition.isPending ? (
-          <Button fullWidth isPending={beginAcquisition.isPending} onPress={onBegin}>
-            {getVaultTransactionLabel("Begin Acquisition", beginAcquisition.progress)}
-          </Button>
-        ) : null}
-        <Button
-          fullWidth
-          isDisabled={transactionPending}
-          isPending={cancelVault.isPending}
-          variant="secondary"
-          onPress={onCancel}
-        >
-          {getVaultTransactionLabel("Cancel Vault", cancelVault.progress)}
+      <div className="mt-2 flex justify-end gap-2">
+        <Button size="sm" variant="secondary" onPress={onSetHalf}>
+          50%
+        </Button>
+        <Button size="sm" variant="secondary" onPress={onSetMax}>
+          Remaining
         </Button>
       </div>
-    ) : null}
-    <VaultTransactionError message={error} />
-  </div>
-);
+
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <Button
+          fullWidth
+          isDisabled={!canDeposit}
+          isPending={deposit.isPending}
+          onPress={onDeposit}
+        >
+          {getVaultTransactionLabel("Deposit", deposit.progress)}
+        </Button>
+        <Button
+          fullWidth
+          isDisabled={!canWithdraw}
+          isPending={withdraw.isPending}
+          variant="secondary"
+          onPress={onWithdraw}
+        >
+          {getVaultTransactionLabel("Withdraw", withdraw.progress)}
+        </Button>
+      </div>
+
+      {isCreator ? (
+        <div className="mt-3 grid gap-3 border-t border-default pt-3">
+          {canBegin || beginAcquisition.isPending ? (
+            <Button fullWidth isPending={beginAcquisition.isPending} onPress={onBegin}>
+              {getVaultTransactionLabel("Begin Acquisition", beginAcquisition.progress)}
+            </Button>
+          ) : null}
+          <Button
+            fullWidth
+            isDisabled={transactionPending}
+            isPending={cancelVault.isPending}
+            variant="secondary"
+            onPress={onCancel}
+          >
+            {getVaultTransactionLabel("Cancel Vault", cancelVault.progress)}
+          </Button>
+        </div>
+      ) : null}
+      <VaultTransactionError message={error} />
+    </div>
+  );
+};
 
 export const VaultCommittedActions = ({
   acquisition,
@@ -194,3 +219,4 @@ export const getVaultTransactionLabel = (label: string, progress: VaultTransacti
   if (progress === "confirming-transaction") return "Confirming Transaction…";
   return label;
 };
+import { useCallback } from "react";

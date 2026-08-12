@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { Button, Card, Typography } from "@thenamespace/uikit";
 import { useInterval } from "usehooks-ts";
 import type { Hex } from "viem";
+import { formatEther } from "viem";
 
 import { CardHeading, EthValue } from "@/components/common";
 import {
@@ -78,6 +79,11 @@ export const VaultPositionCard = ({
     !isAcquisitionExpired;
   const depositCapacity = maxSpend - escrowed;
   const inputMaximum = depositCapacity > balance ? depositCapacity : balance;
+  const remainingTarget =
+    currentPrice === undefined
+      ? depositCapacity
+      : (currentPrice < maxSpend ? currentPrice : maxSpend) - escrowed;
+  const suggestedDeposit = remainingTarget > 0n ? remainingTarget : 0n;
   const transactionPending =
     beginAcquisition.isPending ||
     cancelVault.isPending ||
@@ -123,6 +129,14 @@ export const VaultPositionCard = ({
       withdraw.reset();
     },
     [deposit, withdraw],
+  );
+  const setHalfTarget = useCallback(
+    () => handleAmountChange(formatEther(suggestedDeposit / 2n)),
+    [handleAmountChange, suggestedDeposit],
+  );
+  const setRemainingTarget = useCallback(
+    () => handleAmountChange(formatEther(suggestedDeposit)),
+    [handleAmountChange, suggestedDeposit],
   );
   const handleDeposit = useCallback(async () => {
     if (!canDeposit || parsedAmount === null) return;
@@ -206,6 +220,8 @@ export const VaultPositionCard = ({
             deposit={deposit}
             withdraw={withdraw}
             onAmountChange={handleAmountChange}
+            onSetHalf={setHalfTarget}
+            onSetMax={setRemainingTarget}
             onBegin={handleBeginAcquisition}
             onCancel={handleCancel}
             onDeposit={handleDeposit}

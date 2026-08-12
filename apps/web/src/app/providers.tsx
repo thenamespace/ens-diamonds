@@ -9,6 +9,7 @@ import {
   type GetSiweMessageOptions,
   RainbowKitSiweNextAuthProvider,
 } from "@rainbow-me/rainbowkit-siwe-next-auth";
+import { Toast } from "@thenamespace/uikit";
 import type { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
@@ -34,7 +35,10 @@ export function Providers({ children, session }: ProvidersProps) {
         <SessionProvider refetchInterval={0} session={session}>
           <QueryClientProvider client={queryClient}>
             <RainbowKitSiweNextAuthProvider getSiweMessageOptions={getSiweMessageOptions}>
-              <RainbowKitProvider modalSize="compact">{children}</RainbowKitProvider>
+              <RainbowKitProvider modalSize="compact">
+                {children}
+                <Toast.Provider placement="bottom end" />
+              </RainbowKitProvider>
             </RainbowKitSiweNextAuthProvider>
           </QueryClientProvider>
         </SessionProvider>
