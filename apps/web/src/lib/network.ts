@@ -17,7 +17,7 @@ export const ContractSets = {
   mainnet: {
     ensDiamonds: {
       abi: ensDiamondsAbi,
-      address: "0xb1A022bD260e22e0A767fB7f6324D1C721AF44b9",
+      address: "0x6D6cBBbd2f01bC83eDC71DcF23b1970561ad5242",
     },
     ensBaseRegistrar: {
       address: addresses[mainnet.id].ensBaseRegistrarImplementation.address,
