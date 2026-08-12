@@ -41,7 +41,7 @@ export const VaultCard = ({
 
   return (
     <NextLink className="group block h-full" href={`/vaults/${vaultId}`}>
-      <Card className="h-full gap-0 bg-transparent p-0 shadow-none transition-[transform,filter] duration-200 filter-[drop-shadow(0_2px_6px_rgba(18,21,28,0.08))] hover:-translate-y-0.75 hover:filter-[drop-shadow(0_10px_14px_rgba(18,21,28,0.13))]">
+      <Card className="h-full gap-0 bg-transparent p-0 shadow-none transition-[transform,filter] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform filter-[drop-shadow(0_2px_6px_rgba(18,21,28,0.08))] hover:-translate-y-0.75 hover:filter-[drop-shadow(0_10px_14px_rgba(18,21,28,0.13))] motion-reduce:transform-none motion-reduce:transition-none">
         <div className="ticket-top flex min-h-40 flex-col p-4">
           <div className="flex items-start justify-between gap-3">
             <span className="inline-flex size-10 items-center justify-center rounded-lg bg-accent-subtle transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105">

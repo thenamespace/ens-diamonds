@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 
 import { useQueryState, useQueryStates } from "nuqs";
 import { useDebounceCallback } from "usehooks-ts";
@@ -35,12 +35,23 @@ export const PremiumNameBrowser = ({ asOf }: PremiumNameBrowserProps) => {
   });
   const [view, setView] = useQueryState("view", premiumNameViewParser);
   const [nameInput, setNameInput] = useState(search.name);
-  const updateName = useDebounceCallback(
-    (name: string) => void setSearch({ name: name || null }),
-    300,
+  const latestRequestedName = useRef(search.name);
+  const updateNameSearchParam = useCallback(
+    (name: string) => {
+      latestRequestedName.current = name;
+      void setSearch({ name: name || null });
+    },
+    [setSearch],
   );
+  const updateName = useDebounceCallback(updateNameSearchParam, 300);
 
-  useEffect(() => setNameInput(search.name), [search.name]);
+  useEffect(() => {
+    if (search.name === latestRequestedName.current) return;
+
+    updateName.cancel();
+    latestRequestedName.current = search.name;
+    setNameInput(search.name);
+  }, [search.name, updateName]);
 
   const filters = useMemo(() => toPremiumNamesFilters(search, asOf), [asOf, search]);
   const dateBounds = useMemo(() => getPremiumNameDateBounds(asOf), [asOf]);
@@ -88,6 +99,7 @@ export const PremiumNameBrowser = ({ asOf }: PremiumNameBrowserProps) => {
   );
   const resetFilters = useCallback(() => {
     updateName.cancel();
+    latestRequestedName.current = "";
     setNameInput("");
     void setSearch({
       name: null,
