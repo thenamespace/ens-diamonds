@@ -3,30 +3,39 @@
 import NextLink from "next/link";
 
 import { Card, Chip, ProgressBar, Skeleton, Typography } from "@thenamespace/uikit";
+import { Diamond02Icon, HugeiconsIcon } from "@thenamespace/uikit/icons";
 import type { Address, Hex } from "viem";
 
-import { EthValue, NameAvatar } from "@/components/common";
+import { EthValue } from "@/components/common";
 import { useVault, type VaultState } from "@/hooks";
 
 export type VaultCardSummary = {
-  label: string;
+  title: string;
+  description: string;
   memberCount: number;
   vaultId: Hex;
 };
 
 type VaultCardProps = VaultCardSummary & {
-  viewerAddress: Address;
+  viewerAddress?: Address | null;
 };
 
-export const VaultCard = ({ label, memberCount, vaultId, viewerAddress }: VaultCardProps) => {
+export const VaultCard = ({
+  title,
+  description,
+  memberCount,
+  vaultId,
+  viewerAddress,
+}: VaultCardProps) => {
   const vaultQuery = useVault(vaultId);
   const vault = vaultQuery.data;
 
   if (vaultQuery.isPending) return <VaultCardSkeleton />;
 
   const currentBalance =
-    vault?.members.find(({ address }) => address.toLowerCase() === viewerAddress.toLowerCase())
-      ?.balance ?? 0n;
+    vault?.members.find(
+      ({ address }) => viewerAddress && address.toLowerCase() === viewerAddress.toLowerCase(),
+    )?.balance ?? 0n;
   const members = vault?.members.length ?? memberCount;
   const status = vault?.status;
 
@@ -35,8 +44,8 @@ export const VaultCard = ({ label, memberCount, vaultId, viewerAddress }: VaultC
       <Card className="h-full gap-0 bg-transparent p-0 shadow-none transition-[transform,filter] duration-200 filter-[drop-shadow(0_2px_6px_rgba(18,21,28,0.08))] hover:-translate-y-0.75 hover:filter-[drop-shadow(0_10px_14px_rgba(18,21,28,0.13))]">
         <div className="ticket-top flex min-h-40 flex-col p-4">
           <div className="flex items-start justify-between gap-3">
-            <span className="inline-flex transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105">
-              <NameAvatar className="size-10 rounded-lg" label={label} />
+            <span className="inline-flex size-10 items-center justify-center rounded-lg bg-accent-subtle transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105">
+              <HugeiconsIcon aria-hidden icon={Diamond02Icon} width={21} />
             </span>
             {status ? (
               <Chip color={getStatusColor(status)} size="sm" variant="soft">
@@ -45,9 +54,13 @@ export const VaultCard = ({ label, memberCount, vaultId, viewerAddress }: VaultC
             ) : null}
           </div>
 
-          <div className="mt-auto pt-5 text-[27px] leading-[1.05] font-semibold tracking-tight wrap-break-word text-foreground">
-            {label}
-            <span className="font-normal text-muted">.eth</span>
+          <div className="mt-auto pt-5">
+            <div className="text-xl leading-tight font-semibold tracking-tight wrap-break-word text-foreground">
+              {title}
+            </div>
+            <Typography.Paragraph className="mt-2 line-clamp-2" color="muted" size="sm">
+              {description}
+            </Typography.Paragraph>
           </div>
         </div>
 
@@ -55,15 +68,19 @@ export const VaultCard = ({ label, memberCount, vaultId, viewerAddress }: VaultC
           {vault ? (
             <>
               <div className="grid grid-cols-2 gap-4">
-                <VaultAmount
-                  label={
-                    status === "funding" || status === "committed"
-                      ? "Your contribution"
-                      : "Your balance"
-                  }
-                  value={currentBalance}
-                />
-                <VaultAmount className="text-right" label="Total funded" value={vault.escrowed} />
+                {viewerAddress ? (
+                  <VaultAmount
+                    label={
+                      status === "funding" || status === "committed"
+                        ? "Your contribution"
+                        : "Your balance"
+                    }
+                    value={currentBalance}
+                  />
+                ) : (
+                  <VaultAmount label="Target" value={vault.maxSpend} />
+                )}
+                <VaultAmount className="text-right" label="Funded" value={vault.escrowed} />
               </div>
 
               <ProgressBar

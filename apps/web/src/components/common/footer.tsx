@@ -27,6 +27,7 @@ const linkGroups = [
     links: [
       { href: "/", label: "Discover" },
       { href: "/vaults", label: "Vaults" },
+      { href: "/portfolio", label: "Portfolio" },
     ],
   },
   {

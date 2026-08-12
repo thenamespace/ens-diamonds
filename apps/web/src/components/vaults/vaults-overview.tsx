@@ -17,22 +17,30 @@ import { ConnectButton, PageMain } from "@/components/common";
 
 type VaultsOverviewProps = {
   isAuthenticated: boolean;
+  mode: "public" | "portfolio";
   vaults: VaultCardSummary[];
   viewerAddress: Address | null;
 };
 
-export const VaultsOverview = ({ isAuthenticated, vaults, viewerAddress }: VaultsOverviewProps) => (
+export const VaultsOverview = ({
+  isAuthenticated,
+  mode,
+  vaults,
+  viewerAddress,
+}: VaultsOverviewProps) => (
   <PageMain>
     <header className="max-w-2xl">
       <Typography.Heading className="text-balance text-3xl tracking-tight sm:text-4xl" level={1}>
-        Your vaults
+        {mode === "public" ? "Explore vaults" : "Your portfolio"}
       </Typography.Heading>
       <Typography.Paragraph className="mt-3 leading-7" color="muted">
-        Track every ENS acquisition you are funding or co-own through this wallet.
+        {mode === "public"
+          ? "Discover public group vaults without revealing the ENS names they are targeting."
+          : "Track every ENS acquisition you are funding or co-own through this wallet."}
       </Typography.Paragraph>
     </header>
 
-    {viewerAddress && vaults.length > 0 ? (
+    {(mode === "public" || viewerAddress) && vaults.length > 0 ? (
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {vaults.map((vault) => (
           <VaultCard {...vault} key={vault.vaultId} viewerAddress={viewerAddress} />
@@ -45,16 +53,22 @@ export const VaultsOverview = ({ isAuthenticated, vaults, viewerAddress }: Vault
             <HugeiconsIcon aria-hidden icon={Diamond02Icon} strokeWidth={1.5} width={22} />
           </EmptyStateMedia>
           <Typography.Heading className="empty-state__title text-balance" level={2}>
-            {isAuthenticated ? "No vaults yet" : "Connect your wallet"}
+            {mode === "public"
+              ? "No public vaults yet"
+              : isAuthenticated
+                ? "No vaults yet"
+                : "Connect your wallet"}
           </Typography.Heading>
           <EmptyStateDescription>
-            {isAuthenticated
-              ? "Choose a premium ENS name and start a vault with the people you want to co-own it with."
-              : "Connect and sign in with Ethereum to see the vaults where you are a member."}
+            {mode === "public"
+              ? "Public vaults will appear here after they are created."
+              : isAuthenticated
+                ? "Choose a premium ENS name and start a vault with the people you want to co-own it with."
+                : "Connect and sign in with Ethereum to see the vaults where you are a member."}
           </EmptyStateDescription>
         </EmptyStateHeader>
         <EmptyStateContent>
-          {isAuthenticated ? (
+          {isAuthenticated || mode === "public" ? (
             <NextLink className={buttonVariants({ size: "sm", variant: "primary" })} href="/">
               Discover Names
             </NextLink>

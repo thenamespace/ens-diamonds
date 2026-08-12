@@ -32,6 +32,11 @@ const navItems = [
     render: createNavbarLink("/vaults", "Vaults"),
   },
   {
+    name: "Portfolio",
+    href: "/portfolio",
+    render: createNavbarLink("/portfolio", "Portfolio"),
+  },
+  {
     name: "About",
     href: "/about",
     render: createNavbarLink("/about", "About"),
