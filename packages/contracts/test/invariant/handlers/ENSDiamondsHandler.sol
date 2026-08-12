@@ -31,7 +31,8 @@ contract ENSDiamondsHandler is ENSDiamondsHandlerBase {
             REGISTRATION_DURATION,
             creation.owners,
             creation.targetIntent,
-            creation.ensCommitment
+            creation.ensCommitment,
+            "https://ens.diamonds/vault-uri/invariant"
         );
 
         trackedVaults.push(creation.tracked);

@@ -109,6 +109,7 @@ export function handleVaultCreated(event: VaultCreatedEvent): void {
   entity.owners = changetype<Bytes[]>(event.params.owners);
   entity.targetIntent = event.params.targetIntent;
   entity.ensCommitment = event.params.ensCommitment;
+  entity.vaultURI = event.params.vaultURI;
   entity.creatorDeposit = event.params.creatorDeposit;
 
   entity.blockNumber = event.block.number;

@@ -68,6 +68,7 @@ type VaultCreated @entity(immutable: true) {
   owners: [Bytes!]! # address[]
   targetIntent: Bytes! # bytes32
   ensCommitment: Bytes! # bytes32
+  vaultURI: String! # string
   creatorDeposit: BigInt! # uint256
   blockNumber: BigInt!
   blockTimestamp: BigInt!

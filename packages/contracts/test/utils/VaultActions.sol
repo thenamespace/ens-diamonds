@@ -7,6 +7,8 @@ import {VaultBuilder} from "test/utils/VaultBuilder.sol";
 import {VaultConfig} from "test/utils/VaultConfig.sol";
 
 abstract contract VaultActions is VaultBuilder {
+    string internal constant DEFAULT_VAULT_URI = "https://ens.diamonds/vault-uri/default";
+
     function _createVault(VaultConfig memory config, uint256 deposit)
         internal
         returns (bytes32 vaultId)
@@ -18,7 +20,8 @@ abstract contract VaultActions is VaultBuilder {
             config.registrationDuration,
             config.owners,
             config.targetIntent,
-            config.ensCommitment
+            config.ensCommitment,
+            DEFAULT_VAULT_URI
         );
     }
 

@@ -292,6 +292,12 @@
       },
       {
         "indexed": false,
+        "internalType": "string",
+        "name": "vaultURI",
+        "type": "string"
+      },
+      {
+        "indexed": false,
         "internalType": "uint256",
         "name": "creatorDeposit",
         "type": "uint256"
@@ -462,7 +468,8 @@
       },
       { "internalType": "address[]", "name": "owners", "type": "address[]" },
       { "internalType": "bytes32", "name": "targetIntent", "type": "bytes32" },
-      { "internalType": "bytes32", "name": "ensCommitment", "type": "bytes32" }
+      { "internalType": "bytes32", "name": "ensCommitment", "type": "bytes32" },
+      { "internalType": "string", "name": "vaultURI_", "type": "string" }
     ],
     "name": "createVault",
     "outputs": [{ "internalType": "bytes32", "name": "vaultId", "type": "bytes32" }],
@@ -521,6 +528,13 @@
     "inputs": [],
     "name": "totalLiabilities",
     "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "bytes32", "name": "vaultId", "type": "bytes32" }],
+    "name": "vaultURI",
+    "outputs": [{ "internalType": "string", "name": "uri", "type": "string" }],
     "stateMutability": "view",
     "type": "function"
   },

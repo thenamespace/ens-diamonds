@@ -58,6 +58,8 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     mapping(bytes32 vaultId => Vault vault) public override vaults;
     mapping(bytes32 vaultId => address[] owners) internal ownersOf;
     /// @inheritdoc IENSDiamonds
+    mapping(bytes32 vaultId => string uri) public override vaultURI;
+    /// @inheritdoc IENSDiamonds
     mapping(bytes32 vaultId => mapping(address member => uint256 balance))
         public
         override balanceOf;
@@ -116,12 +118,13 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
         uint32 registrationDuration,
         address[] calldata owners,
         bytes32 targetIntent,
-        bytes32 ensCommitment
+        bytes32 ensCommitment,
+        string calldata vaultURI_
     ) external payable override returns (bytes32 vaultId) {
         if (
             vaultSalt == bytes32(0) || maxSpend == 0
                 || registrationDuration < MIN_REGISTRATION_DURATION || targetIntent == bytes32(0)
-                || ensCommitment == bytes32(0)
+                || ensCommitment == bytes32(0) || bytes(vaultURI_).length == 0
         ) revert InvalidConfiguration();
         if (msg.value > maxSpend) revert FundingLimitExceeded();
 
@@ -145,6 +148,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
             ensCommitment: ensCommitment
         });
         ownersOf[vaultId] = owners;
+        vaultURI[vaultId] = vaultURI_;
 
         // ETH sent during creation is the creator's first deposit.
         if (msg.value != 0) {
@@ -160,6 +164,7 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
             owners,
             targetIntent,
             ensCommitment,
+            vaultURI_,
             msg.value
         );
     }

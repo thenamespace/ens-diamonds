@@ -18,6 +18,7 @@ contract CreateVaultTest is VaultActions {
             config.owners,
             config.targetIntent,
             config.ensCommitment,
+            DEFAULT_VAULT_URI,
             0
         );
         bytes32 createdId = _createVault(config, 0);
@@ -33,6 +34,7 @@ contract CreateVaultTest is VaultActions {
         assertEq(vault.targetIntent, config.targetIntent);
         assertEq(vault.ensCommitment, config.ensCommitment);
         assertEq(diamonds.getOwners(createdId), config.owners);
+        assertEq(diamonds.vaultURI(createdId), DEFAULT_VAULT_URI);
         assertEq(diamonds.totalLiabilities(), 0);
     }
 
@@ -75,6 +77,18 @@ contract CreateVaultTest is VaultActions {
         config.ensCommitment = bytes32(0);
         vm.expectRevert(IENSDiamonds.InvalidConfiguration.selector);
         _createVault(config, 0);
+
+        vm.prank(config.creator);
+        vm.expectRevert(IENSDiamonds.InvalidConfiguration.selector);
+        diamonds.createVault(
+            config.vaultSalt,
+            config.maxSpend,
+            config.registrationDuration,
+            config.owners,
+            config.targetIntent,
+            keccak256("commitment"),
+            ""
+        );
     }
 
     function test_createVaultRevertsWhenDepositExceedsMaximum() public {

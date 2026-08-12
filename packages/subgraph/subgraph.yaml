@@ -40,7 +40,7 @@ dataSources:
           handler: handleNameAcquired
         - event: VaultCancelled(indexed bytes32)
           handler: handleVaultCancelled
-        - event: VaultCreated(indexed bytes32,indexed address,uint96,uint32,address[],bytes32,bytes32,uint256)
+        - event: VaultCreated(indexed bytes32,indexed address,uint96,uint32,address[],bytes32,bytes32,string,uint256)
           handler: handleVaultCreated
         - event: Withdrawn(indexed bytes32,indexed address,indexed address,uint256)
           handler: handleWithdrawn

@@ -55,6 +55,7 @@ interface IENSDiamonds {
         address[] owners,
         bytes32 targetIntent,
         bytes32 ensCommitment,
+        string vaultURI,
         uint256 creatorDeposit
     );
     /// @notice Emitted when a member adds ETH to a funding vault.
@@ -122,6 +123,7 @@ interface IENSDiamonds {
     /// @param owners Ordered Safe owner list containing 2 to 10 unique addresses.
     /// @param targetIntent Commitment to the normalized label and target salt.
     /// @param ensCommitment Commitment produced for the exact ENS registration request.
+    /// @param vaultURI_ URI resolving to public metadata that describes the vault.
     /// @return vaultId Deterministic identifier of the created vault.
     function createVault(
         bytes32 vaultSalt,
@@ -129,7 +131,8 @@ interface IENSDiamonds {
         uint32 registrationDuration,
         address[] calldata owners,
         bytes32 targetIntent,
-        bytes32 ensCommitment
+        bytes32 ensCommitment,
+        string calldata vaultURI_
     ) external payable returns (bytes32 vaultId);
 
     /// @notice Deposits ETH into a funding vault on behalf of the caller.
@@ -209,6 +212,9 @@ interface IENSDiamonds {
 
     /// @notice Returns the ETH owed to a member by a vault.
     function balanceOf(bytes32 vaultId, address member) external view returns (uint256);
+
+    /// @notice Returns the public metadata URI fixed when a vault is created.
+    function vaultURI(bytes32 vaultId) external view returns (string memory);
 
     /// @notice Returns the total ETH owed across all vaults.
     function totalLiabilities() external view returns (uint256);
