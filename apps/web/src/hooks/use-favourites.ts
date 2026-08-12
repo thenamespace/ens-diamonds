@@ -16,7 +16,12 @@ export const useFavourites = () => {
   const labels = new Set(query.data?.map(({ label }) => label) ?? []);
   const mutation = useMutation({
     mutationFn: toggleFavourite,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: FAVOURITES_QUERY_KEY }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: FAVOURITES_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: ["premium-names"] }),
+      ]);
+    },
   });
 
   return {

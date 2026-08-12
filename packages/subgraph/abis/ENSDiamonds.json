@@ -469,7 +469,7 @@
       { "internalType": "address[]", "name": "owners", "type": "address[]" },
       { "internalType": "bytes32", "name": "targetIntent", "type": "bytes32" },
       { "internalType": "bytes32", "name": "ensCommitment", "type": "bytes32" },
-      { "internalType": "string", "name": "vaultURI_", "type": "string" }
+      { "internalType": "string", "name": "vaultUri_", "type": "string" }
     ],
     "name": "createVault",
     "outputs": [{ "internalType": "bytes32", "name": "vaultId", "type": "bytes32" }],

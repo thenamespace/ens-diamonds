@@ -149,7 +149,7 @@ const EthAmountField = ({
       minValue={0}
       name={field.name}
       variant="secondary"
-      value={Number(field.value)}
+      value={field.value === "" ? Number.NaN : Number(field.value)}
       onBlur={field.onBlur}
       onChange={handleChange}
     >

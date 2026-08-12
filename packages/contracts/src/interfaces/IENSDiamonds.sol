@@ -123,7 +123,7 @@ interface IENSDiamonds {
     /// @param owners Ordered Safe owner list containing 2 to 10 unique addresses.
     /// @param targetIntent Commitment to the normalized label and target salt.
     /// @param ensCommitment Commitment produced for the exact ENS registration request.
-    /// @param vaultURI_ URI resolving to public metadata that describes the vault.
+    /// @param vaultUri_ URI resolving to public metadata that describes the vault.
     /// @return vaultId Deterministic identifier of the created vault.
     function createVault(
         bytes32 vaultSalt,
@@ -132,7 +132,7 @@ interface IENSDiamonds {
         address[] calldata owners,
         bytes32 targetIntent,
         bytes32 ensCommitment,
-        string calldata vaultURI_
+        string calldata vaultUri_
     ) external payable returns (bytes32 vaultId);
 
     /// @notice Deposits ETH into a funding vault on behalf of the caller.

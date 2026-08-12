@@ -65,7 +65,7 @@ export const VaultFundingActions = ({
         isDisabled={transactionPending}
         maxValue={Number(formatEther(inputMaximum))}
         minValue={0}
-        value={Number(amount)}
+        value={amount === "" ? Number.NaN : Number(amount)}
         variant="secondary"
         onChange={handleAmountChange}
       >

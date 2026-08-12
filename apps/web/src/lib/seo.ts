@@ -49,6 +49,7 @@ export const getStaticSitemapEntries = (): MetadataRoute.Sitemap => {
 
   return [
     { changeFrequency: "daily", priority: 1, url: SITE_URL },
+    weekly("/vaults", 0.8),
     weekly("/about", 0.8),
     weekly("/terms", 0.3),
     weekly("/privacy", 0.3),

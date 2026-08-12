@@ -125,7 +125,7 @@ export const ensDiamondsAbi = [
       { name: "owners", type: "address[]", internalType: "address[]" },
       { name: "targetIntent", type: "bytes32", internalType: "bytes32" },
       { name: "ensCommitment", type: "bytes32", internalType: "bytes32" },
-      { name: "vaultURI_", type: "string", internalType: "string" },
+      { name: "vaultUri_", type: "string", internalType: "string" },
     ],
     outputs: [{ name: "vaultId", type: "bytes32", internalType: "bytes32" }],
     stateMutability: "payable",

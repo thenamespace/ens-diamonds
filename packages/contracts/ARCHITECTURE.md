@@ -334,7 +334,8 @@ function createVault(
     uint32 registrationDuration,
     address[] calldata owners,
     bytes32 targetIntent,
-    bytes32 ensCommitment
+    bytes32 ensCommitment,
+    string calldata vaultUri_
 ) external payable returns (bytes32 vaultId);
 ```
 
@@ -349,7 +350,7 @@ flowchart TD
     C -->|"Yes"| D["Derive vaultId and predicted Safe"]
     D --> E{"Vault unused and Safe not an owner?"}
     E -->|"No"| ER["Revert"]
-    E -->|"Yes"| F["Store vault and owner list"]
+    E -->|"Yes"| F["Store vault, owner list, and metadata URI"]
     F --> G{"msg.value greater than zero?"}
     G -->|"Yes"| H["Credit creator and increase liabilities"]
     G -->|"No"| I["No initial balance"]
@@ -359,7 +360,7 @@ flowchart TD
 
 The call requires:
 
-- nonzero `vaultSalt`, `maxSpend`, `targetIntent`, and `ensCommitment`
+- nonzero `vaultSalt`, `maxSpend`, `targetIntent`, and `ensCommitment`, plus a nonempty `vaultUri_`
 - `registrationDuration` at least the Controller minimum cached at deployment
 - `msg.value` not greater than `maxSpend`
 - 2 to 10 unique owners
@@ -380,9 +381,13 @@ event VaultCreated(
     address[] owners,
     bytes32 targetIntent,
     bytes32 ensCommitment,
+    string vaultURI,
     uint256 creatorDeposit
 );
 ```
+
+`vaultURI(vaultId)` returns the immutable public metadata endpoint supplied at creation. Metadata
+content is hosted offchain and is not trusted by the acquisition or accounting logic.
 
 ## Fund a vault
 
