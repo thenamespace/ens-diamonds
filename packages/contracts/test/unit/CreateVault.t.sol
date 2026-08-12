@@ -33,8 +33,8 @@ contract CreateVaultTest is VaultActions {
         assertEq(uint256(vault.state), uint256(IENSDiamonds.State.Funding));
         assertEq(vault.targetIntent, config.targetIntent);
         assertEq(vault.ensCommitment, config.ensCommitment);
+        assertEq(vault.vaultURI, DEFAULT_VAULT_URI);
         assertEq(diamonds.getOwners(createdId), config.owners);
-        assertEq(diamonds.vaultURI(createdId), DEFAULT_VAULT_URI);
         assertEq(diamonds.totalLiabilities(), 0);
     }
 

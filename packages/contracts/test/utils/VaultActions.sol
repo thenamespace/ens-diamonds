@@ -69,16 +69,10 @@ abstract contract VaultActions is VaultBuilder {
     }
 
     function _readVault(bytes32 vaultId) internal view returns (IENSDiamonds.Vault memory vault) {
-        (
-            vault.creator,
-            vault.escrowed,
-            vault.maxSpend,
-            vault.committedAt,
-            vault.registrationDuration,
-            vault.state,
-            vault.targetIntent,
-            vault.ensCommitment
-        ) = diamonds.vaults(vaultId);
+        (bool success, bytes memory data) =
+            address(diamonds).staticcall(abi.encodeCall(IENSDiamonds.vaults, (vaultId)));
+        require(success);
+        vault = abi.decode(bytes.concat(bytes32(uint256(32)), data), (IENSDiamonds.Vault));
     }
 
     function _sumBalances(bytes32 vaultId, address[] memory owners)

@@ -187,13 +187,6 @@ export const ensDiamondsAbi = [
   },
   {
     type: "function",
-    name: "vaultURI",
-    inputs: [{ name: "vaultId", type: "bytes32", internalType: "bytes32" }],
-    outputs: [{ name: "uri", type: "string", internalType: "string" }],
-    stateMutability: "view",
-  },
-  {
-    type: "function",
     name: "vaults",
     inputs: [{ name: "vaultId", type: "bytes32", internalType: "bytes32" }],
     outputs: [
@@ -205,6 +198,7 @@ export const ensDiamondsAbi = [
       { name: "state", type: "uint8", internalType: "enum IENSDiamonds.State" },
       { name: "targetIntent", type: "bytes32", internalType: "bytes32" },
       { name: "ensCommitment", type: "bytes32", internalType: "bytes32" },
+      { name: "vaultURI", type: "string", internalType: "string" },
     ],
     stateMutability: "view",
   },

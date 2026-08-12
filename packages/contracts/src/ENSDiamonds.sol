@@ -58,8 +58,6 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
     mapping(bytes32 vaultId => Vault vault) public override vaults;
     mapping(bytes32 vaultId => address[] owners) internal ownersOf;
     /// @inheritdoc IENSDiamonds
-    mapping(bytes32 vaultId => string uri) public override vaultURI;
-    /// @inheritdoc IENSDiamonds
     mapping(bytes32 vaultId => mapping(address member => uint256 balance))
         public
         override balanceOf;
@@ -145,10 +143,10 @@ contract ENSDiamonds is IENSDiamonds, ReentrancyGuardTransient {
             registrationDuration: registrationDuration,
             state: State.Funding,
             targetIntent: targetIntent,
-            ensCommitment: ensCommitment
+            ensCommitment: ensCommitment,
+            vaultURI: vaultUri_
         });
         ownersOf[vaultId] = owners;
-        vaultURI[vaultId] = vaultUri_;
 
         // ETH sent during creation is the creator's first deposit.
         if (msg.value != 0) {

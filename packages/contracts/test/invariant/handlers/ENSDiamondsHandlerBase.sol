@@ -123,16 +123,10 @@ abstract contract ENSDiamondsHandlerBase is Test {
     }
 
     function _readVault(bytes32 vaultId) internal view returns (IENSDiamonds.Vault memory vault) {
-        (
-            vault.creator,
-            vault.escrowed,
-            vault.maxSpend,
-            vault.committedAt,
-            vault.registrationDuration,
-            vault.state,
-            vault.targetIntent,
-            vault.ensCommitment
-        ) = DIAMONDS.vaults(vaultId);
+        (bool success, bytes memory data) =
+            address(DIAMONDS).staticcall(abi.encodeCall(IENSDiamonds.vaults, (vaultId)));
+        require(success);
+        vault = abi.decode(bytes.concat(bytes32(uint256(32)), data), (IENSDiamonds.Vault));
     }
 
     function _updateState(uint256 index) internal {

@@ -533,13 +533,6 @@
   },
   {
     "inputs": [{ "internalType": "bytes32", "name": "vaultId", "type": "bytes32" }],
-    "name": "vaultURI",
-    "outputs": [{ "internalType": "string", "name": "uri", "type": "string" }],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [{ "internalType": "bytes32", "name": "vaultId", "type": "bytes32" }],
     "name": "vaults",
     "outputs": [
       { "internalType": "address", "name": "creator", "type": "address" },
@@ -557,7 +550,8 @@
         "type": "uint8"
       },
       { "internalType": "bytes32", "name": "targetIntent", "type": "bytes32" },
-      { "internalType": "bytes32", "name": "ensCommitment", "type": "bytes32" }
+      { "internalType": "bytes32", "name": "ensCommitment", "type": "bytes32" },
+      { "internalType": "string", "name": "vaultURI", "type": "string" }
     ],
     "stateMutability": "view",
     "type": "function"

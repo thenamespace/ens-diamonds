@@ -97,6 +97,7 @@ struct Vault {
     State state;
     bytes32 targetIntent;
     bytes32 ensCommitment;
+    string vaultURI;
 }
 ```
 
@@ -110,14 +111,17 @@ struct Vault {
 | `state`                | Current lifecycle state                                                 |
 | `targetIntent`         | Salted protocol commitment to the hidden target label                   |
 | `ensCommitment`        | Official ENS Controller commitment                                      |
+| `vaultURI`             | Immutable URI for public vault metadata                                 |
 
-The struct occupies four storage slots:
+The struct occupies five base storage slots. Longer URI bytes are stored at the location derived
+from slot 4:
 
 ```text
 slot 0: creator (160 bits) | escrowed (96 bits)
 slot 1: maxSpend (96) | committedAt (40) | registrationDuration (32) | state (8)
 slot 2: targetIntent
 slot 3: ensCommitment
+slot 4: vaultURI length/data marker or inline short string
 ```
 
 `uint96` safely covers any practical ETH amount. `uint40` covers timestamps for tens of thousands of years, and `uint32` covers registration durations of approximately 136 years.
@@ -386,8 +390,9 @@ event VaultCreated(
 );
 ```
 
-`vaultURI(vaultId)` returns the immutable public metadata endpoint supplied at creation. Metadata
-content is hosted offchain and is not trusted by the acquisition or accounting logic.
+The `vaultURI` field returned by `vaults(vaultId)` is the immutable public metadata endpoint
+supplied at creation. Metadata content is hosted offchain and is not trusted by the acquisition or
+accounting logic.
 
 ## Fund a vault
 

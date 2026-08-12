@@ -23,6 +23,7 @@ interface IENSDiamonds {
     /// @param state Current vault lifecycle state.
     /// @param targetIntent Commitment to the private normalized label and target salt.
     /// @param ensCommitment Commitment accepted by the ENS Controller.
+    /// @param vaultURI URI resolving to immutable public vault metadata.
     struct Vault {
         address creator;
         uint96 escrowed;
@@ -32,6 +33,7 @@ interface IENSDiamonds {
         State state;
         bytes32 targetIntent;
         bytes32 ensCommitment;
+        string vaultURI;
     }
 
     /// @notice Deterministic Safe deployment values derived from a vault and its owners.
@@ -207,14 +209,12 @@ interface IENSDiamonds {
             uint32 registrationDuration,
             State state,
             bytes32 targetIntent,
-            bytes32 ensCommitment
+            bytes32 ensCommitment,
+            string memory vaultURI
         );
 
     /// @notice Returns the ETH owed to a member by a vault.
     function balanceOf(bytes32 vaultId, address member) external view returns (uint256);
-
-    /// @notice Returns the public metadata URI fixed when a vault is created.
-    function vaultURI(bytes32 vaultId) external view returns (string memory);
 
     /// @notice Returns the total ETH owed across all vaults.
     function totalLiabilities() external view returns (uint256);

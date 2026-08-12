@@ -79,7 +79,8 @@ export const useVault = (vaultId: Hex | undefined) => {
         ],
       });
 
-      const [creator, escrowed, maxSpend, committedAt, registrationDuration, state] = vault;
+      const [creator, escrowed, maxSpend, committedAt, registrationDuration, state, , , vaultUri] =
+        vault;
       if (creator === zeroAddress) return null;
 
       const [owners] = await readContracts(config, {
@@ -138,6 +139,7 @@ export const useVault = (vaultId: Hex | undefined) => {
           threshold,
         },
         status,
+        vaultUri,
       };
     },
     refetchInterval: ({ state }) =>
