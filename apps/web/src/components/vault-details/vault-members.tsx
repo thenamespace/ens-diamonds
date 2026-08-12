@@ -45,10 +45,10 @@ export const VaultMembers = ({ currentAddress, members }: VaultMembersProps) => 
                 isCurrent={member.address.toLowerCase() === currentAddress?.toLowerCase()}
               />
 
-              <div className="text-right">
+              <div className="flex flex-col items-end gap-1 text-right">
                 <EthValue className="text-sm font-semibold" value={member.balance} />
                 <NumberValue
-                  className="mt-0.5 text-xs text-muted"
+                  className="text-xs text-muted"
                   maximumFractionDigits={1}
                   value={getContributionPercentage(member.balance, totalBalance)}
                 >

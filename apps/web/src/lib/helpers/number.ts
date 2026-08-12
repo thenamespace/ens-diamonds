@@ -1,5 +1,7 @@
 import { formatEther, parseEther } from "viem";
 
+export const ETH_INPUT_STEP = 0.00001;
+
 export const weiToEth = (value: bigint) => Number(formatEther(value));
 
 export const parseEth = (value: string) => {

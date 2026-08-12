@@ -1,8 +1,10 @@
+import { useCallback } from "react";
+
 import { Button, NumberField, Typography } from "@thenamespace/uikit";
 import { formatEther } from "viem";
 
 import type { PurchaseNameVariables, VaultTransactionProgress } from "@/hooks";
-import { formatCountdown } from "@/lib/helpers";
+import { ETH_INPUT_STEP, formatCountdown } from "@/lib/helpers";
 
 export type VaultActionStatus = {
   isPending: boolean;
@@ -64,8 +66,8 @@ export const VaultFundingActions = ({
         formatOptions={ETH_NUMBER_FORMAT}
         isDisabled={transactionPending}
         maxValue={Number(formatEther(inputMaximum))}
-        minValue={0}
-        step={0.001}
+        minValue={ETH_INPUT_STEP}
+        step={ETH_INPUT_STEP}
         value={amount === "" ? Number.NaN : Number(amount)}
         variant="secondary"
         onChange={handleAmountChange}
@@ -222,4 +224,3 @@ export const getVaultTransactionLabel = (label: string, progress: VaultTransacti
   if (progress === "confirming-transaction") return "Confirming Transaction…";
   return label;
 };
-import { useCallback } from "react";

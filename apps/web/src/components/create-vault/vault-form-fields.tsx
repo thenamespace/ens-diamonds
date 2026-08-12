@@ -19,7 +19,7 @@ import {
 import type { Control, UseFormGetValues } from "react-hook-form";
 import { useController } from "react-hook-form";
 
-import { parseEth } from "@/lib/helpers";
+import { ETH_INPUT_STEP, parseEth } from "@/lib/helpers";
 
 import type { VaultFormValues } from "./vault-form-types";
 
@@ -85,6 +85,7 @@ export const InitialContributionField = ({
       field={field}
       isInvalid={fieldState.invalid}
       label="Initial contribution"
+      allowsZero
       tooltip="ETH deposited by the creator in the vault creation transaction. This can be zero."
     />
   );
@@ -119,6 +120,7 @@ export const RegistrationDurationField = ({ control }: FormFieldProps) => {
 };
 
 type EthAmountFieldProps = {
+  allowsZero?: boolean;
   description: ReactNode | null;
   error: string | undefined;
   field: ReturnType<typeof useController<VaultFormValues>>["field"];
@@ -128,6 +130,7 @@ type EthAmountFieldProps = {
 };
 
 const EthAmountField = ({
+  allowsZero = false,
   description,
   error,
   field,
@@ -146,9 +149,9 @@ const EthAmountField = ({
       className="min-w-0 w-full"
       formatOptions={ETH_FORMAT_OPTIONS}
       isInvalid={isInvalid}
-      minValue={0}
+      minValue={allowsZero ? 0 : ETH_INPUT_STEP}
       name={field.name}
-      step={0.001}
+      step={ETH_INPUT_STEP}
       variant="secondary"
       value={field.value === "" ? Number.NaN : Number(field.value)}
       onBlur={field.onBlur}
