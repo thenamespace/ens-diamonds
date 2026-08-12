@@ -180,6 +180,22 @@ export async function getPublicVaults() {
   }));
 }
 
+export async function getPublicVault(input: VaultIdentity) {
+  const [result] = await db
+    .select({ vault: vaultsTable, metadata: vaultUrisTable })
+    .from(vaultsTable)
+    .innerJoin(vaultUrisTable, eq(vaultUrisTable.vaultRecordId, vaultsTable.id))
+    .where(
+      and(
+        eq(vaultsTable.network, appNetwork),
+        eq(vaultsTable.vaultId, input.vaultId),
+        eq(vaultsTable.isPublic, true),
+      ),
+    )
+    .limit(1);
+  return result ? { metadata: result.metadata, vault: withoutEncryptedData(result.vault) } : null;
+}
+
 export async function getVaultUri(input: VaultIdentity) {
   const [result] = await db
     .select({ metadata: vaultUrisTable })

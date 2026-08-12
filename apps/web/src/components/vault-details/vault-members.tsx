@@ -17,7 +17,7 @@ type VaultMember = {
 };
 
 type VaultMembersProps = {
-  currentAddress: string | undefined;
+  currentAddress?: string | undefined;
   members: readonly VaultMember[];
 };
 
