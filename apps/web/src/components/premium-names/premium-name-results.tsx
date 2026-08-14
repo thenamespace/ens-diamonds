@@ -9,6 +9,7 @@ import {
   EmptyStateDescription,
   EmptyStateHeader,
   EmptyStateMedia,
+  Spinner,
   Typography,
 } from "@thenamespace/uikit";
 import { HugeiconsIcon, Search01Icon } from "@thenamespace/uikit/icons";
@@ -25,6 +26,11 @@ import type { PremiumName } from "@/lib/ens";
 import type { PremiumNameView } from "@/lib/search-params";
 
 const END_MESSAGE = <p className="py-8 text-center text-sm text-muted">You’ve reached the end.</p>;
+const NEXT_PAGE_LOADER = (
+  <div className="flex justify-center py-8">
+    <Spinner aria-label="Loading more premium names" />
+  </div>
+);
 const INFINITE_SCROLL_STYLE = { overflow: "visible" } as const;
 
 type PremiumNameResultsProps = {
@@ -96,10 +102,6 @@ const LoadedPremiumNameResults = ({
   const labels = useMemo(() => names.map(({ label }) => label), [names]);
   const priceQuery = useEnsNamePrices(labels);
   const ethPriceQuery = useEthPrice();
-  const nextPageLoader = useMemo(
-    () => <NameSkeletons count={view === "grid" ? 4 : 3} view={view} />,
-    [view],
-  );
   const isPricePending = priceQuery.isPending || ethPriceQuery.isPending;
 
   return (
@@ -108,7 +110,7 @@ const LoadedPremiumNameResults = ({
       dataLength={names.length}
       endMessage={END_MESSAGE}
       hasMore={hasNextPage}
-      loader={nextPageLoader}
+      loader={NEXT_PAGE_LOADER}
       next={onLoadMore}
       role="feed"
       scrollThreshold="400px"
