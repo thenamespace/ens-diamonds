@@ -217,7 +217,8 @@ export async function getFavouriteLabels() {
         eq(favouritesTable.network, appNetwork),
         eq(favouritesTable.address, getAddress(session.address)),
       ),
-    );
+    )
+    .orderBy(desc(favouritesTable.createdAt));
 }
 
 export async function toggleFavourite(label: string) {
