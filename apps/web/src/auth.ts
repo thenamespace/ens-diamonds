@@ -4,11 +4,11 @@ import Credentials from "next-auth/providers/credentials";
 import { createPublicClient, http } from "viem";
 import { parseSiweMessage, validateSiweMessage } from "viem/siwe";
 
-import { activeChain } from "@/lib/network";
+import { activeChain, rpcUrl } from "@/lib/network";
 
 const publicClient = createPublicClient({
   chain: activeChain,
-  transport: http(),
+  transport: http(rpcUrl),
 });
 const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
 
