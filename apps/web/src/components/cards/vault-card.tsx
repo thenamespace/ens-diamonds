@@ -43,6 +43,7 @@ export const VaultCard = ({ identity, memberCount, vaultId, viewerAddress }: Vau
               <NameAvatar
                 className="size-10 rounded-lg transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105"
                 label={identity.label}
+                resolveEnsAvatar={false}
               />
             ) : (
               <span className="inline-flex size-10 items-center justify-center rounded-lg bg-accent-subtle transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105">

@@ -28,7 +28,11 @@ export const NameGridCard = ({ name, price, ethUsd, isPricePending }: NameGridCa
         <div className="ticket-top flex flex-1 flex-col p-4">
           <div className="flex items-start justify-between gap-2.5">
             <span className="inline-flex transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105">
-              <NameAvatar className="size-10 rounded-lg" label={name.label} />
+              <NameAvatar
+                className="size-10 rounded-lg"
+                label={name.label}
+                resolveEnsAvatar={false}
+              />
             </span>
           </div>
 

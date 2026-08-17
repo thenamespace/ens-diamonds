@@ -44,7 +44,11 @@ export const FavouriteNameCard = ({
         <div className="ticket-top flex min-h-40 flex-1 flex-col p-4">
           <div className="flex items-start justify-between gap-3 pr-10">
             <span className="inline-flex transition-transform duration-300 ease-out group-hover:-rotate-3 group-hover:scale-105">
-              <NameAvatar className="size-10 rounded-lg" label={name.label} />
+              <NameAvatar
+                className="size-10 rounded-lg"
+                label={name.label}
+                resolveEnsAvatar={false}
+              />
             </span>
             <NameStatus isAvailable={name.isAvailable} />
           </div>

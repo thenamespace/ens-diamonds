@@ -2,52 +2,67 @@
 
 import { useMemo } from "react";
 
-import { ethRegistrarControllerRentPriceSnippet } from "@ensdomains/ensjs/contracts";
-import { useReadContracts } from "wagmi";
+import { useQueries } from "@tanstack/react-query";
 
-import { SECONDS_PER_YEAR } from "@/lib/constants";
-import { activeChain, Contracts } from "@/lib/network";
+import { activeChain } from "@/lib/network";
+
+const PRICE_BATCH_SIZE = 24;
+const PRICE_CACHE_TIME = 5 * 60_000;
+
+type NamePriceResult = {
+  ethUsd: string | null;
+  prices: Record<string, string>;
+};
 
 export const useEnsNamePrices = (labels: string[]) => {
-  const contracts = useMemo(
-    () =>
-      labels.map((label) => ({
-        abi: ethRegistrarControllerRentPriceSnippet,
-        address: Contracts.ensEthRegistrarController.address,
-        functionName: "rentPrice" as const,
-        args: [label, BigInt(SECONDS_PER_YEAR)] as const,
-        chainId: activeChain.id,
-      })),
-    [labels],
-  );
-
-  const query = useReadContracts({
-    allowFailure: true,
-    contracts,
-    query: {
-      enabled: contracts.length > 0,
-      refetchInterval: 60_000,
-      staleTime: 30_000,
-    },
+  const batches = useMemo(() => chunkLabels(labels), [labels]);
+  const queries = useQueries({
+    queries: batches.map((batch) => ({
+      queryFn: ({ signal }: { signal: AbortSignal }) => fetchNamePrices(batch, signal),
+      queryKey: ["ens-name-prices", activeChain.id, batch],
+      staleTime: PRICE_CACHE_TIME,
+      gcTime: 6 * PRICE_CACHE_TIME,
+    })),
   });
 
   const prices = useMemo(() => {
     const values = new Map<string, bigint>();
 
-    query.data?.forEach((result, index) => {
-      if (result.status !== "success") return;
-
-      const label = labels[index];
-      if (!label) return;
-
-      values.set(label, result.result.base + result.result.premium);
-    });
+    for (const query of queries) {
+      if (!query.data) continue;
+      for (const [label, value] of Object.entries(query.data.prices)) {
+        values.set(label, BigInt(value));
+      }
+    }
 
     return values;
-  }, [labels, query.data]);
+  }, [queries]);
+  const ethUsd = queries.find(({ data }) => data?.ethUsd)?.data?.ethUsd;
 
   return {
+    ethUsd: ethUsd ? BigInt(ethUsd) : undefined,
     prices,
-    isPending: query.isPending,
+    isPending: queries.some(({ isPending }) => isPending),
   };
 };
+
+async function fetchNamePrices(labels: string[], signal: AbortSignal): Promise<NamePriceResult> {
+  const parameters = new URLSearchParams();
+  for (const label of labels) parameters.append("label", label);
+
+  const response = await fetch(`/api/ens/name-prices?${parameters}`, { signal });
+  if (!response.ok) throw new Error("Name prices are unavailable");
+
+  return response.json() as Promise<NamePriceResult>;
+}
+
+function chunkLabels(labels: string[]) {
+  const uniqueLabels = [...new Set(labels)];
+  const chunks: string[][] = [];
+
+  for (let index = 0; index < uniqueLabels.length; index += PRICE_BATCH_SIZE) {
+    chunks.push(uniqueLabels.slice(index, index + PRICE_BATCH_SIZE));
+  }
+
+  return chunks;
+}

@@ -27,6 +27,7 @@ export const NameListCard = ({ name, price, ethUsd, isPricePending }: NameListCa
       <NameAvatar
         className="relative z-[1] size-11 rounded-xl transition-transform duration-300 group-hover:-rotate-3 group-hover:scale-105"
         label={name.label}
+        resolveEnsAvatar={false}
       />
 
       <div className="relative z-[1] min-w-0">

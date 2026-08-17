@@ -21,7 +21,7 @@ import {
   NameListCard,
   NameListCardSkeleton,
 } from "@/components/cards";
-import { useEnsNamePrices, useEthPrice } from "@/hooks";
+import { useEnsNamePrices } from "@/hooks";
 import type { PremiumName } from "@/lib/ens";
 import type { PremiumNameView } from "@/lib/search-params";
 
@@ -101,8 +101,6 @@ const LoadedPremiumNameResults = ({
 }: Pick<PremiumNameResultsProps, "names" | "view" | "hasNextPage" | "onLoadMore">) => {
   const labels = useMemo(() => names.map(({ label }) => label), [names]);
   const priceQuery = useEnsNamePrices(labels);
-  const ethPriceQuery = useEthPrice();
-  const isPricePending = priceQuery.isPending || ethPriceQuery.isPending;
 
   return (
     <InfiniteScroll
@@ -120,8 +118,8 @@ const LoadedPremiumNameResults = ({
         <div className="-mt-3 grid grid-cols-1 gap-4 pt-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {names.map((name) => (
             <NameGridCard
-              ethUsd={ethPriceQuery.data}
-              isPricePending={isPricePending}
+              ethUsd={priceQuery.ethUsd}
+              isPricePending={priceQuery.isPending}
               key={name.labelhash}
               name={name}
               price={priceQuery.prices.get(name.label)}
@@ -132,8 +130,8 @@ const LoadedPremiumNameResults = ({
         <div className="space-y-3">
           {names.map((name) => (
             <NameListCard
-              ethUsd={ethPriceQuery.data}
-              isPricePending={isPricePending}
+              ethUsd={priceQuery.ethUsd}
+              isPricePending={priceQuery.isPending}
               key={name.labelhash}
               name={name}
               price={priceQuery.prices.get(name.label)}

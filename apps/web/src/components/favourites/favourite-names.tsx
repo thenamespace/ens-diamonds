@@ -16,7 +16,7 @@ import { FavouriteIcon, HugeiconsIcon } from "@thenamespace/uikit/icons";
 
 import { FavouriteNameCard } from "@/components/cards";
 import { ConnectButton, PageMain } from "@/components/common";
-import { useEnsNamePrices, useEthPrice, useFavouriteNameDetails, useFavourites } from "@/hooks";
+import { useEnsNamePrices, useFavouriteNameDetails, useFavourites } from "@/hooks";
 
 type FavouriteNamesProps = {
   initialFavourites: Array<{ label: string }>;
@@ -27,8 +27,6 @@ export const FavouriteNames = ({ initialFavourites, isAuthenticated }: Favourite
   const favourites = useFavourites(initialFavourites);
   const details = useFavouriteNameDetails(favourites.labels);
   const prices = useEnsNamePrices(favourites.labels);
-  const ethPrice = useEthPrice();
-  const isPricePending = prices.isPending || ethPrice.isPending;
 
   return (
     <PageMain>
@@ -65,8 +63,8 @@ export const FavouriteNames = ({ initialFavourites, isAuthenticated }: Favourite
         <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {details.names.map((name) => (
             <FavouriteNameCard
-              ethUsd={ethPrice.data}
-              isPricePending={isPricePending}
+              ethUsd={prices.ethUsd}
+              isPricePending={prices.isPending}
               key={name.label}
               name={name}
               price={prices.prices.get(name.label)}
