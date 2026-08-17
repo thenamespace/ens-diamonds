@@ -144,6 +144,7 @@ export const PremiumNameBrowser = ({ asOf }: PremiumNameBrowserProps) => {
         hasFilters={hasFilters}
         hasNextPage={query.hasNextPage}
         isError={query.isError}
+        isFetchingNextPage={query.isFetchingNextPage}
         isPending={query.isPending || isNavigating}
         names={names}
         view={view}

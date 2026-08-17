@@ -9,29 +9,16 @@ import {
   EmptyStateDescription,
   EmptyStateHeader,
   EmptyStateMedia,
-  Spinner,
   Typography,
 } from "@thenamespace/uikit";
 import { HugeiconsIcon, Search01Icon } from "@thenamespace/uikit/icons";
-import InfiniteScroll from "react-infinite-scroll-component";
 
-import {
-  NameGridCard,
-  NameGridCardSkeleton,
-  NameListCard,
-  NameListCardSkeleton,
-} from "@/components/cards";
+import { NameGridCardSkeleton, NameListCardSkeleton } from "@/components/cards";
 import { useEnsNamePrices } from "@/hooks";
 import type { PremiumName } from "@/lib/ens";
 import type { PremiumNameView } from "@/lib/search-params";
 
-const END_MESSAGE = <p className="py-8 text-center text-sm text-muted">You’ve reached the end.</p>;
-const NEXT_PAGE_LOADER = (
-  <div className="flex justify-center py-8">
-    <Spinner aria-label="Loading more premium names" />
-  </div>
-);
-const INFINITE_SCROLL_STYLE = { overflow: "visible" } as const;
+import { VirtualizedNameResults } from "./virtualized-name-results";
 
 type PremiumNameResultsProps = {
   names: PremiumName[];
@@ -40,6 +27,7 @@ type PremiumNameResultsProps = {
   isError: boolean;
   hasFilters: boolean;
   hasNextPage: boolean;
+  isFetchingNextPage: boolean;
   onLoadMore: () => void;
   onReset: () => void;
   onRetry: () => void;
@@ -52,6 +40,7 @@ export const PremiumNameResults = ({
   isError,
   hasFilters,
   hasNextPage,
+  isFetchingNextPage,
   onLoadMore,
   onReset,
   onRetry,
@@ -86,6 +75,7 @@ export const PremiumNameResults = ({
   return (
     <LoadedPremiumNameResults
       hasNextPage={hasNextPage}
+      isFetchingNextPage={isFetchingNextPage}
       names={names}
       view={view}
       onLoadMore={onLoadMore}
@@ -97,49 +87,26 @@ const LoadedPremiumNameResults = ({
   names,
   view,
   hasNextPage,
+  isFetchingNextPage,
   onLoadMore,
-}: Pick<PremiumNameResultsProps, "names" | "view" | "hasNextPage" | "onLoadMore">) => {
+}: Pick<
+  PremiumNameResultsProps,
+  "names" | "view" | "hasNextPage" | "isFetchingNextPage" | "onLoadMore"
+>) => {
   const labels = useMemo(() => names.map(({ label }) => label), [names]);
   const priceQuery = useEnsNamePrices(labels);
 
   return (
-    <InfiniteScroll
-      aria-label="Premium ENS names"
-      dataLength={names.length}
-      endMessage={END_MESSAGE}
-      hasMore={hasNextPage}
-      loader={NEXT_PAGE_LOADER}
-      next={onLoadMore}
-      role="feed"
-      scrollThreshold="400px"
-      style={INFINITE_SCROLL_STYLE}
-    >
-      {view === "grid" ? (
-        <div className="-mt-3 grid grid-cols-1 gap-4 pt-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {names.map((name) => (
-            <NameGridCard
-              ethUsd={priceQuery.ethUsd}
-              isPricePending={priceQuery.isPending}
-              key={name.labelhash}
-              name={name}
-              price={priceQuery.prices.get(name.label)}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {names.map((name) => (
-            <NameListCard
-              ethUsd={priceQuery.ethUsd}
-              isPricePending={priceQuery.isPending}
-              key={name.labelhash}
-              name={name}
-              price={priceQuery.prices.get(name.label)}
-            />
-          ))}
-        </div>
-      )}
-    </InfiniteScroll>
+    <VirtualizedNameResults
+      ethUsd={priceQuery.ethUsd}
+      hasNextPage={hasNextPage}
+      isFetchingNextPage={isFetchingNextPage}
+      isPricePending={priceQuery.isPending}
+      names={names}
+      prices={priceQuery.prices}
+      view={view}
+      onLoadMore={onLoadMore}
+    />
   );
 };
 
