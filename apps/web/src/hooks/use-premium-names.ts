@@ -23,6 +23,8 @@ type ApiError = {
   error?: string;
 };
 
+const CACHE_TIME = 5 * 60_000;
+
 export const usePremiumNames = ({
   filters,
   limit = PREMIUM_NAMES_PAGE_SIZE,
@@ -44,8 +46,8 @@ export const usePremiumNames = ({
       }),
     getNextPageParam: getNextPremiumNamesPage,
     enabled,
-    staleTime: 60_000,
-    gcTime: 5 * 60_000,
+    staleTime: CACHE_TIME,
+    gcTime: CACHE_TIME,
     retry: 2,
   });
 };

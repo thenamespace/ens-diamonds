@@ -1,5 +1,3 @@
-import { unstable_cache } from "next/cache";
-
 import type { Hex } from "viem";
 import { normalize } from "viem/ens";
 
@@ -12,9 +10,7 @@ const AVAILABLE_AT_OFFSET = GRACE_PERIOD_SECONDS + PREMIUM_PERIOD_SECONDS;
 const SNAPSHOT_BLOCK_LAG = 32;
 const MAX_PAGE_SIZE = 100;
 const MAX_OFFSET = 100_000;
-const FULL_SET_PAGE_SIZE = 1_000;
-const FULL_SET_SHARDS = 7;
-const FULL_SET_MAX_PAGES_PER_SHARD = 10;
+const CACHE_SECONDS = 5 * 60;
 
 export type PremiumNameMatch = "contains" | "startsWith" | "exact";
 export type PremiumNameSort = "ending" | "newest" | "shortest" | "trending";
@@ -94,11 +90,6 @@ type GraphResponse<T> = {
 
 type GraphOrder = "asc" | "desc";
 
-type RegistrationSet = {
-  registrations: Registration[];
-  snapshot: Snapshot;
-};
-
 const SNAPSHOT_QUERY = `
   query PremiumNamesSnapshot {
     meta: _meta {
@@ -128,25 +119,18 @@ export async function getPremiumNames({
   const normalizedSort = validateSort(sort);
   const filterKey = JSON.stringify({ filters: normalizedFilters, sort: normalizedSort });
   const cursor = after ? decodeCursor(after, filterKey) : null;
-  const fullSet = normalizedSort === "shortest" ? await getShortestSource(cursor) : null;
-  const snapshot = cursor ?? fullSet?.snapshot ?? (await getSnapshot());
+  const snapshot = cursor ?? (await getSnapshot());
   const offset = cursor?.offset ?? 0;
-  const registrations =
-    normalizedSort === "shortest"
-      ? sortByShortest(
-          (fullSet?.registrations ?? []).filter((registration) =>
-            registrationMatchesFilters(registration, normalizedFilters, snapshot),
-          ),
-        ).slice(offset, offset + pageSize + 1)
-      : await queryRegistrations({
-          filters: normalizedFilters,
-          order: normalizedSort === "ending" ? "asc" : "desc",
-          snapshot,
-          first: pageSize + 1,
-          skip: offset,
-        });
+  const registrations = await queryRegistrations({
+    filters: normalizedFilters,
+    order: normalizedSort === "newest" ? "desc" : "asc",
+    snapshot,
+    first: pageSize + 1,
+    skip: offset,
+  });
   const hasNextPage = registrations.length > pageSize;
-  const names = registrations.slice(0, pageSize).map(toPremiumName);
+  const page = registrations.slice(0, pageSize);
+  const names = (normalizedSort === "shortest" ? sortByShortest(page) : page).map(toPremiumName);
 
   return {
     names,
@@ -249,106 +233,6 @@ export async function getTrendingPremiumNames({
       endCursor: hasNextPage ? String(offset + page.length) : null,
     },
   };
-}
-
-const getCachedPremiumRegistrationSet = unstable_cache(
-  async (): Promise<RegistrationSet> => {
-    const snapshot = await getSnapshot();
-    return {
-      registrations: await queryAllRegistrations(snapshot),
-      snapshot,
-    };
-  },
-  ["premium-names-full-set"],
-  { revalidate: 300 },
-);
-
-async function getShortestSource(cursor: Cursor | null): Promise<RegistrationSet> {
-  const cached = await getCachedPremiumRegistrationSet();
-
-  if (
-    !cursor ||
-    (cursor.blockNumber === cached.snapshot.blockNumber &&
-      cursor.timestamp === cached.snapshot.timestamp)
-  ) {
-    return cached;
-  }
-
-  return {
-    registrations: await queryAllRegistrations(cursor),
-    snapshot: cursor,
-  };
-}
-
-async function queryAllRegistrations(snapshot: Snapshot): Promise<Registration[]> {
-  const { from, to } = getPremiumExpiryBounds(snapshot);
-  const span = to - from + 1;
-  const shards = Array.from({ length: FULL_SET_SHARDS }, (_, index) => ({
-    from: from + Math.floor((span * index) / FULL_SET_SHARDS),
-    to: from + Math.floor((span * (index + 1)) / FULL_SET_SHARDS) - 1,
-  }));
-
-  return (await Promise.all(shards.map((shard) => queryRegistrationShard(snapshot, shard)))).flat();
-}
-
-async function queryRegistrationShard(
-  snapshot: Snapshot,
-  expiry: { from: number; to: number },
-): Promise<Registration[]> {
-  const registrations: Registration[] = [];
-  let cursor = "";
-
-  for (let page = 0; page < FULL_SET_MAX_PAGES_PER_SHARD; page += 1) {
-    const query = `
-      query PremiumNamesFullSet(
-        $first: Int!
-        $cursor: String!
-        $blockNumber: Int!
-        $expiryFrom: BigInt!
-        $expiryTo: BigInt!
-      ) {
-        registrations(
-          first: $first
-          block: { number: $blockNumber }
-          orderBy: id
-          orderDirection: asc
-          where: {
-            id_gt: $cursor
-            expiryDate_gte: $expiryFrom
-            expiryDate_lte: $expiryTo
-            labelName_not: null
-          }
-        ) {
-          id
-          labelName
-          expiryDate
-          domain {
-            labelhash
-          }
-        }
-      }
-    `;
-    // eslint-disable-next-line no-await-in-loop -- each keyset page depends on the previous cursor
-    const data = await requestGraph<{ registrations: Registration[] }>({
-      query,
-      variables: {
-        first: FULL_SET_PAGE_SIZE,
-        cursor,
-        blockNumber: snapshot.blockNumber,
-        expiryFrom: String(expiry.from),
-        expiryTo: String(expiry.to),
-      },
-    });
-
-    registrations.push(...data.registrations);
-    if (data.registrations.length < FULL_SET_PAGE_SIZE) return registrations;
-
-    cursor = data.registrations.at(-1)?.id ?? "";
-  }
-
-  throw new Error(
-    `Premium name shard exceeds the ${FULL_SET_MAX_PAGES_PER_SHARD * FULL_SET_PAGE_SIZE} limit`,
-  );
 }
 
 async function getSnapshot(): Promise<Snapshot> {
@@ -490,7 +374,7 @@ function sortByShortest(registrations: Registration[]) {
     .toSorted(
       (a, b) =>
         a.length - b.length ||
-        Number(b.registration.expiryDate) - Number(a.registration.expiryDate) ||
+        Number(a.registration.expiryDate) - Number(b.registration.expiryDate) ||
         compareStrings(a.registration.id, b.registration.id),
     )
     .map(({ registration }) => registration);
@@ -517,7 +401,7 @@ async function requestGraph<T>({
     },
     body: JSON.stringify({ query, variables }),
     cache: "force-cache",
-    next: { revalidate: 60 },
+    next: { revalidate: CACHE_SECONDS },
   });
 
   if (!response.ok) {
