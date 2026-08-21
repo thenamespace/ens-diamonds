@@ -2,12 +2,12 @@ import { NextResponse } from "next/server";
 
 import { getTrendingLabels } from "@/db/actions";
 import {
-  getPremiumNames,
   getTrendingPremiumNames,
   type PremiumNameMatch,
   type PremiumNameSort,
   type PremiumNamesFilters,
 } from "@/lib/ens";
+import { getCachedPremiumNames } from "@/lib/ens/get-cached-premium-names";
 
 const NAME_MATCHES = new Set<PremiumNameMatch>(["contains", "startsWith", "exact"]);
 const DEFAULT_LIMIT = 24;
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
             offset: parseCursorOffset(parameters.get("cursor")),
             rankedLabels: (await getTrendingLabels()).map(({ label }) => label),
           })
-        : await getPremiumNames({
+        : await getCachedPremiumNames({
             filters,
             sort,
             limit,

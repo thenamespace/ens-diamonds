@@ -10,6 +10,9 @@ const AVAILABLE_AT_OFFSET = GRACE_PERIOD_SECONDS + PREMIUM_PERIOD_SECONDS;
 const SNAPSHOT_BLOCK_LAG = 32;
 const MAX_PAGE_SIZE = 100;
 const MAX_OFFSET = 100_000;
+const FULL_SET_PAGE_SIZE = 1_000;
+const FULL_SET_SHARDS = 7;
+const FULL_SET_MAX_PAGES_PER_SHARD = 10;
 const CACHE_SECONDS = 5 * 60;
 
 export type PremiumNameMatch = "contains" | "startsWith" | "exact";
@@ -90,6 +93,11 @@ type GraphResponse<T> = {
 
 type GraphOrder = "asc" | "desc";
 
+export type PremiumRegistrationSet = {
+  registrations: Registration[];
+  snapshot: Snapshot;
+};
+
 const SNAPSHOT_QUERY = `
   query PremiumNamesSnapshot {
     meta: _meta {
@@ -108,19 +116,46 @@ const NAME_FILTER_FIELDS = {
   exact: "labelName",
 } as const;
 
-export async function getPremiumNames({
-  filters,
-  sort = "ending",
-  limit = 24,
-  after,
-}: GetPremiumNamesProps = {}): Promise<PremiumNamesPage> {
+export async function getPremiumNames(
+  { filters, sort = "ending", limit = 24, after }: GetPremiumNamesProps = {},
+  shortestSource?: PremiumRegistrationSet,
+): Promise<PremiumNamesPage> {
   const pageSize = validatePageSize(limit);
   const normalizedFilters = normalizeFilters(filters);
   const normalizedSort = validateSort(sort);
   const filterKey = JSON.stringify({ filters: normalizedFilters, sort: normalizedSort });
   const cursor = after ? decodeCursor(after, filterKey) : null;
-  const snapshot = cursor ?? (await getSnapshot());
   const offset = cursor?.offset ?? 0;
+
+  if (normalizedSort === "shortest") {
+    const source = await resolveShortestSource(cursor, shortestSource);
+    const snapshot = cursor ?? source.snapshot;
+    const registrations = source.registrations.filter((registration) =>
+      registrationMatchesFilters(registration, normalizedFilters, snapshot),
+    );
+    const page = registrations.slice(offset, offset + pageSize);
+    const hasNextPage = offset + page.length < registrations.length;
+
+    return {
+      names: page.map(toPremiumName),
+      pageInfo: {
+        asOf: snapshot.timestamp,
+        blockNumber: snapshot.blockNumber,
+        hasNextPage,
+        endCursor: hasNextPage
+          ? encodeCursor({
+              version: 2,
+              offset: offset + page.length,
+              filters: filterKey,
+              blockNumber: snapshot.blockNumber,
+              timestamp: snapshot.timestamp,
+            })
+          : null,
+      },
+    };
+  }
+
+  const snapshot = cursor ?? (await getSnapshot());
   const registrations = await queryRegistrations({
     filters: normalizedFilters,
     order: normalizedSort === "newest" ? "desc" : "asc",
@@ -130,7 +165,7 @@ export async function getPremiumNames({
   });
   const hasNextPage = registrations.length > pageSize;
   const page = registrations.slice(0, pageSize);
-  const names = (normalizedSort === "shortest" ? sortByShortest(page) : page).map(toPremiumName);
+  const names = page.map(toPremiumName);
 
   return {
     names,
@@ -149,6 +184,95 @@ export async function getPremiumNames({
         : null,
     },
   };
+}
+
+async function resolveShortestSource(
+  cursor: Cursor | null,
+  cached: PremiumRegistrationSet | undefined,
+) {
+  if (
+    cached &&
+    (!cursor ||
+      (cursor.blockNumber === cached.snapshot.blockNumber &&
+        cursor.timestamp === cached.snapshot.timestamp))
+  ) {
+    return cached;
+  }
+
+  return getPremiumRegistrationSet(cursor ?? undefined);
+}
+
+export async function getPremiumRegistrationSet(snapshot?: Snapshot) {
+  const resolvedSnapshot = snapshot ?? (await getSnapshot());
+  const { from, to } = getPremiumExpiryBounds(resolvedSnapshot);
+  const span = to - from + 1;
+  const shards = Array.from({ length: FULL_SET_SHARDS }, (_, index) => ({
+    from: from + Math.floor((span * index) / FULL_SET_SHARDS),
+    to: from + Math.floor((span * (index + 1)) / FULL_SET_SHARDS) - 1,
+  }));
+  const registrations = (
+    await Promise.all(shards.map((expiry) => queryRegistrationShard(resolvedSnapshot, expiry)))
+  ).flat();
+
+  return {
+    registrations: sortByShortest(registrations),
+    snapshot: resolvedSnapshot,
+  } satisfies PremiumRegistrationSet;
+}
+
+async function queryRegistrationShard(snapshot: Snapshot, expiry: { from: number; to: number }) {
+  const registrations: Registration[] = [];
+  let cursor = "";
+
+  for (let page = 0; page < FULL_SET_MAX_PAGES_PER_SHARD; page += 1) {
+    const query = `
+      query PremiumNamesFullSet(
+        $first: Int!
+        $cursor: String!
+        $blockNumber: Int!
+        $expiryFrom: BigInt!
+        $expiryTo: BigInt!
+      ) {
+        registrations(
+          first: $first
+          block: { number: $blockNumber }
+          orderBy: id
+          orderDirection: asc
+          where: {
+            id_gt: $cursor
+            expiryDate_gte: $expiryFrom
+            expiryDate_lte: $expiryTo
+            labelName_not: null
+          }
+        ) {
+          id
+          labelName
+          expiryDate
+          domain { labelhash }
+        }
+      }
+    `;
+    // eslint-disable-next-line no-await-in-loop -- Each keyset page depends on the previous cursor.
+    const data = await requestGraph<{ registrations: Registration[] }>({
+      query,
+      variables: {
+        first: FULL_SET_PAGE_SIZE,
+        cursor,
+        blockNumber: snapshot.blockNumber,
+        expiryFrom: String(expiry.from),
+        expiryTo: String(expiry.to),
+      },
+    });
+
+    registrations.push(...data.registrations);
+    if (data.registrations.length < FULL_SET_PAGE_SIZE) return registrations;
+
+    cursor = data.registrations.at(-1)?.id ?? "";
+  }
+
+  throw new Error(
+    `Premium name shard exceeds the ${FULL_SET_MAX_PAGES_PER_SHARD * FULL_SET_PAGE_SIZE} limit`,
+  );
 }
 
 export async function getTrendingPremiumNames({

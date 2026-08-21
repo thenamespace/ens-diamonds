@@ -3,12 +3,8 @@ import { dehydrate, HydrationBoundary, QueryClient } from "@tanstack/react-query
 import type { SearchParams } from "nuqs/server";
 
 import { PremiumNameBrowser } from "@/components";
-import {
-  getNextPremiumNamesPage,
-  getPremiumNames,
-  PREMIUM_NAMES_PAGE_SIZE,
-  premiumNamesQueryKey,
-} from "@/lib/ens";
+import { getNextPremiumNamesPage, PREMIUM_NAMES_PAGE_SIZE, premiumNamesQueryKey } from "@/lib/ens";
+import { getCachedPremiumNames } from "@/lib/ens/get-cached-premium-names";
 import { getUnixTime } from "@/lib/helpers";
 import { loadPremiumNameSearchParams, toPremiumNamesFilters } from "@/lib/search-params";
 
@@ -26,7 +22,7 @@ export default async function Home({ searchParams }: HomeProps) {
     queryKey: premiumNamesQueryKey(filters, search.sort),
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) =>
-      getPremiumNames({
+      getCachedPremiumNames({
         filters,
         sort: search.sort,
         limit: PREMIUM_NAMES_PAGE_SIZE,
