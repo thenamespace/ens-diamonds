@@ -22,6 +22,7 @@ import { VirtualizedNameResults } from "./virtualized-name-results";
 
 type PremiumNameResultsProps = {
   names: PremiumName[];
+  now: number;
   view: PremiumNameView;
   isPending: boolean;
   isError: boolean;
@@ -35,6 +36,7 @@ type PremiumNameResultsProps = {
 
 export const PremiumNameResults = ({
   names,
+  now,
   view,
   isPending,
   isError,
@@ -77,6 +79,7 @@ export const PremiumNameResults = ({
       hasNextPage={hasNextPage}
       isFetchingNextPage={isFetchingNextPage}
       names={names}
+      now={now}
       view={view}
       onLoadMore={onLoadMore}
     />
@@ -85,13 +88,14 @@ export const PremiumNameResults = ({
 
 const LoadedPremiumNameResults = ({
   names,
+  now,
   view,
   hasNextPage,
   isFetchingNextPage,
   onLoadMore,
 }: Pick<
   PremiumNameResultsProps,
-  "names" | "view" | "hasNextPage" | "isFetchingNextPage" | "onLoadMore"
+  "names" | "now" | "view" | "hasNextPage" | "isFetchingNextPage" | "onLoadMore"
 >) => {
   const labels = useMemo(() => names.map(({ label }) => label), [names]);
   const priceQuery = useEnsNamePrices(labels);
@@ -103,6 +107,7 @@ const LoadedPremiumNameResults = ({
       isFetchingNextPage={isFetchingNextPage}
       isPricePending={priceQuery.isPending}
       names={names}
+      now={now}
       prices={priceQuery.prices}
       view={view}
       onLoadMore={onLoadMore}

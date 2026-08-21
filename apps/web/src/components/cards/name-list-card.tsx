@@ -14,9 +14,10 @@ type NameListCardProps = {
   price: bigint | undefined;
   ethUsd: bigint | undefined;
   isPricePending: boolean;
+  now: number;
 };
 
-export const NameListCard = ({ name, price, ethUsd, isPricePending }: NameListCardProps) => (
+export const NameListCard = ({ name, price, ethUsd, isPricePending, now }: NameListCardProps) => (
   <Card className="group relative grid min-h-20 grid-cols-[auto_minmax(0,1fr)] items-center gap-3 py-3 pr-16 pl-4 shadow-xs transition duration-200 hover:-translate-y-0.5 hover:shadow-sm sm:grid-cols-[auto_minmax(0,1fr)_auto_minmax(9rem,auto)] sm:gap-5">
     <Link
       aria-label={`View ${name.label}.eth`}
@@ -40,6 +41,7 @@ export const NameListCard = ({ name, price, ethUsd, isPricePending }: NameListCa
       <div className="relative z-[1] col-start-2 row-start-2 sm:col-auto sm:row-auto">
         <CompactPremiumDecay
           availableAt={name.availableAt}
+          now={now}
           premiumStartsAt={name.premiumStartsAt}
         />
       </div>

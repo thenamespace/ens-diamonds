@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 
 import NumberFlow from "@number-flow/react";
 import { Chip, ProgressBar } from "@thenamespace/uikit";
 import { Clock01Icon, HugeiconsIcon } from "@thenamespace/uikit/icons";
-import { useInterval } from "usehooks-ts";
 
 import { SECONDS_PER_DAY, SECONDS_PER_HOUR, SECONDS_PER_MINUTE } from "@/lib/constants";
 import {
@@ -14,9 +13,8 @@ import {
   type PremiumDecayTone,
   type PremiumName,
 } from "@/lib/ens";
-import { getUnixTime } from "@/lib/helpers";
 
-type PremiumDecayProps = Pick<PremiumName, "availableAt" | "premiumStartsAt">;
+type PremiumDecayProps = Pick<PremiumName, "availableAt" | "premiumStartsAt"> & { now: number };
 
 const DECAY_TONES: Record<
   PremiumDecayTone,
@@ -83,7 +81,7 @@ const DECAY_TONES: Record<
 };
 
 export const PremiumDecayMeter = (props: PremiumDecayProps) => {
-  const decay = usePremiumDecay(props);
+  const decay = getPremiumDecay(props);
   const colors = DECAY_TONES[decay.tone];
 
   return (
@@ -100,7 +98,10 @@ export const PremiumDecayMeter = (props: PremiumDecayProps) => {
         }
       >
         <ProgressBar.Track>
-          <ProgressBar.Fill style={colors.fillStyle} />
+          <ProgressBar.Fill
+            style={colors.fillStyle}
+            {...(decay.remainingSeconds > 0 ? { className: "min-w-1.5" } : {})}
+          />
         </ProgressBar.Track>
       </ProgressBar>
 
@@ -122,7 +123,7 @@ export const PremiumDecayMeter = (props: PremiumDecayProps) => {
 };
 
 export const CompactPremiumDecay = (props: PremiumDecayProps) => {
-  const decay = usePremiumDecay(props);
+  const decay = getPremiumDecay(props);
   return (
     <PremiumDecayChip
       label={decay.label}
@@ -190,19 +191,3 @@ const PremiumDecayTime = ({ remainingSeconds }: { remainingSeconds: number }) =>
     );
   return "<1m left";
 };
-
-function usePremiumDecay({ availableAt, premiumStartsAt }: PremiumDecayProps) {
-  const [now, setNow] = useState<number>();
-  const updateNow = useCallback(() => setNow(getUnixTime()), []);
-
-  useEffect(() => {
-    updateNow();
-  }, [updateNow]);
-  useInterval(updateNow, 60_000);
-
-  return getPremiumDecay({
-    availableAt,
-    premiumStartsAt,
-    now: now ?? premiumStartsAt,
-  });
-}

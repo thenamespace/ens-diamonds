@@ -16,14 +16,20 @@ import { FavouriteIcon, HugeiconsIcon } from "@thenamespace/uikit/icons";
 
 import { FavouriteNameCard } from "@/components/cards";
 import { ConnectButton, PageMain } from "@/components/common";
-import { useEnsNamePrices, useFavouriteNameDetails, useFavourites } from "@/hooks";
+import { useEnsNamePrices, useFavouriteNameDetails, useFavourites, useMinuteClock } from "@/hooks";
 
 type FavouriteNamesProps = {
+  asOf: number;
   initialFavourites: Array<{ label: string }>;
   isAuthenticated: boolean;
 };
 
-export const FavouriteNames = ({ initialFavourites, isAuthenticated }: FavouriteNamesProps) => {
+export const FavouriteNames = ({
+  asOf,
+  initialFavourites,
+  isAuthenticated,
+}: FavouriteNamesProps) => {
+  const now = useMinuteClock(asOf);
   const favourites = useFavourites(initialFavourites);
   const details = useFavouriteNameDetails(favourites.labels);
   const prices = useEnsNamePrices(favourites.labels);
@@ -64,9 +70,10 @@ export const FavouriteNames = ({ initialFavourites, isAuthenticated }: Favourite
           {details.names.map((name) => (
             <FavouriteNameCard
               ethUsd={prices.ethUsd}
-              isPricePending={prices.isPending}
+              isPricePending={prices.prices.get(name.label) === undefined && prices.isPending}
               key={name.label}
               name={name}
+              now={now}
               price={prices.prices.get(name.label)}
             />
           ))}

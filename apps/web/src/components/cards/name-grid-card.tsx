@@ -14,9 +14,10 @@ type NameGridCardProps = {
   price: bigint | undefined;
   ethUsd: bigint | undefined;
   isPricePending: boolean;
+  now: number;
 };
 
-export const NameGridCard = ({ name, price, ethUsd, isPricePending }: NameGridCardProps) => {
+export const NameGridCard = ({ name, price, ethUsd, isPricePending, now }: NameGridCardProps) => {
   return (
     <Card className="group relative h-full gap-0 bg-transparent p-0 shadow-none transition-[transform,filter] duration-200 filter-[drop-shadow(0_2px_6px_rgba(18,21,28,0.08))] hover:-translate-y-0.75 hover:filter-[drop-shadow(0_10px_14px_rgba(18,21,28,0.13))]">
       <Link
@@ -46,6 +47,7 @@ export const NameGridCard = ({ name, price, ethUsd, isPricePending }: NameGridCa
           <PremiumNamePrice ethUsd={ethUsd} isPending={isPricePending} price={price} />
           <PremiumDecayMeter
             availableAt={name.availableAt}
+            now={now}
             premiumStartsAt={name.premiumStartsAt}
           />
         </div>

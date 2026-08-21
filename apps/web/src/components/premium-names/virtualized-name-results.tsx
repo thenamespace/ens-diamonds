@@ -17,6 +17,7 @@ type VirtualizedNameResultsProps = {
   isFetchingNextPage: boolean;
   isPricePending: boolean;
   names: PremiumName[];
+  now: number;
   prices: Map<string, bigint>;
   view: PremiumNameView;
   onLoadMore: () => void;
@@ -72,13 +73,7 @@ const VirtualizedGrid = (props: VirtualizedNameResultsProps) => {
               ref={virtualizer.measureElement}
             >
               {names.map((name) => (
-                <NameGridCard
-                  ethUsd={props.ethUsd}
-                  isPricePending={props.isPricePending}
-                  key={name.labelhash}
-                  name={name}
-                  price={props.prices.get(name.label)}
-                />
+                <VirtualizedGridCard key={name.labelhash} name={name} {...props} />
               ))}
             </div>
           );
@@ -121,17 +116,52 @@ const VirtualizedList = (props: VirtualizedNameResultsProps) => {
               key={virtualRow.key}
               ref={virtualizer.measureElement}
             >
-              <NameListCard
-                ethUsd={props.ethUsd}
-                isPricePending={props.isPricePending}
-                name={name}
-                price={props.prices.get(name.label)}
-              />
+              <VirtualizedListCard name={name} {...props} />
             </div>
           );
         })}
       </div>
     </div>
+  );
+};
+
+const VirtualizedGridCard = ({
+  ethUsd,
+  isPricePending,
+  name,
+  now,
+  prices,
+}: VirtualizedNameResultsProps & { name: PremiumName }) => {
+  const price = prices.get(name.label);
+
+  return (
+    <NameGridCard
+      ethUsd={ethUsd}
+      isPricePending={price === undefined && isPricePending}
+      name={name}
+      now={now}
+      price={price}
+    />
+  );
+};
+
+const VirtualizedListCard = ({
+  ethUsd,
+  isPricePending,
+  name,
+  now,
+  prices,
+}: VirtualizedNameResultsProps & { name: PremiumName }) => {
+  const price = prices.get(name.label);
+
+  return (
+    <NameListCard
+      ethUsd={ethUsd}
+      isPricePending={price === undefined && isPricePending}
+      name={name}
+      now={now}
+      price={price}
+    />
   );
 };
 

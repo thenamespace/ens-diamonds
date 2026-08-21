@@ -6,7 +6,7 @@ import { useQueryState, useQueryStates } from "nuqs";
 import { useDebounceCallback } from "usehooks-ts";
 
 import { PageMain } from "@/components/common";
-import { usePremiumNames } from "@/hooks";
+import { useMinuteClock, usePremiumNames } from "@/hooks";
 import {
   getPremiumNameDateBounds,
   getPremiumNameDateRange,
@@ -27,6 +27,7 @@ type PremiumNameBrowserProps = {
 };
 
 export const PremiumNameBrowser = ({ asOf }: PremiumNameBrowserProps) => {
+  const now = useMinuteClock(asOf);
   const [isNavigating, startTransition] = useTransition();
   const [search, setSearch] = useQueryStates(premiumNameFilterParsers, {
     history: "replace",
@@ -147,6 +148,7 @@ export const PremiumNameBrowser = ({ asOf }: PremiumNameBrowserProps) => {
         isFetchingNextPage={query.isFetchingNextPage}
         isPending={query.isPending || isNavigating}
         names={names}
+        now={now}
         view={view}
         onLoadMore={loadNextPage}
         onReset={resetFilters}

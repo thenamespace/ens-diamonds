@@ -6,7 +6,6 @@ import { Card, Chip, Typography } from "@thenamespace/uikit";
 
 import { NameAvatar } from "@/components/common";
 import type { FavouriteNameDetails } from "@/hooks";
-import { getUnixTime } from "@/lib/helpers";
 
 import { FavouriteButton } from "./favourite-button";
 import { PremiumDecayMeter } from "./premium-decay";
@@ -16,6 +15,7 @@ type FavouriteNameCardProps = {
   ethUsd: bigint | undefined;
   isPricePending: boolean;
   name: FavouriteNameDetails;
+  now: number;
   price: bigint | undefined;
 };
 
@@ -23,9 +23,9 @@ export const FavouriteNameCard = ({
   ethUsd,
   isPricePending,
   name,
+  now,
   price,
 }: FavouriteNameCardProps) => {
-  const now = getUnixTime();
   const isInPremium =
     name.isAvailable === true &&
     name.premiumStartsAt !== undefined &&
@@ -66,6 +66,7 @@ export const FavouriteNameCard = ({
               {isInPremium ? (
                 <PremiumDecayMeter
                   availableAt={name.availableAt as number}
+                  now={now}
                   premiumStartsAt={name.premiumStartsAt as number}
                 />
               ) : null}
