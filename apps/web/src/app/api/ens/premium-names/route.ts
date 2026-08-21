@@ -1,12 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getTrendingLabels } from "@/db/actions";
-import {
-  getTrendingPremiumNames,
-  type PremiumNameMatch,
-  type PremiumNameSort,
-  type PremiumNamesFilters,
-} from "@/lib/ens";
+import type { PremiumNameMatch, PremiumNameSort, PremiumNamesFilters } from "@/lib/ens";
 import { getCachedPremiumNames } from "@/lib/ens/get-cached-premium-names";
 
 const NAME_MATCHES = new Set<PremiumNameMatch>(["contains", "startsWith", "exact"]);
@@ -36,20 +30,12 @@ export async function GET(request: Request) {
 
     const sort = parseSort(parameters.get("sort"));
     const limit = parsePositiveInteger(parameters.get("limit"), "limit") ?? DEFAULT_LIMIT;
-    const page =
-      sort === "trending"
-        ? await getTrendingPremiumNames({
-            filters,
-            limit,
-            offset: parseCursorOffset(parameters.get("cursor")),
-            rankedLabels: (await getTrendingLabels()).map(({ label }) => label),
-          })
-        : await getCachedPremiumNames({
-            filters,
-            sort,
-            limit,
-            after: parameters.get("cursor"),
-          });
+    const page = await getCachedPremiumNames({
+      filters,
+      sort,
+      limit,
+      after: parameters.get("cursor"),
+    });
 
     return NextResponse.json(page, {
       headers: {
@@ -73,13 +59,6 @@ function parseSort(value: string | null): PremiumNameSort {
   if (value === "newest" || value === "shortest" || value === "trending") return value;
 
   throw new TypeError("sort must be ending, newest, shortest, or trending");
-}
-
-function parseCursorOffset(value: string | null) {
-  if (value === null) return 0;
-  const offset = Number(value);
-  if (!Number.isSafeInteger(offset) || offset < 0) throw new RangeError("Invalid cursor");
-  return offset;
 }
 
 function parseNameMatch(value: string | null): PremiumNameMatch {

@@ -277,32 +277,61 @@ async function queryRegistrationShard(snapshot: Snapshot, expiry: { from: number
 
 export async function getTrendingPremiumNames({
   rankedLabels,
+  fallbackSource,
   filters,
   limit,
-  offset = 0,
+  after,
 }: {
   rankedLabels: string[];
+  fallbackSource: PremiumRegistrationSet;
   filters?: PremiumNamesFilters;
   limit: number;
-  offset?: number;
+  after?: string | null;
 }): Promise<PremiumNamesPage> {
   const pageSize = validatePageSize(limit);
   const normalizedFilters = normalizeFilters(filters);
-  const snapshot = await getSnapshot();
-  if (rankedLabels.length === 0) {
-    return {
-      names: [],
-      pageInfo: {
-        asOf: snapshot.timestamp,
-        blockNumber: snapshot.blockNumber,
-        hasNextPage: false,
-        endCursor: null,
-      },
-    };
-  }
+  const offset = parseTrendingOffset(after);
+  const snapshot = fallbackSource.snapshot;
+  const data =
+    rankedLabels.length > 0
+      ? await queryTrendingRegistrations(rankedLabels, snapshot)
+      : { registrations: [] };
+  const byLabel = new Map(
+    data.registrations
+      .filter((registration) =>
+        registrationMatchesFilters(registration, normalizedFilters, snapshot),
+      )
+      .map((registration) => [registration.labelName.toLowerCase(), registration]),
+  );
+  const registrations = rankedLabels.flatMap((label) => {
+    const registration = byLabel.get(label.toLowerCase());
+    return registration ? [registration] : [];
+  });
+  const seenLabels = new Set(registrations.map(({ labelName }) => labelName.toLowerCase()));
+  const fallbackRegistrations = fallbackSource.registrations.filter((registration) => {
+    const label = registration.labelName.toLowerCase();
+    if (seenLabels.has(label)) return false;
+    return registrationMatchesFilters(registration, normalizedFilters, snapshot);
+  });
+  const combined = [...registrations, ...fallbackRegistrations];
+  const page = combined.slice(offset, offset + pageSize);
+  const hasNextPage = offset + page.length < combined.length;
 
+  return {
+    names: page.map(toPremiumName),
+    pageInfo: {
+      asOf: snapshot.timestamp,
+      blockNumber: snapshot.blockNumber,
+      hasNextPage,
+      endCursor: hasNextPage ? String(offset + page.length) : null,
+    },
+  };
+}
+
+async function queryTrendingRegistrations(rankedLabels: string[], snapshot: Snapshot) {
   const { from, to } = getPremiumExpiryBounds(snapshot);
-  const data = await requestGraph<{ registrations: Registration[] }>({
+
+  return requestGraph<{ registrations: Registration[] }>({
     query: `
       query TrendingPremiumNames(
         $labels: [String!]!
@@ -334,29 +363,6 @@ export async function getTrendingPremiumNames({
       expiryTo: String(to),
     },
   });
-  const byLabel = new Map(
-    data.registrations
-      .filter((registration) =>
-        registrationMatchesFilters(registration, normalizedFilters, snapshot),
-      )
-      .map((registration) => [registration.labelName.toLowerCase(), registration]),
-  );
-  const registrations = rankedLabels.flatMap((label) => {
-    const registration = byLabel.get(label.toLowerCase());
-    return registration ? [registration] : [];
-  });
-  const page = registrations.slice(offset, offset + pageSize);
-  const hasNextPage = offset + page.length < registrations.length;
-
-  return {
-    names: page.map(toPremiumName),
-    pageInfo: {
-      asOf: snapshot.timestamp,
-      blockNumber: snapshot.blockNumber,
-      hasNextPage,
-      endCursor: hasNextPage ? String(offset + page.length) : null,
-    },
-  };
 }
 
 async function getSnapshot(): Promise<Snapshot> {
@@ -611,6 +617,17 @@ function validateTimestamp(value: number, field: string): void {
   if (!Number.isSafeInteger(value) || value < 1) {
     throw new RangeError(`${field} must be a positive Unix timestamp`);
   }
+}
+
+function parseTrendingOffset(after?: string | null) {
+  if (!after) return 0;
+
+  const offset = Number(after);
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > MAX_OFFSET) {
+    throw new TypeError("Invalid trending names cursor");
+  }
+
+  return offset;
 }
 
 function encodeCursor(cursor: Cursor): string {

@@ -6,11 +6,12 @@ import { unstable_cache } from "next/cache";
 import {
   getPremiumNames,
   getPremiumRegistrationSet,
+  getTrendingPremiumNames,
   type GetPremiumNamesProps,
   type PremiumRegistrationSet,
 } from "./get-premium-names";
 
-const getCachedPremiumRegistrationSet = unstable_cache(
+const getCachedCompressedPremiumRegistrationSet = unstable_cache(
   async () => {
     const source = await getPremiumRegistrationSet();
 
@@ -32,6 +33,21 @@ const getCachedPremiumNamesPage = unstable_cache(
 );
 
 export async function getCachedPremiumNames(properties: GetPremiumNamesProps) {
+  if (properties.sort === "trending") {
+    const [rankedLabels, fallbackSource] = await Promise.all([
+      getCachedTrendingLabels(),
+      readCachedPremiumRegistrationSet(),
+    ]);
+
+    return getTrendingPremiumNames({
+      rankedLabels,
+      fallbackSource,
+      limit: properties.limit ?? 24,
+      ...(properties.filters ? { filters: properties.filters } : {}),
+      ...(properties.after ? { after: properties.after } : {}),
+    });
+  }
+
   if (properties.sort === "shortest") {
     return getPremiumNames(properties, await readCachedPremiumRegistrationSet());
   }
@@ -40,7 +56,7 @@ export async function getCachedPremiumNames(properties: GetPremiumNamesProps) {
 }
 
 async function readCachedPremiumRegistrationSet(): Promise<PremiumRegistrationSet> {
-  const cached = await getCachedPremiumRegistrationSet();
+  const cached = await getCachedCompressedPremiumRegistrationSet();
 
   return {
     registrations: JSON.parse(
@@ -49,3 +65,12 @@ async function readCachedPremiumRegistrationSet(): Promise<PremiumRegistrationSe
     snapshot: cached.snapshot,
   };
 }
+
+const getCachedTrendingLabels = unstable_cache(
+  async () => {
+    const { getTrendingLabels } = await import("@/db/actions");
+    return (await getTrendingLabels()).map(({ label }) => label);
+  },
+  ["premium-names-trending-labels-v1"],
+  { revalidate: 300 },
+);
