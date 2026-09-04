@@ -264,7 +264,7 @@ async function queryRegistrationShard(snapshot: Snapshot, expiry: { from: number
       },
     });
 
-    registrations.push(...data.registrations);
+    registrations.push(...normalizeRegistrations(data.registrations));
     if (data.registrations.length < FULL_SET_PAGE_SIZE) return registrations;
 
     cursor = data.registrations.at(-1)?.id ?? "";
@@ -331,7 +331,7 @@ export async function getTrendingPremiumNames({
 async function queryTrendingRegistrations(rankedLabels: string[], snapshot: Snapshot) {
   const { from, to } = getPremiumExpiryBounds(snapshot);
 
-  return requestGraph<{ registrations: Registration[] }>({
+  const data = await requestGraph<{ registrations: Registration[] }>({
     query: `
       query TrendingPremiumNames(
         $labels: [String!]!
@@ -363,6 +363,8 @@ async function queryTrendingRegistrations(rankedLabels: string[], snapshot: Snap
       expiryTo: String(to),
     },
   });
+
+  return { registrations: normalizeRegistrations(data.registrations) };
 }
 
 async function getSnapshot(): Promise<Snapshot> {
@@ -458,7 +460,7 @@ async function queryRegistrations({
     },
   });
 
-  return data.registrations;
+  return normalizeRegistrations(data.registrations);
 }
 
 function getPremiumExpiryBounds(snapshot: Snapshot) {
@@ -510,6 +512,19 @@ function sortByShortest(registrations: Registration[]) {
     .map(({ registration }) => registration);
 }
 
+function normalizeRegistrations(registrations: Registration[]) {
+  return registrations.flatMap((registration) => {
+    try {
+      const normalizedName = normalize(`${registration.labelName}.eth`);
+      const labelName = normalizedName.slice(0, -4);
+
+      return labelName && !labelName.includes(".") ? [{ ...registration, labelName }] : [];
+    } catch {
+      return [];
+    }
+  });
+}
+
 function compareStrings(a: string, b: string) {
   return a < b ? -1 : a > b ? 1 : 0;
 }
@@ -548,16 +563,22 @@ async function requestGraph<T>({
 }
 
 function normalizeFilters(filters?: PremiumNamesFilters): NormalizedFilters {
-  const name = filters?.name
-    ? {
-        match: filters.name.match,
-        value: filters.name.value.trim().replace(/\.eth$/iu, ""),
-      }
-    : undefined;
+  let name: NormalizedFilters["name"];
 
-  if (name && !name.value) {
-    throw new TypeError("Name filter value cannot be empty");
+  if (filters?.name) {
+    const value = filters.name.value.trim().replace(/\.eth$/iu, "");
+    if (!value) throw new TypeError("Name filter value cannot be empty");
+
+    try {
+      name = {
+        match: filters.name.match,
+        value: normalize(`${value}.eth`).slice(0, -4),
+      };
+    } catch {
+      throw new TypeError("Name filter must be a valid ENS name");
+    }
   }
+
   if (name && !Object.hasOwn(NAME_FILTER_FIELDS, name.match)) {
     throw new TypeError("Invalid name filter match");
   }

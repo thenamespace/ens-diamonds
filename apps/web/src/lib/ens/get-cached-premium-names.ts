@@ -22,13 +22,13 @@ const getCachedCompressedPremiumRegistrationSet = unstable_cache(
       snapshot: source.snapshot,
     };
   },
-  ["premium-names-shortest-index-v4"],
+  ["premium-names-shortest-index-v5"],
   { revalidate: 300 },
 );
 
 const getCachedPremiumNamesPage = unstable_cache(
   async (properties: GetPremiumNamesProps) => getPremiumNames(properties),
-  ["premium-names-page-v5"],
+  ["premium-names-page-v6"],
   { revalidate: 300 },
 );
 

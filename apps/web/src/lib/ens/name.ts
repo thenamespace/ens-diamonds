@@ -12,3 +12,10 @@ export const getSecondLevelEthLabel = (name: string) => {
     return null;
   }
 };
+
+export const getNamePagePath = (nameOrLabel: string) => {
+  const name = nameOrLabel.toLowerCase().endsWith(".eth") ? nameOrLabel : `${nameOrLabel}.eth`;
+  const label = getSecondLevelEthLabel(name);
+
+  return label === null ? null : `/name/${encodeURIComponent(`${label}.eth`)}`;
+};

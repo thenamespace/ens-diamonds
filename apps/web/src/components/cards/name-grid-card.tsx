@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Card, Skeleton } from "@thenamespace/uikit";
 
 import { NameAvatar } from "@/components/common";
-import type { PremiumName } from "@/lib/ens";
+import { getNamePagePath, type PremiumName } from "@/lib/ens";
 
 import { FavouriteButton } from "./favourite-button";
 import { PremiumDecayMeter } from "./premium-decay";
@@ -18,13 +18,17 @@ type NameGridCardProps = {
 };
 
 export const NameGridCard = ({ name, price, ethUsd, isPricePending, now }: NameGridCardProps) => {
+  const namePath = getNamePagePath(name.label);
+
   return (
     <Card className="group relative h-full gap-0 bg-transparent p-0 shadow-none transition-[transform,filter] duration-200 filter-[drop-shadow(0_2px_6px_rgba(18,21,28,0.08))] hover:-translate-y-0.75 hover:filter-[drop-shadow(0_10px_14px_rgba(18,21,28,0.13))]">
-      <Link
-        aria-label={`View ${name.label}.eth`}
-        className="absolute inset-0 z-0 rounded-[inherit]"
-        href={`/name/${name.label}.eth`}
-      />
+      {namePath ? (
+        <Link
+          aria-label={`View ${name.label}.eth`}
+          className="absolute inset-0 z-0 rounded-[inherit]"
+          href={namePath}
+        />
+      ) : null}
       <div className="pointer-events-none relative z-[1] flex h-full flex-col">
         <div className="ticket-top flex flex-1 flex-col p-4">
           <div className="flex items-start justify-between gap-2.5">

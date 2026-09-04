@@ -4,8 +4,9 @@ import type { ComponentProps } from "react";
 import { useCallback, useState } from "react";
 
 import { Avatar } from "@thenamespace/uikit";
-import { normalize } from "viem/ens";
 import { useEnsAvatar } from "wagmi";
+
+import { getSecondLevelEthLabel } from "@/lib/ens";
 
 const FALLBACK_AVATAR_COUNT = 10;
 const FALLBACK_AVATAR_BASE_URL = "https://app.namespace.ninja/assets/avatars";
@@ -16,17 +17,18 @@ export interface NameAvatarProps extends Omit<ComponentProps<typeof Avatar>, "ch
 }
 
 export const NameAvatar = ({ label, resolveEnsAvatar = true, ...props }: NameAvatarProps) => {
-  const normalizedLabel = label.trim().replace(/\.eth$/iu, "");
-  const name = normalize(`${normalizedLabel}.eth`);
+  const inputLabel = label.trim().replace(/\.eth$/iu, "");
+  const normalizedLabel = getSecondLevelEthLabel(`${inputLabel}.eth`);
+  const name = normalizedLabel ? `${normalizedLabel}.eth` : undefined;
   const { data: ensAvatar } = useEnsAvatar({
     name,
     query: {
-      enabled: resolveEnsAvatar,
+      enabled: resolveEnsAvatar && name !== undefined,
       staleTime: 60 * 60_000,
       gcTime: 24 * 60 * 60_000,
     },
   });
-  const fallbackAvatar = getDeterministicAvatar(normalizedLabel);
+  const fallbackAvatar = getDeterministicAvatar(normalizedLabel ?? inputLabel);
   const [failedEnsAvatar, setFailedEnsAvatar] = useState<string | null>(null);
   const avatar = ensAvatar && ensAvatar !== failedEnsAvatar ? ensAvatar : fallbackAvatar;
 
@@ -38,7 +40,12 @@ export const NameAvatar = ({ label, resolveEnsAvatar = true, ...props }: NameAva
 
   return (
     <Avatar {...props}>
-      <Avatar.Image key={avatar} alt={`${name} avatar`} onError={handleAvatarError} src={avatar} />
+      <Avatar.Image
+        key={avatar}
+        alt={`${name ?? inputLabel} avatar`}
+        onError={handleAvatarError}
+        src={avatar}
+      />
       <Avatar.Fallback />
     </Avatar>
   );
