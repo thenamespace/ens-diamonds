@@ -4,7 +4,7 @@ import type { Metadata, Viewport } from "next";
 
 import { Providers } from "@/app/providers";
 import { auth } from "@/auth";
-import { AppFooter, AppNavbar, JsonLd } from "@/components";
+import { AppFooter, AppNavbar, Ensv2Notice, JsonLd } from "@/components";
 import { organizationJsonLd, SITE_URL, siteConfig, websiteJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
@@ -79,6 +79,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           >
             Skip to Content
           </a>
+          <Ensv2Notice />
           <AppNavbar />
           <div className="flex-1" id="main-content" tabIndex={-1}>
             {children}

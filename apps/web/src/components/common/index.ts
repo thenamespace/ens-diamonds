@@ -1,6 +1,7 @@
 export * from "./card-heading";
 export * from "./connect-button";
 export * from "./copy-button";
+export * from "./ensv2-notice";
 export * from "./eth-value";
 export * from "./footer";
 export * from "./json-ld";
